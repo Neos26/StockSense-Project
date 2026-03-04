@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="StockSense.shared/StockSense.shared.csproj" Id="420fb658-3dc2-41ac-9c86-9a30e7c5c628" />
   <Project Path="StockSense/StockSense.Client/StockSense.Client.csproj" />
   <Project Path="StockSense/StockSense/StockSense.csproj" />
 </Solution>

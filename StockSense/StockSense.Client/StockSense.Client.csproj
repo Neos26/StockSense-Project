@@ -15,4 +15,8 @@
     <PackageReference Include="MimeKit" Version="4.15.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\StockSense.shared\StockSense.shared.csproj" />
+  </ItemGroup>
+
 </Project>

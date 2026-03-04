@@ -27,10 +27,10 @@ namespace StockSense.Client
             }
 
             Claim[] claims = [
-                new Claim(ClaimTypes.NameIdentifier, userInfo.UserId),
-                new Claim(ClaimTypes.Name, userInfo.Email),
-                new Claim(ClaimTypes.Email, userInfo.Email),
-                new Claim(ClaimTypes.Role, userInfo.Role)];
+                new Claim(ClaimTypes.NameIdentifier, userInfo.UserId ?? "UnknownId"),
+                new Claim(ClaimTypes.Name, userInfo.Email ?? "UnknownUser"),
+                new Claim(ClaimTypes.Email, userInfo.Email ?? "Unknown@email.com")
+                ];
 
             authenticationStateTask = Task.FromResult(
                 new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(claims,
