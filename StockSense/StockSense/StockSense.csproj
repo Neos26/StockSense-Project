@@ -8,10 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Models\Appointment.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\StockSense.shared\StockSense.shared.csproj" />
     <ProjectReference Include="..\StockSense.Client\StockSense.Client.csproj" />
     <PackageReference Include="MailKit" Version="4.15.0" />
@@ -21,10 +17,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.23" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.23" />
     <PackageReference Include="MimeKit" Version="4.15.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Models\" />
   </ItemGroup>
 
 </Project>
