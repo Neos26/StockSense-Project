@@ -1,4 +1,5 @@
 ﻿@page "/Account/Login"
+@layout EmptyLayout
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
@@ -6,6 +7,8 @@
 @using StockSense.Data
 
 @inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
@@ -42,24 +45,11 @@
                     <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
                 </div>
                 <div>
-                    <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
-                    </p>
-                    <p>
-                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
-                    </p>
+                    <p><a href="Account/ForgotPassword">Forgot your password?</a></p>
+                    <p><a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a></p>
+                    <p><a href="Account/ResendEmailConfirmation">Resend email confirmation</a></p>
                 </div>
             </EditForm>
-        </section>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            <ExternalLoginPicker />
         </section>
     </div>
 </div>
@@ -80,31 +70,40 @@
     {
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
-            // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         }
     }
 
     public async Task LoginUser()
     {
-        // This doesn't count login failures towards account lockout
-        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
         var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
         if (result.Succeeded)
         {
-            Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
+            var user = await UserManager.FindByEmailAsync(Input.Email);
+            if (user == null) { errorMessage = "Error: Account not found."; return; }
+
+            // DEBUGGING: Log exactly what the system sees
+            var roles = await UserManager.GetRolesAsync(user);
+            Logger.LogInformation($"DEBUG: User {user.Email} has roles: {string.Join(", ", roles)}");
+
+            // LOGIC: Use IgnoreCase to prevent "Admin" vs "admin" mismatch
+            if (roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
+            {
+                RedirectManager.RedirectTo("/dashboard");
+            }
+            else if (roles.Any(r => r.Equals("Customer", StringComparison.OrdinalIgnoreCase)))
+            {
+                RedirectManager.RedirectTo("/appointments");
+            }
+            else
+            {
+                RedirectManager.RedirectTo(ReturnUrl ?? "/");
+            }
         }
         else if (result.RequiresTwoFactor)
         {
-            RedirectManager.RedirectTo(
-                "Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
-        }
-        else if (result.IsLockedOut)
-        {
-            Logger.LogWarning("User account locked out.");
-            RedirectManager.RedirectTo("Account/Lockout");
+            RedirectManager.RedirectTo("Account/LoginWith2fa", new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
         }
         else
         {
@@ -114,15 +113,8 @@
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = "";
-
-        [Required]
-        [DataType(DataType.Password)]
-        public string Password { get; set; } = "";
-
-        [Display(Name = "Remember me?")]
-        public bool RememberMe { get; set; }
+        [Required][EmailAddress] public string Email { get; set; } = "";
+        [Required][DataType(DataType.Password)] public string Password { get; set; } = "";
+        [Display(Name = "Remember me?")] public bool RememberMe { get; set; }
     }
 }
