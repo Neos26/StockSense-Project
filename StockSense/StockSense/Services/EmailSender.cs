@@ -29,7 +29,7 @@ using StockSense.Data;
             await SendEmailAsync(email, "Your reset code", $"Your code is: {resetCode}");
         }
 
-    private async Task SendEmailAsync(string toEmail, string subject, string body)
+    public async Task SendEmailAsync(string toEmail, string subject, string body)
     {
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("StockSense Support", "noreply@yourdomain.com"));

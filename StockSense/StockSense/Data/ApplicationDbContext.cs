@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using StockSense.Shared;
 
 namespace StockSense.Data
 {
@@ -7,5 +8,7 @@ namespace StockSense.Data
     {
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<StoreService> StoreServices { get; set; }
+        public DbSet<Product> Products { get; set; }
+        public DbSet<BuildRequest> BuildRequests { get; set; }
     }
 }

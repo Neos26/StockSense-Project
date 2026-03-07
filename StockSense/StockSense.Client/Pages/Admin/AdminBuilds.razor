@@ -1,0 +1,59 @@
+﻿@page "/admin/builds"
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+@using StockSense.Shared
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<div style="padding: 20px; color: white; background: #111; min-height: 100vh;">
+    <h2>Manage Custom Builds</h2>
+
+    @if (allBuilds == null)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <table style="width: 100%; border-collapse: collapse; background: #222;">
+            <thead style="background: #333;">
+                <tr>
+                    <th style="padding: 15px;">Customer</th>
+                    <th style="padding: 15px;">Parts</th>
+                    <th style="padding: 15px;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var build in allBuilds.Where(b => b.Status == "Pending" || b.Status == "Confirmed"))
+                {
+                    <tr style="border-bottom: 1px solid #444;">
+                        <td style="padding: 15px;">@build.CustomerName</td>
+                        <td style="padding: 15px; font-size: 0.9em; color: #aaa;">@build.SelectedPartsJson</td>
+                        <td style="padding: 15px;">
+                            <select value="@build.Status" @onchange="@(e => UpdateStatus(build, e.Value?.ToString() ?? "Pending"))"
+                                    style="background: #000; color: white; padding: 5px;">
+                                <option value="Pending">Pending</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<BuildRequest>? allBuilds;
+
+    protected override async Task OnInitializedAsync() => await LoadBuilds();
+
+    private async Task LoadBuilds() => allBuilds = await Http.GetFromJsonAsync<List<BuildRequest>>("api/builds/all");
+
+    private async Task UpdateStatus(BuildRequest build, string newStatus)
+    {
+        await Http.PutAsJsonAsync($"api/builds/{build.Id}/status", newStatus);
+        build.Status = newStatus;
+        StateHasChanged();
+    }
+}

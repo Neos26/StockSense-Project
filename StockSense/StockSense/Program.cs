@@ -38,6 +38,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.Requ
 
 //register the controllers
 builder.Services.AddTransient<IEmailSender<ApplicationUser>, EmailSender>();
+builder.Services.AddTransient<EmailSender>();
 builder.Services.AddControllers();
 
 

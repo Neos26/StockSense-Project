@@ -1,0 +1,227 @@
+﻿@page "/build"
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+@layout EmptyLayout
+@using StockSense.Shared
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div style="display: flex; height: calc(100vh - 60px); background-color: #000; color: white; overflow: hidden;">
+    @* --- LEFT SIDEBAR --- *@
+    <div style="width: 350px; background-color: #111; padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #333;">
+        <h2 style="color: #ff3e3e; margin-bottom: 20px; font-style: italic;">SAP SHOP</h2>
+
+        @* CATEGORY FILTERS *@
+        <div style="flex: 1; overflow-y: auto; margin-bottom: 20px;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">Select your parts</h3>
+            @foreach (var category in UniqueCategories)
+            {
+                <div style="margin-bottom: 10px;">
+                    <button @onclick="() => ToggleCategory(category)"
+                            style="width: 100%; text-align: left; background: #1a1a1a; border: none; color: white; padding: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-radius: 5px;">
+                        <span style="font-weight: bold;">@category</span>
+                        <span style="color: #666;">@(expandedCategory == category ? "▲" : "▼")</span>
+                    </button>
+                    @if (expandedCategory == category)
+                    {
+                        <div style="background: #111; padding: 10px; border-left: 2px solid #333;">
+                            <button @onclick="() => selectedBrand = null" style="display: block; width: 100%; text-align: left; background: none; border: none; color: @(selectedBrand == null ? "#ff3e3e" : "#aaa"); cursor: pointer; padding: 5px 0;">All Brands</button>
+                            @foreach (var brand in GetBrandsByCategory(category))
+                            {
+                                <button @onclick="() => selectedBrand = brand" style="display: block; width: 100%; text-align: left; background: none; border: none; color: @(selectedBrand == brand ? "white" : "#aaa"); cursor: pointer; padding: 5px 0;">@brand</button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        @* --- SUMMARY SECTION --- *@
+        <div style="background: #1a1a1a; padding: 20px; border-radius: 10px; border: 1px solid #333;">
+            <h3 style="margin-top: 0;">Your current build</h3>
+            <div style="max-height: 150px; overflow-y: auto; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                @if (!selectedParts.Any())
+                {
+                    <p style="color: #555; font-size: 0.9em;">Select parts to generate a quote or submit a build.</p>
+                }
+                else
+                {
+                    @foreach (var part in selectedParts)
+                    {
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9em; margin-bottom: 8px; align-items: center;">
+                            <div style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px;">@part.Name</div>
+                            <button @onclick="() => TogglePart(part)" style="background: none; border: none; color: #555; cursor: pointer;">✕</button>
+                        </div>
+                    }
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(statusMessage))
+            {
+                <div style="margin-bottom: 10px; padding: 10px; border-radius: 5px; background: @(isSuccess ? "#1b5e20" : "#b71c1c"); color: white; font-size: 0.9em;">@statusMessage</div>
+            }
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button @onclick="SendEmailQuote" disabled="@isProcessing" style="width: 100%; padding: 12px; background: #333; color: white; font-weight: bold; border: 1px solid #555; border-radius: 5px; cursor: pointer;">SEND QUOTE TO EMAIL</button>
+                <button @onclick="SubmitBuildToAdmin" disabled="@isProcessing" style="width: 100%; padding: 12px; background: #ff3e3e; color: white; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">SUBMIT BUILD TO SHOP</button>
+            </div>
+        </div>
+    </div>
+
+    @* --- RIGHT CONTENT --- *@
+    <div style="flex: 1; padding: 30px; overflow-y: auto;">
+        <h2 style="margin-bottom: 10px;">@(selectedBrand ?? "All") @expandedCategory</h2>
+        @if (products == null)
+        {
+            <p style="color: gray;">Loading products...</p>
+        }
+        else
+        {
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;">
+                @foreach (var product in FilteredProducts)
+                {
+                    bool isSelected = selectedParts.Any(p => p.Id == product.Id);
+                    <div @onclick="() => TogglePart(product)" style="cursor: pointer; background: #111; border: 2px solid @(isSelected ? "#ff3e3e" : "#333"); padding: 15px; border-radius: 8px;">
+                        <img src="@product.ImageUrl" style="width:100%; height:120px; object-fit:cover; background:#222;" />
+                        <h4 style="margin: 10px 0;">@product.Name</h4>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+    private List<Product>? products;
+    private List<Product> selectedParts = new();
+    private string expandedCategory = "Genuine Parts";
+    private string? selectedBrand = null;
+    private bool isProcessing = false;
+    private string statusMessage = "";
+    private bool isSuccess = false;
+
+    private IEnumerable<string> UniqueCategories => products?.Select(p => p.Category).Distinct() ?? Array.Empty<string>();
+    private IEnumerable<Product> FilteredProducts => products?.Where(p => (string.IsNullOrEmpty(expandedCategory) || p.Category == expandedCategory) && (string.IsNullOrEmpty(selectedBrand) || p.Brand == selectedBrand)) ?? Array.Empty<Product>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { products = await Http.GetFromJsonAsync<List<Product>>("api/products"); if (products != null && products.Any()) expandedCategory = products.First().Category; }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
+    }
+
+    private void ToggleCategory(string category) { expandedCategory = category; selectedBrand = null; }
+    private IEnumerable<string> GetBrandsByCategory(string category) => products?.Where(p => p.Category == category).Select(p => p.Brand).Distinct() ?? Array.Empty<string>();
+    private void TogglePart(Product product) { if (selectedParts.Any(p => p.Id == product.Id)) selectedParts.RemoveAll(p => p.Id == product.Id); else selectedParts.Add(product); }
+
+    private async Task SendEmailQuote()
+    {
+        // 1. Validate selection
+        if (!selectedParts.Any())
+        {
+            statusMessage = "Please select parts first.";
+            isSuccess = false;
+            return;
+        }
+
+        // 2. Check Login status (Same as SubmitBuildToAdmin)
+        var authState = await AuthStateTask!;
+        if (authState.User.Identity == null || !authState.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo($"/Account/Login?returnUrl={Uri.EscapeDataString(Nav.Uri)}", true);
+            return;
+        }
+
+        isProcessing = true;
+        statusMessage = "Sending email quote...";
+
+        try
+        {
+            var userEmail = authState.User.Identity.Name ?? "test@example.com";
+
+            // 3. Send the request to your ProductsController's "send-quote" endpoint
+            var response = await Http.PostAsJsonAsync("api/products/send-quote", new
+            {
+                UserEmail = userEmail,
+                ProductIds = selectedParts.Select(p => p.Id).ToList()
+            });
+
+            // 4. Handle response
+            if (response.IsSuccessStatusCode)
+            {
+                statusMessage = "Quote sent to your email!";
+                isSuccess = true;
+            }
+            else
+            {
+                statusMessage = "Failed to send email. Check server logs.";
+                isSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error: {ex.Message}";
+            isSuccess = false;
+        }
+        isProcessing = false;
+    }
+
+    private async Task SubmitBuildToAdmin()
+    {
+        // 1. Check if the user is logged in
+        var authState = await AuthStateTask!;
+
+        if (authState.User.Identity == null || !authState.User.Identity.IsAuthenticated)
+        {
+            // Redirect to Login, and remember where they were so we can bring them back
+            var returnUrl = Nav.Uri;
+            // NOTE: Check your project's login path. It is often "/login" or "/Identity/Account/Login"
+            Nav.NavigateTo($"/Account/Login?returnUrl={Uri.EscapeDataString(returnUrl)}", true);
+            return;
+        }
+
+        // 2. Validate selection
+        if (!selectedParts.Any())
+        {
+            statusMessage = "Please select parts first.";
+            isSuccess = false;
+            return;
+        }
+
+        isProcessing = true;
+        statusMessage = "Submitting to admin...";
+
+        try
+        {
+            var userName = authState.User.Identity.Name ?? "Guest";
+
+            var buildRequest = new BuildRequest
+            {
+                CustomerName = userName,
+                SelectedPartsJson = string.Join(", ", selectedParts.Select(p => p.Name)),
+                TotalPrice = selectedParts.Sum(p => p.Price),
+                Status = "Pending"
+            };
+
+            var response = await Http.PostAsJsonAsync("api/builds/submit", buildRequest);
+
+            if (response.IsSuccessStatusCode)
+            {
+                statusMessage = "Build submitted successfully!";
+                isSuccess = true;
+                selectedParts.Clear();
+            }
+            else
+            {
+                statusMessage = "Failed to submit build.";
+                isSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error: {ex.Message}";
+            isSuccess = false;
+        }
+        isProcessing = false;
+    }
+}
