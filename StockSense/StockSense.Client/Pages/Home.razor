@@ -1,0 +1,32 @@
+﻿@page "/"
+@layout EmptyLayout
+@inject NavigationManager NavigationManager
+
+<div class="dark-landing">
+    <div class="glow-container">
+        <div class="glow-swoop"></div>
+        <div class="glow-core"></div>
+    </div>
+
+    <main class="hero-content">
+        <h1 class="headline">
+            Turning your <br />
+            2-wheeled dreams <br />
+            into <span class="highlight">reality.</span>
+        </h1>
+
+        <p class="subheadline">Appoint your next visit today.</p>
+
+        <a href="/appointment" class="cta-button">Book now</a>
+    </main>
+</div>
+
+@code {
+    private string? currentUrl;
+
+    protected override void OnInitialized()
+    {
+        // Get the current URL so we can send it to the Logout endpoint
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    }
+}

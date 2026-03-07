@@ -92,7 +92,17 @@
             return;
         }
 
-        Logger.LogInformation("User created a new account with password.");
+        // --- NEW: Assign the role immediately ---
+        // Note: The role "Customer" must already exist in your AspNetRoles table.
+        var roleResult = await UserManager.AddToRoleAsync(user, "Customer");
+
+        if (!roleResult.Succeeded)
+        {
+            identityErrors = roleResult.Errors;
+            return;
+        }
+
+        Logger.LogInformation("User created a new account with password and role assigned.");
 
         var userId = await UserManager.GetUserIdAsync(user);
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);

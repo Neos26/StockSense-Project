@@ -1,0 +1,42 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+
+<nav class="navbar">
+    <div class="brand">
+        <span class="brand-text">SAP</span>
+        <span class="brand-text">SHOP</span>
+    </div>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/appointment">Appointment</a>
+        <a href="#">Build</a>
+
+        <AuthorizeView>
+            <Authorized>
+                <form action="Account/Logout" method="post">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                    <button type="submit" style="background:none; border:none; padding:0; color:inherit; cursor:pointer; font:inherit; text-decoration:underline;">
+                        Logout
+                    </button>
+                </form>
+            </Authorized>
+            <NotAuthorized>
+                <a href="/Account/Login">Login</a>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</nav>
+
+<main>
+    @Body
+</main>
+
+@code {
+    private string? currentUrl;
+
+    protected override void OnInitialized()
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    }
+}

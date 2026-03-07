@@ -1,6 +1,7 @@
 ﻿@page "/Account/Login"
 @layout EmptyLayout
 
+
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
@@ -14,6 +15,8 @@
 @inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Log in</PageTitle>
+
+
 
 <h1>Log in</h1>
 <div class="row">
@@ -92,10 +95,10 @@
             {
                 RedirectManager.RedirectTo("/dashboard");
             }
-            else if (roles.Any(r => r.Equals("Customer", StringComparison.OrdinalIgnoreCase)))
-            {
-                RedirectManager.RedirectTo("/appointments");
-            }
+            // else if (roles.Any(r => r.Equals("Customer", StringComparison.OrdinalIgnoreCase)))
+            // {
+            //     RedirectManager.RedirectTo("/");
+            // }
             else
             {
                 RedirectManager.RedirectTo(ReturnUrl ?? "/");
@@ -113,8 +116,11 @@
 
     private sealed class InputModel
     {
-        [Required][EmailAddress] public string Email { get; set; } = "";
-        [Required][DataType(DataType.Password)] public string Password { get; set; } = "";
+        [Required]
+        [EmailAddress] 
+        public string Email { get; set; } = "";
+        [Required]
+        [DataType(DataType.Password)] public string Password { get; set; } = "";
         [Display(Name = "Remember me?")] public bool RememberMe { get; set; }
     }
 }
