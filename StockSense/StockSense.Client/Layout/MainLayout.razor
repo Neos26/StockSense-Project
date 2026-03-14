@@ -1,4 +1,6 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@implements IDisposable
 
 <div class="min-h-screen" style="background-color: var(--background); color: var(--foreground); font-family: var(--font-sans);">
     <div class="flex">
@@ -10,7 +12,6 @@
             <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: flex-end;">
                 <a href="https://learn.microsoft.com/aspnet/core/" target="_blank" style="color: var(--muted-foreground); font-size: 0.875rem;">About</a>
             </div>
-    <main>
 
 
             <article style="padding: 1.5rem; flex: 1;">
