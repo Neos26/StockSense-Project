@@ -3,23 +3,36 @@
 
 <AuthorizeView Roles="Admin, Employee">
     <Authorized>
+        @* ---- ADMINS: Full width Body within MainLayout (Sidebar already exists in MainLayout) ---- *@
         <LayoutView Layout="@typeof(MainLayout)">
-            <div style="max-width: 640px; width: 100%;">
-                @Body
+            <div class="container pt-4">
+                <h2>Manage your account</h2>
+                <hr />
+                <div class="row">
+                    <div class="col-12">
+                        @Body
+                    </div>
+                </div>
             </div>
         </LayoutView>
     </Authorized>
     <NotAuthorized>
+        @* ---- REGULAR USERS: Dashboard style within EmptyLayout ---- *@
         <LayoutView Layout="@typeof(EmptyLayout)">
-            <div style="display: flex; flex: 1; height: 100%; overflow: hidden;">
-                <aside style="width: 14rem; flex-shrink: 0; border-right: 1px solid var(--border); background-color: var(--background); padding: var(--space-4) var(--space-2); overflow-y: auto;">
-                    <ManageNavMenu />
-                </aside>
-                <main style="flex: 1; overflow-y: auto; padding: var(--space-8);">
-                    <div style="max-width: 640px; width: 100%;">
+            <div class="container pt-4">
+                <h2>My Profile</h2>
+                <hr />
+                <div class="row">
+                    @* --- SIDEBAR MENU FOR USERS --- *@
+                    <div class="col-md-3">
+                        <ManageNavMenu />
+                    </div>
+
+                    @* --- CONTENT AREA --- *@
+                    <div class="col-md-9">
                         @Body
                     </div>
-                </main>
+                </div>
             </div>
         </LayoutView>
     </NotAuthorized>

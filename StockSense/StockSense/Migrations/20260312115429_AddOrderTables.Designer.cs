@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StockSense.Data;
 
 #nullable disable
+using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace StockSense.Migrations
 {
