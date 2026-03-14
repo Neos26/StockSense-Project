@@ -1,20 +1,26 @@
 ﻿@inherits LayoutComponentBase
-@inject NavigationManager NavigationManager
-@implements IDisposable
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu @rendermode="InteractiveWebAssembly" />
-    </div>
+<div class="min-h-screen" style="background-color: var(--background); color: var(--foreground); font-family: var(--font-sans);">
+    <div class="flex">
+        <aside style="width: 16rem; min-height: 100vh; background-color: var(--sidebar); border-right: 1px solid var(--sidebar-border);">
+            <NavMenu />
+        </aside>
 
+        <main class="flex-1 flex flex-col">
+            <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: flex-end;">
+                <a href="https://learn.microsoft.com/aspnet/core/" target="_blank" style="color: var(--muted-foreground); font-size: 0.875rem;">About</a>
+            </div>
     <main>
 
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
+            <article style="padding: 1.5rem; flex: 1;">
+                @Body
+            </article>
+        </main>
+    </div>
 </div>
+
+<BbPortalHost />
 
 <div id="blazor-error-ui">
     An unhandled error has occurred.
