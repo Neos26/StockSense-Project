@@ -1,5 +1,5 @@
-using BlazorBlueprint.Components;
 using BlazorBlueprint.Primitives.Extensions;
+using BlazorBlueprint.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using StockSense.Client;
