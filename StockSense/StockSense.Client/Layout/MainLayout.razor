@@ -1,23 +1,34 @@
 ﻿@inherits LayoutComponentBase
-@inject NavigationManager NavigationManager
 @implements IDisposable
+@inject NavigationManager NavigationManager
 
-<div class="min-h-screen" style="background-color: var(--background); color: var(--foreground); font-family: var(--font-sans);">
-    <div class="flex">
-        <aside style="width: 16rem; min-height: 100vh; background-color: var(--sidebar); border-right: 1px solid var(--sidebar-border);">
+<div style="display: flex; flex-direction: column; height: 100vh; background-color: var(--background); font-family: var(--font-sans);">
+
+    <header style="height: 3.5rem; flex-shrink: 0; border-bottom: 1px solid var(--border); background-color: var(--background); display: flex; align-items: center; padding: 0 var(--space-6); justify-content: space-between; z-index: 10;">
+        <a href="/Dashboard" style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--foreground); text-decoration: none;">StockSense</a>
+        <AuthorizeView>
+            <Authorized>
+                <form action="Account/Logout" method="post" style="margin: 0;">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="" />
+                    <button type="submit" style="padding: var(--space-2) var(--space-3); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--muted-foreground); background: none; border: none; cursor: pointer; font-family: var(--font-sans); transition: color 0.15s;">
+                        Sign out
+                    </button>
+                </form>
+            </Authorized>
+        </AuthorizeView>
+    </header>
+
+    <div style="display: flex; flex: 1; overflow: hidden;">
+
+        <aside style="width: 14rem; flex-shrink: 0; border-right: 1px solid var(--border); background-color: var(--background); overflow-y: auto;">
             <NavMenu />
         </aside>
 
-        <main class="flex-1 flex flex-col">
-            <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: flex-end;">
-                <a href="https://learn.microsoft.com/aspnet/core/" target="_blank" style="color: var(--muted-foreground); font-size: 0.875rem;">About</a>
-            </div>
-
-
-            <article style="padding: 1.5rem; flex: 1;">
-                @Body
-            </article>
+        <main>
+            @Body
         </main>
+
     </div>
 </div>
 
@@ -30,25 +41,18 @@
 </div>
 
 @code {
-    // Check if the current URL contains "Account/Manage"
-    private bool IsAccountManagePage =>
-        NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("Account/Manage", StringComparison.OrdinalIgnoreCase);
-
     protected override void OnInitialized()
     {
-        // Tell the layout to listen for URL changes so it can hide/show the bar dynamically
         NavigationManager.LocationChanged += OnLocationChanged;
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        // Re-evaluate the page and update the layout
         StateHasChanged();
     }
 
     public void Dispose()
     {
-        // Clean up the listener to prevent memory leaks
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }
