@@ -45,6 +45,11 @@ builder.Services.AddTransient<EmailSender>();
 builder.Services.AddControllers();
 builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, StockSense.Utility.Security.BCryptPasswordHasher>();
 builder.Services.AddAntiforgery();
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Required for Azure HTTPS
+});
 builder.Services.AddScoped<OrderSlipService>();
 builder.Services.AddBlazorBlueprintComponents();
 builder.Services.AddControllers()
