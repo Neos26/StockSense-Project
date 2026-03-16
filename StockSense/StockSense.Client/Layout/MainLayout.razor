@@ -1,36 +1,41 @@
 ﻿@inherits LayoutComponentBase
-@implements IDisposable
-@inject NavigationManager NavigationManager
+<BbSidebarProvider>
+    <BbSidebar>
+        <BbSidebarHeader>
+            <div style="padding: var(--space-2) var(--space-2);">
+                <a href="/Dashboard" style="display: flex; align-items: center; gap: var(--space-2); text-decoration: none; font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--foreground); padding: var(--space-2) var(--space-2); border-radius: var(--radius);">
+                    StockSense
+                </a>
+            </div>
+        </BbSidebarHeader>
 
-<div style="display: flex; flex-direction: column; height: 100vh; background-color: var(--background); font-family: var(--font-sans);">
+        <NavMenu />
 
-    <header style="height: 3.5rem; flex-shrink: 0; border-bottom: 1px solid var(--border); background-color: var(--background); display: flex; align-items: center; padding: 0 var(--space-6); justify-content: space-between; z-index: 10;">
-        <a href="/Dashboard" style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--foreground); text-decoration: none;">StockSense</a>
-        <AuthorizeView>
-            <Authorized>
-                <form action="Account/Logout" method="post" style="margin: 0;">
-                    <AntiforgeryToken />
-                    <input type="hidden" name="ReturnUrl" value="" />
-                    <button type="submit" style="padding: var(--space-2) var(--space-3); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--muted-foreground); background: none; border: none; cursor: pointer; font-family: var(--font-sans); transition: color 0.15s;">
-                        Sign out
-                    </button>
-                </form>
-            </Authorized>
-        </AuthorizeView>
-    </header>
+        <BbSidebarFooter>
+            <AuthorizeView>
+                <Authorized>
+                    <form action="Account/Logout" method="post" style="margin: 0; padding: var(--space-2);">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="ReturnUrl" value="" />
+                        <button type="submit" style="width: 100%; padding: var(--space-2) var(--space-3); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--muted-foreground); background: none; border: none; cursor: pointer; font-family: var(--font-sans); text-align: left;">
+                            Sign out
+                        </button>
+                    </form>
+                </Authorized>
+            </AuthorizeView>
+        </BbSidebarFooter>
+    </BbSidebar>
 
-    <div style="display: flex; flex: 1; overflow: hidden;">
+    <BbSidebarInset>
+        <header style="display: flex; height: 3.5rem; align-items: center; gap: var(--space-2); border-bottom: 1px solid var(--border); padding: 0 var(--space-4); position: sticky; top: 0; background-color: var(--background); z-index: 10;">
+            <BbSidebarTrigger />
+        </header>
 
-        <aside style="width: 14rem; flex-shrink: 0; border-right: 1px solid var(--border); background-color: var(--background); overflow-y: auto;">
-            <NavMenu />
-        </aside>
-
-        <main>
+        <main style="flex: 1; overflow-y: auto; padding: var(--space-8);">
             @Body
         </main>
-
-    </div>
-</div>
+    </BbSidebarInset>
+</BbSidebarProvider>
 
 <BbPortalHost />
 
@@ -39,20 +44,3 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
-
-@code {
-    protected override void OnInitialized()
-    {
-        NavigationManager.LocationChanged += OnLocationChanged;
-    }
-
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
-    {
-        StateHasChanged();
-    }
-
-    public void Dispose()
-    {
-        NavigationManager.LocationChanged -= OnLocationChanged;
-    }
-}
