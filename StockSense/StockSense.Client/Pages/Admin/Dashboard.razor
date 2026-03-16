@@ -7,66 +7,60 @@
 
 @attribute [Authorize(Roles = "Admin")]
 
-<PageTitle>StockSense Dashboard</PageTitle>
+<PageTitle>SapShop Admin Dashboard</PageTitle>
 
-@* --- FULL PAGE LOADING OVERLAY --- *@
+@* --- FULL PAGE LOADING OVERLAY (SapShop Branded) --- *@
 @if (isLoading)
 {
     <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-                    background: #f8f9fa; display: flex; flex-direction: column;
+                    background: #000; display: flex; flex-direction: column;
                     justify-content: center; align-items: center; z-index: 9999;">
 
-        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+        <div class="spinner-grow text-danger" role="status" style="width: 3rem; height: 3rem;"></div>
 
-        <h3 style="color: #212529; margin-top: 20px; font-family: 'Segoe UI', sans-serif; letter-spacing: 2px; font-weight: 300;">
-            STOCK<span style="font-weight: 700; color: #0d6efd;">SENSE</span>
+        <h3 style="color: white; margin-top: 20px; font-family: 'Segoe UI', sans-serif; letter-spacing: 3px; font-weight: 200;">
+            <span style="font-weight: 700; color: #d32f2f;">SAP</span>SHOP
         </h3>
-        <p class="text-muted small text-uppercase" style="letter-spacing: 1px;">Generating Analytics...</p>
+        <p style="color: #666; font-size: 0.8rem; text-transform: uppercase; margin-top: 10px; letter-spacing: 1px;">Generating Admin Analytics...</p>
     </div>
 }
 
-<div class="container-fluid mt-4 page-fade-in" style="display: @(isLoading ? "none" : "block")">
+<div class="page-fade-in" style="display: @(isLoading ? "none" : "block"); min-height: 100vh; background-color: #000; color: white; padding: 25px;">
+
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-dark mb-0"><i class="bi bi-speedometer2 me-2"></i>Admin Overview</h2>
-        <button class="btn btn-danger shadow-sm" @onclick='() => NavManager.NavigateTo("/admin/orderslips?orderAll=true")'>
-            <i class="bi bi-cart-check-fill me-1"></i> Order All Low Stock
+        <h2 style="color: #fff; font-style: italic; margin: 0;">SAP SHOP <span style="font-weight: 200; font-style: normal; font-size: 0.7em; color: #666;">ADMIN DASHBOARD</span></h2>
+        <button class="btn btn-danger shadow-sm" style="background-color: #ff3e3e; border: none; font-weight: bold; padding: 10px 20px;"
+                @onclick='() => NavManager.NavigateTo("/admin/orderslips?orderAll=true")'>
+            <i class="bi bi-cart-check-fill me-1"></i> ORDER ALL LOW STOCK
         </button>
     </div>
 
     @if (data != null)
     {
-        @* --- STAT CARDS --- *@
+        @* --- STAT CARDS (Dark Theme) --- *@
         <div class="row g-3 mb-4">
             <div class="col-md-3">
-                <div class="card border-0 shadow-sm bg-primary text-white h-100">
-                    <div class="card-body">
-                        <h6 class="text-uppercase small fw-bold opacity-75">Total Products</h6>
-                        <h2 class="mb-0">@data.TotalProducts</h2>
-                    </div>
+                <div style="background: #111; padding: 20px; border-radius: 10px; border: 1px solid #333;">
+                    <h6 style="color: #888; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; letter-spacing: 1px;">Total Products</h6>
+                    <h2 style="margin: 0; color: #fff;">@data.TotalProducts</h2>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card border-0 shadow-sm bg-danger text-white h-100">
-                    <div class="card-body">
-                        <h6 class="text-uppercase small fw-bold opacity-75">Critical Low Stock</h6>
-                        <h2 class="mb-0">@data.LowStockCount</h2>
-                    </div>
+                <div style="background: #111; padding: 20px; border-radius: 10px; border: 1px solid #ff3e3e;">
+                    <h6 style="color: #ff3e3e; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; letter-spacing: 1px;">Critical Low Stock</h6>
+                    <h2 style="margin: 0; color: #fff;">@data.LowStockCount</h2>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card border-0 shadow-sm bg-success text-white h-100">
-                    <div class="card-body">
-                        <h6 class="text-uppercase small fw-bold opacity-75">Inventory Value</h6>
-                        <h2 class="mb-0">₱@data.TotalValue.ToString("N0")</h2>
-                    </div>
+                <div style="background: #111; padding: 20px; border-radius: 10px; border: 1px solid #333;">
+                    <h6 style="color: #81c784; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; letter-spacing: 1px;">Inventory Value</h6>
+                    <h2 style="margin: 0; color: #fff;">₱@data.TotalValue.ToString("N0")</h2>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card border-0 shadow-sm bg-info text-white h-100">
-                    <div class="card-body">
-                        <h6 class="text-uppercase small fw-bold opacity-75">Open Orders</h6>
-                        <h2 class="mb-0">@data.PendingOrders</h2>
-                    </div>
+                <div style="background: #111; padding: 20px; border-radius: 10px; border: 1px solid #333;">
+                    <h6 style="color: #0dcedc; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; letter-spacing: 1px;">Open Orders</h6>
+                    <h2 style="margin: 0; color: #fff;">@data.PendingOrders</h2>
                 </div>
             </div>
         </div>
@@ -74,54 +68,54 @@
         @* --- STOCK ALERTS TABLE --- *@
         <div class="row">
             <div class="col-md-12">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white fw-bold py-3">
-                        <i class="bi bi-exclamation-triangle text-warning me-2"></i>Stock Alerts (Needs Ordering)
+                <div style="background: #111; border-radius: 12px; border: 1px solid #333; overflow: hidden;">
+                    <div style="padding: 20px; border-bottom: 1px solid #333; font-weight: bold; color: #ff3e3e;">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> CRITICAL STOCK ALERTS
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light small text-uppercase">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle mb-0" style="--bs-table-bg: transparent;">
+                            <thead style="background: #1a1a1a; font-size: 0.8rem; text-transform: uppercase; color: #666;">
+                                <tr>
+                                    <th style="padding: 15px; border-bottom: 1px solid #333;">Product Details</th>
+                                    <th style="border-bottom: 1px solid #333;">Category</th>
+                                    <th style="border-bottom: 1px solid #333;">Current Status</th>
+                                    <th class="text-center" style="border-bottom: 1px solid #333;">Quick Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!data.LowStockProducts.Any())
+                                {
                                     <tr>
-                                        <th>Product Details</th>
-                                        <th>Category</th>
-                                        <th>Status</th>
-                                        <th class="text-center">Quick Action</th>
+                                        <td colspan="4" class="text-center py-5" style="color: #444;">
+                                            <i class="bi bi-shield-check fs-1 d-block mb-2"></i>
+                                            Inventory levels are currently stable.
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    @if (!data.LowStockProducts.Any())
-                                    {
-                                        <tr>
-                                            <td colspan="4" class="text-center py-5 text-muted">
-                                                <i class="bi bi-check-circle fs-2 d-block mb-2 text-success"></i>
-                                                All stock levels are healthy.
-                                            </td>
-                                        </tr>
-                                    }
-                                    @foreach (var p in data.LowStockProducts)
-                                    {
-                                        <tr>
-                                            <td>
-                                                <div class="fw-bold">@p.Name</div>
-                                                <div class="small text-muted">@p.Brand</div>
-                                            </td>
-                                            <td><span class="badge bg-light text-dark border">@p.Category</span></td>
-                                            <td>
-                                                <span class="text-danger fw-bold">@p.CurrentStock</span>
-                                                <span class="text-muted small"> / @p.ReorderTarget target</span>
-                                            </td>
-                                            <td class="text-center">
-                                                <button class="btn btn-sm btn-primary px-3"
-                                                        @onclick='() => NavManager.NavigateTo($"/admin/orderslips?productId={p.Id}")'>
-                                                    Order Now
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
+                                }
+                                @foreach (var p in data.LowStockProducts)
+                                {
+                                    <tr style="border-bottom: 1px solid #222;">
+                                        <td style="padding: 15px;">
+                                            <div style="font-weight: bold; color: #fff;">@p.Name</div>
+                                            <div style="font-size: 0.85em; color: #666;">@p.Brand</div>
+                                        </td>
+                                        <td><span style="background: #222; color: #aaa; padding: 4px 10px; border-radius: 4px; font-size: 0.85em; border: 1px solid #333;">@p.Category</span></td>
+                                        <td>
+                                            <span style="color: #ff3e3e; font-weight: bold;">@p.CurrentStock</span>
+                                            <span style="color: #444; font-size: 0.85em;"> / @p.ReorderTarget target</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <button @onclick='() => NavManager.NavigateTo($"/admin/orderslips?productId={p.Id}")'
+                                                    style="background: transparent; border: 1px solid #ff3e3e; color: #ff3e3e; padding: 5px 15px; border-radius: 5px; font-weight: bold; transition: 0.3s;"
+                                                    onmouseover="this.style.background='#ff3e3e'; this.style.color='white';"
+                                                    onmouseout="this.style.background='transparent'; this.style.color='#ff3e3e';">
+                                                Order Now
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -143,6 +137,24 @@
             opacity: 1;
         }
     }
+
+    /* Custom Scrollbar for Dark Theme */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #111;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 10px;
+    }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
 </style>
 
 @code {
@@ -154,17 +166,15 @@
         try
         {
             isLoading = true;
-            // Fetch stats from API
             data = await Http.GetFromJsonAsync<DashboardDTO>("api/dashboard/stats");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"Dashboard Error: {ex.Message}");
         }
         finally
         {
-            // Small artificial delay for a smooth transition effect
-            await Task.Delay(300);
+            await Task.Delay(300); // For smooth transition
             isLoading = false;
         }
     }
