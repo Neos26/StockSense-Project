@@ -7,11 +7,25 @@
 
 @attribute [Authorize(Roles = "Admin")]
 
-
-
 <PageTitle>StockSense Dashboard</PageTitle>
 
-<div class="container-fluid mt-4">
+@* --- FULL PAGE LOADING OVERLAY --- *@
+@if (isLoading)
+{
+    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                    background: #f8f9fa; display: flex; flex-direction: column;
+                    justify-content: center; align-items: center; z-index: 9999;">
+
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+
+        <h3 style="color: #212529; margin-top: 20px; font-family: 'Segoe UI', sans-serif; letter-spacing: 2px; font-weight: 300;">
+            STOCK<span style="font-weight: 700; color: #0d6efd;">SENSE</span>
+        </h3>
+        <p class="text-muted small text-uppercase" style="letter-spacing: 1px;">Generating Analytics...</p>
+    </div>
+}
+
+<div class="container-fluid mt-4 page-fade-in" style="display: @(isLoading ? "none" : "block")">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="text-dark mb-0"><i class="bi bi-speedometer2 me-2"></i>Admin Overview</h2>
         <button class="btn btn-danger shadow-sm" @onclick='() => NavManager.NavigateTo("/admin/orderslips?orderAll=true")'>
@@ -19,87 +33,95 @@
         </button>
     </div>
 
-    @if (data == null)
+    @if (data != null)
     {
-        <div class="text-center mt-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">Loading Dashboard Data...</p>
-        </div>
-    }
-    else
-    {
+        @* --- STAT CARDS --- *@
         <div class="row g-3 mb-4">
             <div class="col-md-3">
-                <div class="card border-0 shadow-sm bg-primary text-white">
+                <div class="card border-0 shadow-sm bg-primary text-white h-100">
                     <div class="card-body">
-                        <h6 class="text-uppercase small fw-bold">Total Products</h6>
+                        <h6 class="text-uppercase small fw-bold opacity-75">Total Products</h6>
                         <h2 class="mb-0">@data.TotalProducts</h2>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card border-0 shadow-sm bg-danger text-white">
+                <div class="card border-0 shadow-sm bg-danger text-white h-100">
                     <div class="card-body">
-                        <h6 class="text-uppercase small fw-bold">Critical Low Stock</h6>
+                        <h6 class="text-uppercase small fw-bold opacity-75">Critical Low Stock</h6>
                         <h2 class="mb-0">@data.LowStockCount</h2>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card border-0 shadow-sm bg-success text-white">
+                <div class="card border-0 shadow-sm bg-success text-white h-100">
                     <div class="card-body">
-                        <h6 class="text-uppercase small fw-bold">Inventory Value</h6>
+                        <h6 class="text-uppercase small fw-bold opacity-75">Inventory Value</h6>
                         <h2 class="mb-0">₱@data.TotalValue.ToString("N0")</h2>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card border-0 shadow-sm bg-info text-white">
+                <div class="card border-0 shadow-sm bg-info text-white h-100">
                     <div class="card-body">
-                        <h6 class="text-uppercase small fw-bold">Open Orders</h6>
+                        <h6 class="text-uppercase small fw-bold opacity-75">Open Orders</h6>
                         <h2 class="mb-0">@data.PendingOrders</h2>
                     </div>
                 </div>
             </div>
         </div>
 
+        @* --- STOCK ALERTS TABLE --- *@
         <div class="row">
             <div class="col-md-12">
                 <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white fw-bold">Stock Alerts (Needs Ordering)</div>
+                    <div class="card-header bg-white fw-bold py-3">
+                        <i class="bi bi-exclamation-triangle text-warning me-2"></i>Stock Alerts (Needs Ordering)
+                    </div>
                     <div class="card-body p-0">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light small text-uppercase">
-                                <tr>
-                                    <th>Product Details</th>
-                                    <th>Category</th>
-                                    <th>Status</th>
-                                    <th class="text-center">Quick Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var p in data.LowStockProducts)
-                                {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small text-uppercase">
                                     <tr>
-                                        <td>
-                                            <div class="fw-bold">@p.Name</div>
-                                            <div class="small text-muted">@p.Brand</div>
-                                        </td>
-                                        <td><span class="badge bg-light text-dark border">@p.Category</span></td>
-                                        <td>
-                                            <span class="text-danger fw-bold">@p.CurrentStock</span>
-                                            <span class="text-muted small"> / @p.ReorderTarget target</span>
-                                        </td>
-                                        <td class="text-center">
-                                            <button class="btn btn-sm btn-primary px-3"
-                                                    @onclick='() => NavManager.NavigateTo($"/admin/orderslips?productId={p.Id}")'>
-                                                Order Now
-                                            </button>
-                                        </td>
+                                        <th>Product Details</th>
+                                        <th>Category</th>
+                                        <th>Status</th>
+                                        <th class="text-center">Quick Action</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @if (!data.LowStockProducts.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="text-center py-5 text-muted">
+                                                <i class="bi bi-check-circle fs-2 d-block mb-2 text-success"></i>
+                                                All stock levels are healthy.
+                                            </td>
+                                        </tr>
+                                    }
+                                    @foreach (var p in data.LowStockProducts)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="fw-bold">@p.Name</div>
+                                                <div class="small text-muted">@p.Brand</div>
+                                            </td>
+                                            <td><span class="badge bg-light text-dark border">@p.Category</span></td>
+                                            <td>
+                                                <span class="text-danger fw-bold">@p.CurrentStock</span>
+                                                <span class="text-muted small"> / @p.ReorderTarget target</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-primary px-3"
+                                                        @onclick='() => NavManager.NavigateTo($"/admin/orderslips?productId={p.Id}")'>
+                                                    Order Now
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -107,18 +129,43 @@
     }
 </div>
 
+<style>
+    .page-fade-in {
+        animation: fadeIn 0.4s ease-in;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+</style>
+
 @code {
     private DashboardDTO? data;
+    private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            isLoading = true;
+            // Fetch stats from API
             data = await Http.GetFromJsonAsync<DashboardDTO>("api/dashboard/stats");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            // Small artificial delay for a smooth transition effect
+            await Task.Delay(300);
+            isLoading = false;
         }
     }
 

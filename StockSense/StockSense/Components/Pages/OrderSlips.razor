@@ -1,4 +1,5 @@
 ﻿@page "/admin/orderslips"
+@using Microsoft.AspNetCore.Authorization
 @using StockSense.shared
 @using StockSense.Shared
 @using StockSense.Services
@@ -7,8 +8,11 @@
 @inject StockSense.Data.ApplicationDbContext Context
 @inject IJSRuntime JS
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
 
 <PageTitle>Order Slips</PageTitle>
+
+
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">

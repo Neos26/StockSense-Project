@@ -1,9 +1,12 @@
 ﻿@page "/admin/order-history"
 @using StockSense.shared
 @using StockSense.Services
+@using Microsoft.AspNetCore.Authorization
 @inject OrderSlipService OrderService
 @inject IJSRuntime JS
 @rendermode InteractiveServer
+
+@attribute [Authorize(Roles = "Admin")]
 
 <PageTitle>Order History & Receiving</PageTitle>
 

@@ -9,7 +9,23 @@
 
 @attribute [Authorize]
 
-<div style="display: flex; gap: 40px; color: white; background: #111; padding: 20px; font-family: 'Segoe UI', sans-serif; min-height: 100vh;">
+@if (isLoading)
+{
+    @* --- FULL PAGE LOADING OVERLAY --- *@
+    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                    background: #000; display: flex; flex-direction: column;
+                    justify-content: center; align-items: center; z-index: 9999;">
+
+        <div class="spinner-grow text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+
+        <h3 style="color: white; margin-top: 20px; font-family: 'Segoe UI', sans-serif; letter-spacing: 3px; font-weight: 200;">
+            STOCK<span style="font-weight: 700; color: #d32f2f;">SENSE</span>
+        </h3>
+        <p style="color: #666; font-size: 0.8rem; text-transform: uppercase; margin-top: 10px;">Syncing with Server...</p>
+    </div>
+}
+
+<div class="page-content" style="display: @(isLoading ? "none" : "flex"); gap: 40px; color: white; background: #111; padding: 20px; font-family: 'Segoe UI', sans-serif; min-height: 100vh;">
 
     @* --- LEFT SIDE: SELECTION --- *@
     <div style="flex: 2;">
@@ -34,11 +50,11 @@
 
                         <div @onclick="() => { if (!isBooked) SelectTimeSlot(time); }"
                              style="border: 1px solid @(newAppt.TimeSlot == time ? "white" : (isBooked ? "#222" : "#444"));
-                                            background: @(newAppt.TimeSlot == time ? "white" : (isBooked ? "#222" : "#111"));
-                                            color: @(newAppt.TimeSlot == time ? "black" : (isBooked ? "#555" : "white"));
-                                            text-decoration: @(isBooked ? "line-through" : "none");
-                                            cursor: @(isBooked ? "not-allowed" : "pointer");
-                                            padding: 8px; border-radius: 4px; text-align: center; flex: 1 1 calc(16% - 10px); min-width: 75px; font-size: 0.85em; transition: 0.2s;">
+                                        background: @(newAppt.TimeSlot == time ? "white" : (isBooked ? "#222" : "#111"));
+                                        color: @(newAppt.TimeSlot == time ? "black" : (isBooked ? "#555" : "white"));
+                                        text-decoration: @(isBooked ? "line-through" : "none");
+                                        cursor: @(isBooked ? "not-allowed" : "pointer");
+                                        padding: 8px; border-radius: 4px; text-align: center; flex: 1 1 calc(16% - 10px); min-width: 75px; font-size: 0.85em; transition: 0.2s;">
                             @time
                         </div>
                     }
@@ -48,7 +64,6 @@
 
         <h2 style="color: #fff; margin-bottom: 20px;">1. Select the services you want to avail</h2>
 
-        @* --- CATEGORY FILTER BAR (Kept for functionality) --- *@
         <div style="margin-bottom: 25px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
             <span style="color: #888; font-size: 0.9em; margin-right: 5px;">Filter:</span>
             <button @onclick='() => selectedCategory = "All"'
@@ -61,8 +76,8 @@
             {
                 <button @onclick="() => selectedCategory = cat"
                         style="padding: 6px 18px; border-radius: 20px; border: 1px solid #444;
-                                       background: @(selectedCategory == cat ? "white" : "#111");
-                                       color: @(selectedCategory == cat ? "black" : "white"); cursor: pointer; font-size: 0.85em; text-transform: capitalize; transition: 0.3s;">
+                                   background: @(selectedCategory == cat ? "white" : "#111");
+                                   color: @(selectedCategory == cat ? "black" : "white"); cursor: pointer; font-size: 0.85em; text-transform: capitalize; transition: 0.3s;">
                     @cat
                 </button>
             }
@@ -82,29 +97,21 @@
         }
 
         <div style="display: flex; flex-wrap: wrap; gap: 15px;">
-            @if (!availableServices.Any())
+            @foreach (var service in FilteredServices)
             {
-                <div style="color: gray; padding: 20px;">Loading services...</div>
-            }
-            else
-            {
-                @foreach (var service in FilteredServices)
-                {
-                    <div @onclick="() => ToggleService(service)"
-                         style="border: 2px solid @(service.IsSelected ? "#d32f2f" : "#333");
-                                                background: #222; padding: 15px; cursor: pointer; width: 220px; border-radius: 8px; transition: 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div @onclick="() => ToggleService(service)"
+                     style="border: 2px solid @(service.IsSelected ? "#d32f2f" : "#333");
+                                background: #222; padding: 15px; cursor: pointer; width: 220px; border-radius: 8px; transition: 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: space-between;">
 
-                        <div style="display: flex; justify-content: space-between; align-items: start;">
-                            @* --- CATEGORY REMOVED FROM HERE --- *@
-                            <strong style="font-size: 1.1em; color: white; width: 80%;">@service.Name</strong>
-                            <input type="checkbox" checked="@service.IsSelected" style="accent-color: #d32f2f; pointer-events: none;" />
-                        </div>
-
-                        <div style="color: #81c784; font-weight: bold; font-size: 1.1em;">
-                            ₱ @service.Price.ToString("N0")
-                        </div>
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <strong style="font-size: 1.1em; color: white; width: 80%;">@service.Name</strong>
+                        <input type="checkbox" checked="@service.IsSelected" style="accent-color: #d32f2f; pointer-events: none;" />
                     </div>
-                }
+
+                    <div style="color: #81c784; font-weight: bold; font-size: 1.1em;">
+                        ₱ @service.Price.ToString("N0")
+                    </div>
+                </div>
             }
         </div>
     </div>
@@ -156,7 +163,24 @@
 
 </div>
 
+<style>
+    .page-content {
+        animation: fadeIn 0.4s ease-in;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+</style>
+
 @code {
+    private bool isLoading = true;
     private Appointment newAppt = new() { AppointmentDate = DateTime.Now, TimeSlot = "" };
     private bool showSuccessMessage = false;
     private bool isProcessing = false;
@@ -195,9 +219,30 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await FetchBookedSlots();
-        await LoadUserProfile();
-        await LoadServices();
+        try
+        {
+            isLoading = true;
+
+            // Run all initialization tasks in parallel for better performance on Azure
+            var tasks = new List<Task> {
+                FetchBookedSlots(),
+                LoadUserProfile(),
+                LoadServices()
+            };
+
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during initialization: {ex.Message}");
+            errorMessage = "A connection error occurred. Please refresh the page.";
+        }
+        finally
+        {
+            // Small delay for smooth transition
+            await Task.Delay(200);
+            isLoading = false;
+        }
     }
 
     private async Task LoadUserProfile()

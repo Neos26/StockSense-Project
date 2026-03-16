@@ -2,9 +2,12 @@
 @using StockSense.shared
 @using StockSense.Services
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Authorization
 @inject StockSense.Data.ApplicationDbContext Context
 @inject TransactionService SaleService
 @rendermode InteractiveServer
+
+@attribute [Authorize(Roles = "Admin")]
 
 <div class="container-fluid mt-3">
     <div class="row">
