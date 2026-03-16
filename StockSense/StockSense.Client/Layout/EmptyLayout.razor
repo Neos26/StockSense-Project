@@ -1,47 +1,10 @@
 ﻿@inherits LayoutComponentBase
-@inject NavigationManager NavigationManager
 
-<nav class="navbar">
-    <div class="brand">
-        <span class="brand-text">SAP</span>
-        <span class="brand-text">SHOP</span>
-    </div>
-    <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/appointment">Appointment</a>
-        <a href="/build">Build</a>
+<div style="display: flex; flex-direction: column; height: 100vh;">
+    <NavBar />
+    <main style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+        @Body
+    </main>
+</div>
 
-        <AuthorizeView>
-            <Authorized>
-                @* 1. This link will ONLY show up when logged in! *@
-                <a href="/my-bookings">MyAppointments</a>
-                <a href="/Account/Manage">MyProfile</a>
-
-                @* 2. The Logout button right next to it *@
-                <form action="Account/Logout" method="post" style="display:inline;">
-                    <AntiforgeryToken />
-                    <input type="hidden" name="ReturnUrl" value="" />
-                    <button type="submit" style="background:none; border:none; padding:0; color:inherit; cursor:pointer; font:inherit; text-decoration:underline;">
-                        Logout
-                    </button>
-                </form>
-            </Authorized>
-            <NotAuthorized>
-                <a href="/Account/Login">Login</a>
-            </NotAuthorized>
-        </AuthorizeView>
-    </div>
-</nav>
-
-<main>
-    @Body
-</main>
-
-@code {
-    private string? currentUrl;
-
-    protected override void OnInitialized()
-    {
-        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-    }
-}
+<BbPortalHost />

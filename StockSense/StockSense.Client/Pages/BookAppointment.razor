@@ -34,11 +34,11 @@
 
                         <div @onclick="() => { if (!isBooked) SelectTimeSlot(time); }"
                              style="border: 1px solid @(newAppt.TimeSlot == time ? "white" : (isBooked ? "#222" : "#444"));
-                                        background: @(newAppt.TimeSlot == time ? "white" : (isBooked ? "#222" : "#111"));
-                                        color: @(newAppt.TimeSlot == time ? "black" : (isBooked ? "#555" : "white"));
-                                        text-decoration: @(isBooked ? "line-through" : "none");
-                                        cursor: @(isBooked ? "not-allowed" : "pointer");
-                                        padding: 8px; border-radius: 4px; text-align: center; flex: 1 1 calc(16% - 10px); min-width: 75px; font-size: 0.85em; transition: 0.2s;">
+                                            background: @(newAppt.TimeSlot == time ? "white" : (isBooked ? "#222" : "#111"));
+                                            color: @(newAppt.TimeSlot == time ? "black" : (isBooked ? "#555" : "white"));
+                                            text-decoration: @(isBooked ? "line-through" : "none");
+                                            cursor: @(isBooked ? "not-allowed" : "pointer");
+                                            padding: 8px; border-radius: 4px; text-align: center; flex: 1 1 calc(16% - 10px); min-width: 75px; font-size: 0.85em; transition: 0.2s;">
                             @time
                         </div>
                     }
@@ -61,8 +61,8 @@
             {
                 <button @onclick="() => selectedCategory = cat"
                         style="padding: 6px 18px; border-radius: 20px; border: 1px solid #444;
-                                   background: @(selectedCategory == cat ? "white" : "#111");
-                                   color: @(selectedCategory == cat ? "black" : "white"); cursor: pointer; font-size: 0.85em; text-transform: capitalize; transition: 0.3s;">
+                                       background: @(selectedCategory == cat ? "white" : "#111");
+                                       color: @(selectedCategory == cat ? "black" : "white"); cursor: pointer; font-size: 0.85em; text-transform: capitalize; transition: 0.3s;">
                     @cat
                 </button>
             }
@@ -92,7 +92,7 @@
                 {
                     <div @onclick="() => ToggleService(service)"
                          style="border: 2px solid @(service.IsSelected ? "#d32f2f" : "#333");
-                                        background: #222; padding: 15px; cursor: pointer; width: 220px; border-radius: 8px; transition: 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: space-between;">
+                                                background: #222; padding: 15px; cursor: pointer; width: 220px; border-radius: 8px; transition: 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: space-between;">
 
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             @* --- CATEGORY REMOVED FROM HERE --- *@

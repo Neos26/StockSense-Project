@@ -1,132 +1,98 @@
 ﻿@implements IDisposable
-@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager NavigationManager
+@rendermode InteractiveWebAssembly
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/Dashboard">StockSense</a>
-    </div>
-</div>
+<BbSidebarContent>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+    <BbSidebarGroup>
+        <BbSidebarGroupLabel>Main</BbSidebarGroupLabel>
+        <BbSidebarMenu>
+            <BbSidebarMenuItem>
+                <BbSidebarMenuButton IsActive="@IsActive("/Dashboard")" href="/Dashboard">
+                    Dashboard
+                </BbSidebarMenuButton>
+            </BbSidebarMenuItem>
+        </BbSidebarMenu>
+    </BbSidebarGroup>
 
-<div class="nav-scrollable">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/Dashboard" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/admin/pos">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> StockOUT
-            </NavLink>
-        </div>
+    <BbSidebarGroup>
+        <BbSidebarGroupLabel>Admin</BbSidebarGroupLabel>
+        <BbSidebarMenu>
+            <BbSidebarMenuItem>
+                <BbSidebarMenuButton IsActive="@IsActive("/admin/appointments")" href="/admin/appointments">
+                    Appointments
+                </BbSidebarMenuButton>
+            </BbSidebarMenuItem>
+            <BbSidebarMenuItem>
+                <BbSidebarMenuButton IsActive="@IsActive("/admin/builds")" href="/admin/builds">
+                    Builds
+                </BbSidebarMenuButton>
+            </BbSidebarMenuItem>
+        </BbSidebarMenu>
+    </BbSidebarGroup>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/admin/appointments">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Admin_Appointment
-            </NavLink>
-        </div>
+    <BbSidebarGroup>
+        <BbSidebarGroupLabel>Account</BbSidebarGroupLabel>
+        <BbSidebarMenu>
+            <BbSidebarMenuItem>
+                <BbCollapsible @bind-Open="profileOpen">
+                    <BbCollapsibleTrigger AsChild="true">
+                        <BbSidebarMenuButton>
+                            Profile
+                        </BbSidebarMenuButton>
+                    </BbCollapsibleTrigger>
+                    <BbCollapsibleContent>
+                        <BbSidebarMenuSub>
+                            <BbSidebarMenuSubItem>
+                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage")" href="Account/Manage">Profile</BbSidebarMenuSubButton>
+                            </BbSidebarMenuSubItem>
+                            <BbSidebarMenuSubItem>
+                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/Email")" href="Account/Manage/Email">Email</BbSidebarMenuSubButton>
+                            </BbSidebarMenuSubItem>
+                            <BbSidebarMenuSubItem>
+                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/ChangePassword")" href="Account/Manage/ChangePassword">Password</BbSidebarMenuSubButton>
+                            </BbSidebarMenuSubItem>
+                            <BbSidebarMenuSubItem>
+                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/TwoFactorAuthentication")" href="Account/Manage/TwoFactorAuthentication">Two-Factor Auth</BbSidebarMenuSubButton>
+                            </BbSidebarMenuSubItem>
+                            <BbSidebarMenuSubItem>
+                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/PersonalData")" href="Account/Manage/PersonalData">Personal Data</BbSidebarMenuSubButton>
+                            </BbSidebarMenuSubItem>
+                        </BbSidebarMenuSub>
+                    </BbCollapsibleContent>
+                </BbCollapsible>
+            </BbSidebarMenuItem>
+        </BbSidebarMenu>
+    </BbSidebarGroup>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/admin/builds">
-                <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Builds
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/admin/orderslips">
-                <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Order Slip
-            </NavLink>
-        </div>
-
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
-                    <button class="nav-link w-100 text-start border-0 bg-transparent" @onclick="ToggleProfileMenu">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span>
-                        @context.User.Identity?.Name
-                        <span class="bi @(collapseProfileMenu ? "bi-caret-down-fill" : "bi-caret-up-fill") ms-auto"></span>
-                    </button>
-                </div>
-
-                @if (!collapseProfileMenu)
-                {
-                    <div class="ps-4" style="border-left: 1px solid rgba(255,255,255,0.1); margin-left: 1.5rem;">
-                        <div class="nav-item px-3">
-                            @* Use Match="NavLinkMatch.All" to prevent this staying active on sub-pages *@
-                            <NavLink class="nav-link" href="Account/Manage" Match="NavLinkMatch.All">
-                                <span class="bi bi-person-vcard-nav-menu" aria-hidden="true"></span> Profile
-                            </NavLink>
-                        </div>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="Account/Manage/Email">
-                                <span class="bi bi-envelope-at-nav-menu" aria-hidden="true"></span> Email
-                            </NavLink>
-                        </div>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="Account/Manage/ChangePassword">
-                                <span class="bi bi-key-nav-menu" aria-hidden="true"></span> Password
-                            </NavLink>
-                        </div>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="Account/Manage/TwoFactorAuthentication">
-                                <span class="bi bi-patch-check-nav-menu" aria-hidden="true"></span> 2FA
-                            </NavLink>
-                        </div>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="Account/Manage/PersonalData">
-                                <span class="bi bi-file-earmark-person-nav-menu" aria-hidden="true"></span> Personal Data
-                            </NavLink>
-                        </div>
-                    </div>
-                }
-
-                <div class="nav-item px-3">
-                    <form action="Account/Logout" method="post">
-                        <AntiforgeryToken />
-                        <input type="hidden" name="ReturnUrl" value="" />
-                        <button type="submit" class="nav-link w-100 text-start bg-transparent border-0">
-                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
-                        </button>
-                    </form>
-                </div>
-            </Authorized>
-            <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
-                    </NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
-    </nav>
-</div>
+</BbSidebarContent>
 
 @code {
-    private bool collapseProfileMenu = true;
-
-    private void ToggleProfileMenu() => collapseProfileMenu = !collapseProfileMenu;
+    private bool profileOpen = false;
 
     protected override void OnInitialized()
     {
+        var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        profileOpen = path.StartsWith("Account/Manage", StringComparison.OrdinalIgnoreCase);
         NavigationManager.LocationChanged += OnLocationChanged;
-
-        // Auto-expand menu if user is already on a management page
-        var uri = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        if (uri.Contains("Account/Manage"))
-        {
-            collapseProfileMenu = false;
-        }
     }
 
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => StateHasChanged();
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        var path = NavigationManager.ToBaseRelativePath(e.Location);
+        profileOpen = path.StartsWith("Account/Manage", StringComparison.OrdinalIgnoreCase);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private bool IsActive(string path)
+    {
+        var current = "/" + NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        return path != "/" && current.StartsWith(path, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsExact(string path) =>
+        NavigationManager.ToBaseRelativePath(NavigationManager.Uri)
+            .Equals(path, StringComparison.OrdinalIgnoreCase);
 
     public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
 }

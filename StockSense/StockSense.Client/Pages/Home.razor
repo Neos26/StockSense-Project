@@ -1,24 +1,26 @@
 ﻿@page "/"
 @layout EmptyLayout
+@using BlazorBlueprint.Components
 @inject NavigationManager NavigationManager
 
-<div class="dark-landing">
-    <div class="glow-container">
-        <div class="glow-swoop"></div>
-        <div class="glow-core"></div>
-    </div>
+<div style="min-height: 100%; background-color: var(--background); display: flex; align-items: center; justify-content: center; font-family: var(--font-sans);">
+    <div style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-6); padding: var(--space-8);">
 
-    <main class="hero-content">
-        <h1 class="headline">
-            Turning your <br />
-            2-wheeled dreams <br />
-            into <span class="highlight">reality.</span>
+        <h1 style="font-size: clamp(2rem, 5vw, 3.5rem); font-weight: var(--font-extrabold); color: var(--foreground); line-height: 1.15; letter-spacing: -0.02em; margin: 0;">
+            Turning your<br />
+            2-wheeled dreams<br />
+            into <span style="color: var(--primary);">reality.</span>
         </h1>
 
-        <p class="subheadline">Appoint your next visit today.</p>
+        <p style="font-size: var(--text-lg); font-weight: var(--font-medium); color: var(--muted-foreground); margin: 0;">
+            Appoint your next visit today.
+        </p>
 
-        <a href="/appointment" class="cta-button">Book now</a>
-    </main>
+        <BbButton Href="/appointment" Size="ButtonSize.Large">
+            Book now
+        </BbButton>
+
+    </div>
 </div>
 
 @code {
@@ -26,7 +28,6 @@
 
     protected override void OnInitialized()
     {
-        // Get the current URL so we can send it to the Logout endpoint
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
     }
 }

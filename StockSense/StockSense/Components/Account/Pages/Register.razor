@@ -1,7 +1,5 @@
 ﻿@page "/Account/Register"
 
-@layout EmptyLayout
-
 @using System.ComponentModel.DataAnnotations
 @using System.Text
 @using System.Text.Encodings.Web
@@ -117,12 +115,15 @@
     {
         var user = CreateUser();
 
+        // --- Map inputs to the user object ---
         user.FirstName = Input.FirstName;
         user.LastName = Input.LastName;
 
         await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
         var emailStore = GetEmailStore();
         await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+
+        // 1. Create the user without assigning a role yet
         var result = await UserManager.CreateAsync(user, Input.Password);
 
         if (!result.Succeeded)
@@ -131,6 +132,7 @@
             return;
         }
 
+        Logger.LogInformation("User created a new account. Awaiting Admin approval.");
         var roleResult = await UserManager.AddToRoleAsync(user, "Customer");
 
         if (!roleResult.Succeeded)
@@ -157,8 +159,9 @@
                 new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
         }
 
-        await SignInManager.SignInAsync(user, isPersistent: false);
-        RedirectManager.RedirectTo(ReturnUrl);
+        // 2. IMPORTANT: We do NOT call SignInManager.SignInAsync here.
+        // Instead, we redirect them to a page explaining they need admin approval.
+        RedirectManager.RedirectTo("Account/AwaitingApproval");
     }
 
     private ApplicationUser CreateUser()

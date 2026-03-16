@@ -4,8 +4,11 @@
 @using StockSense.Shared
 @using System.Net.Http.Json
 @using System.Text.Json
+@using Microsoft.AspNetCore.Authorization
 @inject HttpClient Http
 @inject NavigationManager Nav
+
+@attribute [Authorize]
 
 <div style="display: flex; height: calc(100vh - 60px); background-color: #000; color: white; overflow: hidden;">
     @* --- LEFT SIDEBAR --- *@

@@ -1,9 +1,11 @@
 ﻿@page "/admin/appointments"
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
-
 @using StockSense.Shared
 @using System.Net.Http.Json
+@using Microsoft.AspNetCore.Authorization
 @inject HttpClient Http
+
+@attribute [Authorize(Roles = "Admin")]
 
 <div class="admin-container">
     <div class="header-section">

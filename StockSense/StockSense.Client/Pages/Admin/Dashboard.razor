@@ -1,8 +1,13 @@
 ﻿@page "/Dashboard"
 @using StockSense.Shared
+@using Microsoft.AspNetCore.Authorization
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+
+@attribute [Authorize(Roles = "Admin")]
+
+
 
 <PageTitle>StockSense Dashboard</PageTitle>
 
