@@ -71,6 +71,24 @@ else
     app.UseHsts();
 }
 
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        if (context.Database.GetPendingMigrations().Any())
+        {
+            context.Database.Migrate();
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Migration Error: " + ex.Message);
+    }
+}
+
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();

@@ -6,7 +6,6 @@
 @using StockSense.Data
 @using StockSense.Components.Account
 
-
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityUserAccessor UserAccessor
@@ -14,32 +13,51 @@
 
 <PageTitle>Profile</PageTitle>
 
-<h3>Profile</h3>
+<h1 style="font-size: var(--text-2xl); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-1) 0;">Profile</h1>
+<h2 style="font-size: var(--text-base); font-weight: var(--font-normal); color: var(--muted-foreground); margin: 0 0 var(--space-6) 0;">Update your display name and phone number.</h2>
+
+<div style="border-top: 1px solid var(--border); margin-bottom: var(--space-6);"></div>
+
 <StatusMessage />
 
-<div class="row">
-    <div class="col-md-6">
-        <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <input type="text" value="@username" class="form-control" placeholder="Please choose your username." disabled />
-                <label for="username" class="form-label">Username</label>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Please enter your phone number." />
-                <label for="phone-number" class="form-label">Phone number</label>
-                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
-        </EditForm>
+<EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+    <DataAnnotationsValidator />
+    <ValidationSummary style="margin-bottom: var(--space-6); color: var(--destructive); background-color: var(--destructive-muted); padding: var(--space-2); border: 1px solid var(--destructive-border); border-radius: var(--radius); font-size: var(--text-sm);" role="alert" />
+
+    <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+
+        <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+            <label style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">Username</label>
+            <input type="text" value="@username" disabled
+                   style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--muted); color: var(--muted-foreground); font-size: var(--input-font-size); box-sizing: border-box; cursor: not-allowed;" />
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+            <label style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">Role</label>
+            <input type="text" value="@userRole" disabled
+                   style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--muted); color: var(--muted-foreground); font-size: var(--input-font-size); box-sizing: border-box; cursor: not-allowed;" />
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+            <label style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">Phone number</label>
+            <InputText @bind-Value="Input.PhoneNumber"
+                       style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;" />
+            <ValidationMessage For="() => Input.PhoneNumber" style="font-size: var(--text-sm); color: var(--destructive);" />
+        </div>
+
+        <button type="submit"
+                style="width: 100%; padding: var(--btn-padding-y) var(--btn-padding-x); border-radius: var(--radius); background-color: var(--primary); color: var(--primary-foreground); font-size: var(--btn-font-size); font-weight: var(--btn-font-weight); border: none; cursor: pointer;">
+            Save
+        </button>
+
     </div>
-</div>
+</EditForm>
 
 @code {
     private ApplicationUser user = default!;
     private string? username;
     private string? phoneNumber;
+    private string? userRole;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -52,6 +70,9 @@
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
         username = await UserManager.GetUserNameAsync(user);
         phoneNumber = await UserManager.GetPhoneNumberAsync(user);
+
+        var roles = await UserManager.GetRolesAsync(user);
+        userRole = roles.FirstOrDefault() ?? "No role assigned";
 
         Input.PhoneNumber ??= phoneNumber;
     }

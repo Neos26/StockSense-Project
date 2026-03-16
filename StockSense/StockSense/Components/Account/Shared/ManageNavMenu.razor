@@ -1,31 +1,49 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @using StockSense.Data
-
 @inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+@rendermode InteractiveWebAssembly
 
-<ul class="nav nav-pills flex-column">
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage" Match="NavLinkMatch.All">Profile</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/Email">Email</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/ChangePassword">Password</NavLink>
-    </li>
-    @if (hasExternalLogins)
-    {
-        <li class="nav-item">
-            <NavLink class="nav-link" href="Account/Manage/ExternalLogins">External logins</NavLink>
-        </li>
-    }
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/TwoFactorAuthentication">Two-factor authentication</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/PersonalData">Personal data</NavLink>
-    </li>
-</ul>
+<BbSidebarContent>
+    <BbSidebarGroup>
+        <BbSidebarGroupLabel>Account</BbSidebarGroupLabel>
+        <BbSidebarMenu>
+            <BbSidebarMenuItem>
+                <BbSidebarMenuButton IsActive="@IsExact("Account/Manage")" href="Account/Manage">
+                    Profile
+                </BbSidebarMenuButton>
+            </BbSidebarMenuItem>
+            <BbSidebarMenuItem>
+                <BbSidebarMenuButton IsActive="@IsExact("Account/Manage/Email")" href="Account/Manage/Email">
+                    Email
+                </BbSidebarMenuButton>
+            </BbSidebarMenuItem>
+            <BbSidebarMenuItem>
+                <BbSidebarMenuButton IsActive="@IsExact("Account/Manage/ChangePassword")" href="Account/Manage/ChangePassword">
+                    Password
+                </BbSidebarMenuButton>
+            </BbSidebarMenuItem>
+            @if (hasExternalLogins)
+            {
+                <BbSidebarMenuItem>
+                    <BbSidebarMenuButton IsActive="@IsExact("Account/Manage/ExternalLogins")" href="Account/Manage/ExternalLogins">
+                        External Logins
+                    </BbSidebarMenuButton>
+                </BbSidebarMenuItem>
+            }
+            <BbSidebarMenuItem>
+                <BbSidebarMenuButton IsActive="@IsExact("Account/Manage/TwoFactorAuthentication")" href="Account/Manage/TwoFactorAuthentication">
+                    Two-Factor Auth
+                </BbSidebarMenuButton>
+            </BbSidebarMenuItem>
+            <BbSidebarMenuItem>
+                <BbSidebarMenuButton IsActive="@IsExact("Account/Manage/PersonalData")" href="Account/Manage/PersonalData">
+                    Personal Data
+                </BbSidebarMenuButton>
+            </BbSidebarMenuItem>
+        </BbSidebarMenu>
+    </BbSidebarGroup>
+</BbSidebarContent>
 
 @code {
     private bool hasExternalLogins;
@@ -34,4 +52,8 @@
     {
         hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
     }
+
+    private bool IsExact(string path) =>
+        NavigationManager.ToBaseRelativePath(NavigationManager.Uri)
+            .Equals(path, StringComparison.OrdinalIgnoreCase);
 }

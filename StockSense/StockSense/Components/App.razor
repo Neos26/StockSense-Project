@@ -1,13 +1,54 @@
-﻿<!DOCTYPE html>
+﻿﻿
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
+    <script>
+        (function () {
+            var intendedDark = localStorage.getItem('theme') === 'dark';
+
+            function applyTheme() {
+                intendedDark = localStorage.getItem('theme') === 'dark';
+                if (intendedDark) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            }
+
+            applyTheme();
+            document.addEventListener('blazor:navigated', applyTheme);
+
+            const observer = new MutationObserver(function () {
+                if (intendedDark && !document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.add('dark');
+                }
+            });
+
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+
+            window.setTheme = function (dark) {
+                intendedDark = dark;
+                localStorage.setItem('theme', dark ? 'dark' : 'light');
+                if (dark) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            };
+        })();
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
+
     <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="StockSense.styles.css" />
+    <link href="_content/BlazorBlueprint.Components/blazorblueprint.css" rel="stylesheet" />
+    <link rel="stylesheet" href="styles/theme.css" />  <!-- now correctly overrides ✅ -->
+
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet />
 </head>
@@ -15,16 +56,6 @@
 <body>
     <Routes />
     <script src="_framework/blazor.web.js"></script>
-    <script>
-        window.downloadFile = (fileName, base64String) => {
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = 'data:application/octet-stream;base64,' + base64String;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        };
-    </script>
 </body>
 
 </html>
