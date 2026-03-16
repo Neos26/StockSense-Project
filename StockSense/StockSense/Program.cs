@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using BlazorBlueprint.Components;
 
 using StockSense.Components;
 using StockSense.Components.Account;
@@ -18,6 +19,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
+builder.Services.AddLocalization();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -44,6 +46,7 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, StockSense.Utility.Security.BCryptPasswordHasher>();
 builder.Services.AddAntiforgery();
 builder.Services.AddScoped<OrderSlipService>();
+builder.Services.AddBlazorBlueprintComponents();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
