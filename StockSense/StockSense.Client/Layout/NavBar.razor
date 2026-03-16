@@ -4,7 +4,7 @@
 @inject IJSRuntime JSRuntime
 
 <header style="position: sticky; top: 0; z-index: 50; width: 100%; border-bottom: 1px solid var(--border); background-color: var(--background); backdrop-filter: blur(8px); box-sizing: border-box;">
-    <div class="header-wrapper" style="display: flex; height: 3.5rem; width: 100%; align-items: center; justify-content: space-between; box-sizing: border-box;">
+    <div class="header-wrapper" style="display: flex; height: 3.5rem; width: 100%; align-items: center; justify-content: space-between; box-sizing: border-box; padding: 0 1rem;">
 
         <div style="display: flex; align-items: center; gap: 1rem; min-width: 0;">
             <a href="/" style="text-decoration: none; flex-shrink: 0;">
@@ -14,7 +14,7 @@
                 </div>
             </a>
 
-            <nav class="navbar-desktop-nav" style="align-items: center; gap: 0.25rem;">
+            <nav class="navbar-desktop-nav" style="display: flex; align-items: center; gap: 0.25rem;">
                 <a href="/" class="navbar-btn" style="display: inline-flex; align-items: center; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; font-family: var(--font-sans); cursor: pointer; padding: 0.5rem 0.75rem; color: var(--foreground); background-color: @(IsActive("/") ? "var(--secondary)" : "transparent"); text-decoration: none; white-space: nowrap;">Home</a>
                 <a href="/appointment" class="navbar-btn" style="display: inline-flex; align-items: center; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; font-family: var(--font-sans); cursor: pointer; padding: 0.5rem 0.75rem; color: var(--foreground); background-color: @(IsActive("/appointment") ? "var(--secondary)" : "transparent"); text-decoration: none; white-space: nowrap;">Appointment</a>
                 <a href="/build" class="navbar-btn" style="display: inline-flex; align-items: center; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; font-family: var(--font-sans); cursor: pointer; padding: 0.5rem 0.75rem; color: var(--foreground); background-color: @(IsActive("/build") ? "var(--secondary)" : "transparent"); text-decoration: none; white-space: nowrap;">Build</a>
@@ -22,14 +22,15 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
-
-            <div class="navbar-desktop-nav" style="padding: var(--space-2) var(--space-3); align-items: center; gap: 0.5rem;">
+            <div class="navbar-desktop-nav" style="display: flex; align-items: center; gap: 0.5rem;">
                 <AuthorizeView>
                     <Authorized>
                         <a href="/Account/Manage" class="navbar-btn" style="display: inline-flex; align-items: center; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; font-family: var(--font-sans); cursor: pointer; padding: 0.5rem 0.75rem; color: var(--foreground); background-color: @(IsActive("/Account/Manage") ? "var(--secondary)" : "transparent"); text-decoration: none; white-space: nowrap;">Profile</a>
+
+                        @* --- UPDATED LOGOUT FORM --- *@
                         <form action="Account/Logout" method="post" style="margin: 0; display: inline-flex;">
                             <AntiforgeryToken />
-                            <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                            <input type="hidden" name="ReturnUrl" value="/" /> @* Static fallback to Home *@
                             <button type="submit" class="navbar-btn" style="display: inline-flex; align-items: center; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; font-family: var(--font-sans); cursor: pointer; padding: 0.5rem 0.75rem; color: var(--foreground); background-color: transparent; border: none; white-space: nowrap;">Logout</button>
                         </form>
                     </Authorized>
@@ -39,6 +40,7 @@
                 </AuthorizeView>
             </div>
 
+            @* Theme Toggle *@
             <button type="button" @onclick="ToggleTheme" class="navbar-btn" style="display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius); cursor: pointer; height: 2.25rem; width: 2.25rem; padding: 0; color: var(--foreground); background-color: transparent; border: none; flex-shrink: 0;">
                 @if (isDarkMode)
                 {
@@ -46,42 +48,47 @@
                 }
                 else
                 {
+
                     <LucideIcon Name="moon" Size="18" />
                 }
             </button>
 
-            <button type="button" @onclick="ToggleMobileMenu" class="navbar-mobile-trigger navbar-btn" style="align-items: center; justify-content: center; border-radius: var(--radius); cursor: pointer; height: 2.25rem; width: 2.25rem; padding: 0; color: var(--foreground); background-color: transparent; border: none; flex-shrink: 0;">
+            @* Mobile Menu Trigger *@
+            <button type="button" @onclick="ToggleMobileMenu" class="navbar-mobile-trigger navbar-btn" style="display: none; align-items: center; justify-content: center; border-radius: var(--radius); cursor: pointer; height: 2.25rem; width: 2.25rem; padding: 0; color: var(--foreground); background-color: transparent; border: none; flex-shrink: 0;">
                 @if (mobileMenuOpen)
                 {
                     <LucideIcon Name="x" Size="20" />
                 }
                 else
                 {
+
                     <LucideIcon Name="menu" Size="20" />
                 }
             </button>
-
         </div>
     </div>
 
+    @* --- MOBILE MENU --- *@
     @if (mobileMenuOpen)
     {
-        <div class="navbar-mobile-trigger" style="border-top: 1px solid var(--border); background-color: var(--background); padding: var(--space-3) var(--space-4); flex-direction: column; gap: var(--space-1);">
-            <a href="/" @onclick="CloseMobileMenu" style="display: block; padding: var(--space-2) var(--space-3); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground); text-decoration: none; background-color: @(IsActive("/") ? "var(--secondary)" : "transparent");">Home</a>
-            <a href="/appointment" @onclick="CloseMobileMenu" style="display: block; padding: var(--space-2) var(--space-3); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground); text-decoration: none; background-color: @(IsActive("/appointment") ? "var(--secondary)" : "transparent");">Appointment</a>
-            <a href="/build" @onclick="CloseMobileMenu" style="display: block; padding: var(--space-2) var(--space-3); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground); text-decoration: none; background-color: @(IsActive("/build") ? "var(--secondary)" : "transparent");">Build</a>
-            <div style="border-top: 1px solid var(--border); margin: var(--space-1) 0;"></div>
+        <div style="border-top: 1px solid var(--border); background-color: var(--background); padding: 1rem; display: flex; flex-direction: column; gap: 0.25rem;">
+            <a href="/" @onclick="CloseMobileMenu" style="display: block; padding: 0.5rem 0.75rem; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; color: var(--foreground); text-decoration: none; background-color: @(IsActive("/") ? "var(--secondary)" : "transparent");">Home</a>
+            <a href="/appointment" @onclick="CloseMobileMenu" style="display: block; padding: 0.5rem 0.75rem; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; color: var(--foreground); text-decoration: none; background-color: @(IsActive("/appointment") ? "var(--secondary)" : "transparent");">Appointment</a>
+            <a href="/build" @onclick="CloseMobileMenu" style="display: block; padding: 0.5rem 0.75rem; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; color: var(--foreground); text-decoration: none; background-color: @(IsActive("/build") ? "var(--secondary)" : "transparent");">Build</a>
+
+            <div style="border-top: 1px solid var(--border); margin: 0.5rem 0;"></div>
+
             <AuthorizeView>
                 <Authorized>
-                    <a href="/Account/Manage" @onclick="CloseMobileMenu" style="display: block; padding: var(--space-2) var(--space-3); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground); text-decoration: none;">Profile</a>
-                    <form action="Account/Logout" method="post" style="margin: 0;">
+                    <a href="/Account/Manage" @onclick="CloseMobileMenu" style="display: block; padding: 0.5rem 0.75rem; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; color: var(--foreground); text-decoration: none;">Profile</a>
+                    <form action="Account/Logout" method="post" style="margin: 0; width: 100%;">
                         <AntiforgeryToken />
-                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
-                        <button type="submit" style="width: 100%; padding: var(--space-2) var(--space-3); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground); background: none; border: none; cursor: pointer; font-family: var(--font-sans); text-align: left;">Logout</button>
+                        <input type="hidden" name="ReturnUrl" value="/" />
+                        <button type="submit" style="width: 100%; padding: 0.5rem 0.75rem; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; color: var(--foreground); background: none; border: none; cursor: pointer; font-family: var(--font-sans); text-align: left;">Logout</button>
                     </form>
                 </Authorized>
                 <NotAuthorized>
-                    <a href="/Account/Login" @onclick="CloseMobileMenu" style="display: block; padding: var(--space-2) var(--space-3); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground); text-decoration: none;">Login</a>
+                    <a href="/Account/Login" @onclick="CloseMobileMenu" style="display: block; padding: 0.5rem 0.75rem; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; color: var(--foreground); text-decoration: none;">Login</a>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
@@ -131,9 +138,11 @@
 
     private bool IsActive(string path)
     {
-        var currentPath = "/" + (currentUrl ?? "");
-        if (path == "/" && currentPath == "/") return true;
-        if (path != "/" && currentPath.StartsWith(path, StringComparison.OrdinalIgnoreCase)) return true;
+        var currentPath = "/" + (currentUrl ?? "").TrimEnd('/');
+        var targetPath = path.TrimEnd('/');
+
+        if (targetPath == "" && currentPath == "/") return true;
+        if (targetPath != "" && currentPath.Equals(targetPath, StringComparison.OrdinalIgnoreCase)) return true;
         return false;
     }
 
