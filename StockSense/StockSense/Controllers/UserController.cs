@@ -2,12 +2,14 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using StockSense.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace StockSense.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+
     public class UserController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
