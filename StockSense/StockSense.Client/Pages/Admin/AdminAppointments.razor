@@ -86,11 +86,11 @@
     </Authorized>
 
     <NotAuthorized>
-        @* Shown immediately if the Admin token expires or role is lost *@
-        <div style="height: 100vh; background: #121212; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: sans-serif;">
-            <div class="spinner-border text-danger" role="status" style="margin-bottom: 20px;"></div>
-            <h2 style="color: #d32f2f;">Admin Session Expired</h2>
-            <p style="color: #666;">Redirecting to security center...</p>
+        @* --- SHOWN IMMEDIATELY WHEN TOKEN EXPIRES --- *@
+        <div style="height: 100vh; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: 'Segoe UI', sans-serif;">
+            <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;"></div>
+            <h2 style="margin-top: 20px; color: #d32f2f; font-weight: 700; letter-spacing: 2px;">ADMIN SESSION EXPIRED</h2>
+            <p style="color: #666;">Protecting business data... Redirecting to Home.</p>
         </div>
     </NotAuthorized>
 </AuthorizeView>
@@ -118,10 +118,10 @@
         {
             var response = await Http.GetAsync("api/appointments/all");
 
-            // SECURITY CHECK: Handle expired token on initial load
+            // --- SECURITY CHECK ---
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                Nav.NavigateTo("/session-expired");
+                Nav.NavigateTo("/", forceLoad: true);
                 return;
             }
 
@@ -142,10 +142,10 @@
         {
             var response = await Http.PutAsJsonAsync($"api/appointments/{appt.Id}/status", newStatus);
 
-            // SECURITY CHECK: Handle expired token during status update
+            // --- SECURITY CHECK ---
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                Nav.NavigateTo("/session-expired");
+                Nav.NavigateTo("/", forceLoad: true);
                 return;
             }
 
@@ -175,7 +175,7 @@
 }
 
 <style>
-    /* ... (All your existing CSS styles remain exactly the same) ... */
+    /* MAIN LAYOUT */
     .admin-container {
         padding: 30px;
         background-color: #121212;
@@ -230,6 +230,11 @@
         font-size: 0.95rem;
         transition: all 0.2s ease;
     }
+
+        .tab-btn:hover {
+            background: #252525;
+            color: #ddd;
+        }
 
         .tab-btn.active {
             background: #333;

@@ -7,7 +7,7 @@ namespace StockSense.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
