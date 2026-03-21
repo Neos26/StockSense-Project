@@ -1,80 +1,124 @@
 ﻿@implements IDisposable
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Net
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject HttpClient Http
 @rendermode InteractiveWebAssembly
 
-<BbSidebarContent>
+<AuthorizeView>
+    <Authorized>
+        <BbSidebarContent>
 
-    <BbSidebarGroup>
-        <BbSidebarGroupLabel>Main</BbSidebarGroupLabel>
-        <BbSidebarMenu>
-            <BbSidebarMenuItem>
-                <BbSidebarMenuButton IsActive="@IsActive("/Dashboard")" href="/Dashboard">
-                    Dashboard
-                </BbSidebarMenuButton>
-            </BbSidebarMenuItem>
-        </BbSidebarMenu>
-    </BbSidebarGroup>
-
-    <BbSidebarGroup>
-        <BbSidebarGroupLabel>Admin</BbSidebarGroupLabel>
-        <BbSidebarMenu>
-            <BbSidebarMenuItem>
-                <BbSidebarMenuButton IsActive="@IsActive("/admin/appointments")" href="/admin/appointments">
-                    Appointments
-                </BbSidebarMenuButton>
-            </BbSidebarMenuItem>
-            <BbSidebarMenuItem>
-                <BbSidebarMenuButton IsActive="@IsActive("/admin/builds")" href="/admin/builds">
-                    Builds
-                </BbSidebarMenuButton>
-            </BbSidebarMenuItem>
-        </BbSidebarMenu>
-    </BbSidebarGroup>
-
-    <BbSidebarGroup>
-        <BbSidebarGroupLabel>Account</BbSidebarGroupLabel>
-        <BbSidebarMenu>
-            <BbSidebarMenuItem>
-                <BbCollapsible @bind-Open="profileOpen">
-                    <BbCollapsibleTrigger AsChild="true">
-                        <BbSidebarMenuButton>
-                            Profile
+            <BbSidebarGroup>
+                <BbSidebarGroupLabel>Main</BbSidebarGroupLabel>
+                <BbSidebarMenu>
+                    <BbSidebarMenuItem>
+                        <BbSidebarMenuButton IsActive="@IsActive("/Dashboard")" href="/Dashboard">
+                            Dashboard
                         </BbSidebarMenuButton>
-                    </BbCollapsibleTrigger>
-                    <BbCollapsibleContent>
-                        <BbSidebarMenuSub>
-                            <BbSidebarMenuSubItem>
-                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage")" href="Account/Manage">Profile</BbSidebarMenuSubButton>
-                            </BbSidebarMenuSubItem>
-                            <BbSidebarMenuSubItem>
-                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/Email")" href="Account/Manage/Email">Email</BbSidebarMenuSubButton>
-                            </BbSidebarMenuSubItem>
-                            <BbSidebarMenuSubItem>
-                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/ChangePassword")" href="Account/Manage/ChangePassword">Password</BbSidebarMenuSubButton>
-                            </BbSidebarMenuSubItem>
-                            <BbSidebarMenuSubItem>
-                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/TwoFactorAuthentication")" href="Account/Manage/TwoFactorAuthentication">Two-Factor Auth</BbSidebarMenuSubButton>
-                            </BbSidebarMenuSubItem>
-                            <BbSidebarMenuSubItem>
-                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/PersonalData")" href="Account/Manage/PersonalData">Personal Data</BbSidebarMenuSubButton>
-                            </BbSidebarMenuSubItem>
-                        </BbSidebarMenuSub>
-                    </BbCollapsibleContent>
-                </BbCollapsible>
-            </BbSidebarMenuItem>
-        </BbSidebarMenu>
-    </BbSidebarGroup>
+                    </BbSidebarMenuItem>
+                </BbSidebarMenu>
+            </BbSidebarGroup>
 
-</BbSidebarContent>
+            @* --- ROLE PROTECTED ADMIN SECTION --- *@
+            <AuthorizeView Roles="Admin">
+                <BbSidebarGroup>
+                    <BbSidebarGroupLabel>Admin Management</BbSidebarGroupLabel>
+                    <BbSidebarMenu>
+                        <BbSidebarMenuItem>
+                            <BbSidebarMenuButton IsActive="@IsActive("/admin/appointments")" href="/admin/appointments">
+                                Appointments
+                            </BbSidebarMenuButton>
+                        </BbSidebarMenuItem>
+                        <BbSidebarMenuItem>
+                            <BbSidebarMenuButton IsActive="@IsActive("/admin/builds")" href="/admin/builds">
+                                Builds
+                            </BbSidebarMenuButton>
+                        </BbSidebarMenuItem>
+                    </BbSidebarMenu>
+                </BbSidebarGroup>
+            </AuthorizeView>
+
+            <BbSidebarGroup>
+                <BbSidebarGroupLabel>Account</BbSidebarGroupLabel>
+                <BbSidebarMenu>
+                    <BbSidebarMenuItem>
+                        <BbCollapsible @bind-Open="profileOpen">
+                            <BbCollapsibleTrigger AsChild="true">
+                                <BbSidebarMenuButton>
+                                    Profile
+                                </BbSidebarMenuButton>
+                            </BbCollapsibleTrigger>
+                            <BbCollapsibleContent>
+                                <BbSidebarMenuSub>
+                                    <BbSidebarMenuSubItem>
+                                        <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage")" href="Account/Manage">Profile</BbSidebarMenuSubButton>
+                                    </BbSidebarMenuSubItem>
+                                    <BbSidebarMenuSubItem>
+                                        <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/Email")" href="Account/Manage/Email">Email</BbSidebarMenuSubButton>
+                                    </BbSidebarMenuSubItem>
+                                    <BbSidebarMenuSubItem>
+                                        <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/ChangePassword")" href="Account/Manage/ChangePassword">Password</BbSidebarMenuSubButton>
+                                    </BbSidebarMenuSubItem>
+                                    <BbSidebarMenuSubItem>
+                                        <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/TwoFactorAuthentication")" href="Account/Manage/TwoFactorAuthentication">2FA</BbSidebarMenuSubButton>
+                                    </BbSidebarMenuSubItem>
+                                </BbSidebarMenuSub>
+                            </BbCollapsibleContent>
+                        </BbCollapsible>
+                    </BbSidebarMenuItem>
+                </BbSidebarMenu>
+            </BbSidebarGroup>
+
+        </BbSidebarContent>
+    </Authorized>
+</AuthorizeView>
 
 @code {
     private bool profileOpen = false;
+    private System.Threading.Timer? sessionCheckTimer;
 
     protected override void OnInitialized()
     {
         var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         profileOpen = path.StartsWith("Account/Manage", StringComparison.OrdinalIgnoreCase);
         NavigationManager.LocationChanged += OnLocationChanged;
+
+        // --- START HEARTBEAT ---
+        // Checks every 10 seconds if the session is still alive
+        sessionCheckTimer = new System.Threading.Timer(async _ =>
+        {
+            await CheckSession();
+        }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+    }
+
+    private async Task CheckSession()
+    {
+        try
+        {
+            // Pings a simple endpoint. If the cookie is expired, the server sends 401.
+            var response = await Http.GetAsync("api/user/profile");
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                await HandleLogout();
+            }
+        }
+        catch
+        {
+            // If the server is unreachable, we don't necessarily want to kick them,
+            // but we could if strict security is required.
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        // Stop the timer
+        sessionCheckTimer?.Dispose();
+
+        // Redirect to Home with a force reload to clear all cached data
+        NavigationManager.NavigateTo("/", forceLoad: true);
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -94,5 +138,9 @@
         NavigationManager.ToBaseRelativePath(NavigationManager.Uri)
             .Equals(path, StringComparison.OrdinalIgnoreCase);
 
-    public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+        sessionCheckTimer?.Dispose();
+    }
 }
