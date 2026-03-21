@@ -4,199 +4,210 @@
 @using StockSense.Shared
 @using StockSense.Services
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
 @inject OrderSlipService OrderService
 @inject StockSense.Data.ApplicationDbContext Context
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 @rendermode InteractiveServer
+
 @attribute [Authorize(Roles = "Admin")]
 
 <PageTitle>Order Slips</PageTitle>
 
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <div class="container mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Suggested Order Slips</h2>
+                <div class="d-flex gap-2">
+                    @* --- MANUAL ORDER BUTTON --- *@
+                    <button class="btn btn-success shadow-sm" @onclick="() => isManualSelecting = true">
+                        <i class="bi bi-plus-circle"></i> Create New Order
+                    </button>
 
-
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Suggested Order Slips</h2>
-        <div class="d-flex gap-2">
-            @* --- ADDED: MANUAL ORDER BUTTON --- *@
-            <button class="btn btn-success shadow-sm" @onclick="() => isManualSelecting = true">
-                <i class="bi bi-plus-circle"></i> Create New Order
-            </button>
-
-            <a href="/admin/order-history" class="btn btn-outline-primary">
-                <i class="bi bi-clock-history"></i> View History
-            </a>
-            <button class="btn btn-primary shadow-sm" @onclick="GenerateSlips" disabled="@isLoading">
-                @if (isLoading)
-                {
-                    <span class="spinner-border spinner-border-sm me-2"></span>
-                }
-                AI Analysis (Scan All)
-            </button>
-        </div>
-    </div>
-
-    @* --- ADDED: SUPPLIER SELECTION FOR MANUAL ORDER --- *@
-    @if (isManualSelecting)
-    {
-        <div class="card mb-4 border-success shadow-sm">
-            <div class="card-body">
-                <h5 class="text-success fw-bold"><i class="bi bi-truck me-2"></i>Select Supplier for New Order</h5>
-                <div class="input-group">
-                    <select class="form-select" @bind="selectedSupplierIdForManual">
-                        <option value="0">-- Choose Supplier --</option>
-                        @foreach (var s in allSuppliers)
+                    <a href="/admin/order-history" class="btn btn-outline-primary">
+                        <i class="bi bi-clock-history"></i> View History
+                    </a>
+                    <button class="btn btn-primary shadow-sm" @onclick="GenerateSlips" disabled="@isLoading">
+                        @if (isLoading)
                         {
-                            <option value="@s.Id">@s.Name</option>
+                            <span class="spinner-border spinner-border-sm me-2"></span>
                         }
-                    </select>
-                    <button class="btn btn-success" @onclick="StartManualOrder">Create Empty Slip</button>
-                    <button class="btn btn-outline-secondary" @onclick="() => isManualSelecting = false">Cancel</button>
-                </div>
-            </div>
-        </div>
-    }
-
-    @if (slips == null || !slips.Any())
-    {
-        <div class="alert alert-info border-0 shadow-sm p-4 text-center">
-            <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
-            No active order slips. Click AI Analysis or use the Dashboard to generate suggestions.
-        </div>
-    }
-    else
-    {
-        @foreach (var slip in slips)
-        {
-            <div class="card mb-5 shadow-sm border-primary">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-0">Supplier: @slip.Supplier?.Name</h5>
-                        <small class="opacity-75">Draft: @slip.SlipNumber</small>
-                    </div>
-                    @* --- ADDED: REMOVE ENTIRE SLIP BUTTON --- *@
-                    <button class="btn btn-sm btn-light text-danger" @onclick="() => slips.Remove(slip)">
-                        <i class="bi bi-trash"></i> Cancel Slip
+                        AI Analysis (Scan All)
                     </button>
                 </div>
-                <div class="card-body bg-light">
+            </div>
 
-                    @* --- MANUAL ENTRY SECTION --- *@
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-5">
-                            <div class="p-3 border rounded bg-white h-100 shadow-sm">
-                                <label class="form-label fw-bold small text-muted">Add Existing Item</label>
-                                <div class="input-group">
-                                    <select class="form-select form-select-sm" @bind="selectedProductId">
-                                        <option value="0">-- Select Product --</option>
-                                        @foreach (var p in allProducts.Where(x => x.SupplierId == slip.SupplierId))
-                                        {
-                                            <option value="@p.Id">@p.Name (@p.Brand)</option>
-                                        }
-                                    </select>
-                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ManuallyAddItem(slip)">Add</button>
-                                </div>
-                            </div>
+            @* --- SUPPLIER SELECTION FOR MANUAL ORDER --- *@
+            @if (isManualSelecting)
+            {
+                <div class="card mb-4 border-success shadow-sm">
+                    <div class="card-body">
+                        <h5 class="text-success fw-bold"><i class="bi bi-truck me-2"></i>Select Supplier for New Order</h5>
+                        <div class="input-group">
+                            <select class="form-select" @bind="selectedSupplierIdForManual">
+                                <option value="0">-- Choose Supplier --</option>
+                                @foreach (var s in allSuppliers)
+                                {
+                                    <option value="@s.Id">@s.Name</option>
+                                }
+                            </select>
+                            <button class="btn btn-success" @onclick="StartManualOrder">Create Empty Slip</button>
+                            <button class="btn btn-outline-secondary" @onclick="() => isManualSelecting = false">Cancel</button>
                         </div>
-
-                        <div class="col-md-7">
-                            <div class="p-3 border rounded bg-white h-100 border-info shadow-sm">
-                                <label class="form-label fw-bold small text-info">Order New Arrival / New Version</label>
-                                <div class="row g-2">
-                                    <div class="col-4">
-                                        <input type="text" class="form-control form-control-sm" placeholder="Name" @bind="newProductName" />
-                                    </div>
-                                    <div class="col-3">
-                                        <select class="form-select form-select-sm" @bind="newProductBrand">
-                                            <option value="">-- Brand --</option>
-                                            @foreach (var brand in distinctBrands)
-                                            {
-                                                <option value="@brand">@brand</option>
-                                            }
-                                        </select>
-                                    </div>
-                                    <div class="col-3">
-                                        <select class="form-select form-select-sm" @bind="newProductCategory">
-                                            <option value="">-- Category --</option>
-                                            @foreach (var cat in distinctCategories)
-                                            {
-                                                <option value="@cat">@cat</option>
-                                            }
-                                        </select>
-                                    </div>
-                                    <div class="col-2 text-end">
-                                        <button class="btn btn-sm btn-info text-white w-100" @onclick="() => AddNewUnlistedItem(slip)">ADD</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    @* --- TABLE --- *@
-                    <table class="table table-bordered bg-white align-middle shadow-sm mb-0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Product Details</th>
-                                <th class="text-center">Stock</th>
-                                <th class="text-center">Target</th>
-                                <th class="text-center" style="width: 150px;">Order Qty</th>
-                                <th class="text-center" style="width: 50px;"></th> @* ADDED: DELETE COLUMN *@
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in slip.Items)
-                            {
-                                var isNewItem = !allProducts.Any(p => p.Name == item.ProductName && p.Brand == item.Brand);
-                                <tr>
-                                    <td>
-                                        <strong>@item.ProductName</strong>
-                                        @if (isNewItem)
-                                        {
-                                            <span class="badge bg-info ms-1">New Arrival</span>
-                                        }
-                                        <br /><small class="text-muted">Brand: @item.Brand | @item.Category</small>
-                                    </td>
-                                    <td class="text-center">@item.CurrentStock</td>
-                                    <td class="text-center text-muted">@item.ReorderTarget</td>
-                                    <td><input type="number" class="form-control form-control-sm text-center fw-bold border-primary" @bind="item.Quantity" min="1" /></td>
-                                    @* --- ADDED: REMOVE ITEM BUTTON --- *@
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-danger border-0" @onclick="() => slip.Items.Remove(item)">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                            @if (!slip.Items.Any())
-                            {
-                                <tr>
-                                    <td colspan="5" class="text-center p-4 text-muted">
-                                        No items added to this slip. Add items using the section above.
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-
-                    @* --- ACTION SECTION (MOVED TO BOTTOM) --- *@
-                    <div class="d-flex justify-content-end gap-2 mt-4">
-                        <button class="btn btn-outline-dark" @onclick="() => DownloadPdf(slip)">
-                            <i class="bi bi-file-earmark-pdf"></i> Preview PDF
-                        </button>
-
-                        <button class="btn btn-primary px-4 shadow-sm" @onclick="() => SendEmailAndSave(slip)" disabled="@(isSaving || !slip.Items.Any())">
-                            @if (isSaving)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2"></span>
-                            }
-                            <i class="bi bi-envelope-check me-1"></i> Email Supplier & Move to History
-                        </button>
                     </div>
                 </div>
-            </div>
-        }
-    }
-</div>
+            }
+
+            @if (slips == null || !slips.Any())
+            {
+                <div class="alert alert-info border-0 shadow-sm p-4 text-center">
+                    <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                    No active order slips. Click AI Analysis or use the Dashboard to generate suggestions.
+                </div>
+            }
+            else
+            {
+                @foreach (var slip in slips)
+                {
+                    <div class="card mb-5 shadow-sm border-primary">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0">Supplier: @slip.Supplier?.Name</h5>
+                                <small class="opacity-75">Draft: @slip.SlipNumber</small>
+                            </div>
+                            <button class="btn btn-sm btn-light text-danger" @onclick="() => slips.Remove(slip)">
+                                <i class="bi bi-trash"></i> Cancel Slip
+                            </button>
+                        </div>
+                        <div class="card-body bg-light">
+
+                            @* --- MANUAL ENTRY SECTION --- *@
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-5">
+                                    <div class="p-3 border rounded bg-white h-100 shadow-sm">
+                                        <label class="form-label fw-bold small text-muted">Add Existing Item</label>
+                                        <div class="input-group">
+                                            <select class="form-select form-select-sm" @bind="selectedProductId">
+                                                <option value="0">-- Select Product --</option>
+                                                @foreach (var p in allProducts.Where(x => x.SupplierId == slip.SupplierId))
+                                                {
+                                                    <option value="@p.Id">@p.Name (@p.Brand)</option>
+                                                }
+                                            </select>
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => ManuallyAddItem(slip)">Add</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-7">
+                                    <div class="p-3 border rounded bg-white h-100 border-info shadow-sm">
+                                        <label class="form-label fw-bold small text-info">Order New Arrival / New Version</label>
+                                        <div class="row g-2">
+                                            <div class="col-4">
+                                                <input type="text" class="form-control form-control-sm" placeholder="Name" @bind="newProductName" />
+                                            </div>
+                                            <div class="col-3">
+                                                <select class="form-select form-select-sm" @bind="newProductBrand">
+                                                    <option value="">-- Brand --</option>
+                                                    @foreach (var brand in distinctBrands)
+                                                    {
+                                                        <option value="@brand">@brand</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-3">
+                                                <select class="form-select form-select-sm" @bind="newProductCategory">
+                                                    <option value="">-- Category --</option>
+                                                    @foreach (var cat in distinctCategories)
+                                                    {
+                                                        <option value="@cat">@cat</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-2 text-end">
+                                                <button class="btn btn-sm btn-info text-white w-100" @onclick="() => AddNewUnlistedItem(slip)">ADD</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @* --- TABLE --- *@
+                            <table class="table table-bordered bg-white align-middle shadow-sm mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Product Details</th>
+                                        <th class="text-center">Stock</th>
+                                        <th class="text-center">Target</th>
+                                        <th class="text-center" style="width: 150px;">Order Qty</th>
+                                        <th class="text-center" style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in slip.Items)
+                                    {
+                                        var isNewItem = !allProducts.Any(p => p.Name == item.ProductName && p.Brand == item.Brand);
+                                        <tr>
+                                            <td>
+                                                <strong>@item.ProductName</strong>
+                                                @if (isNewItem)
+                                                {
+                                                    <span class="badge bg-info ms-1">New Arrival</span>
+                                                }
+                                                <br /><small class="text-muted">Brand: @item.Brand | @item.Category</small>
+                                            </td>
+                                            <td class="text-center">@item.CurrentStock</td>
+                                            <td class="text-center text-muted">@item.ReorderTarget</td>
+                                            <td><input type="number" class="form-control form-control-sm text-center fw-bold border-primary" @bind="item.Quantity" min="1" /></td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-outline-danger border-0" @onclick="() => slip.Items.Remove(item)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                    @if (!slip.Items.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="5" class="text-center p-4 text-muted">
+                                                No items added to this slip. Add items using the section above.
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+
+                            @* --- ACTION SECTION --- *@
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <button class="btn btn-outline-dark" @onclick="() => DownloadPdf(slip)">
+                                    <i class="bi bi-file-earmark-pdf"></i> Preview PDF
+                                </button>
+
+                                <button class="btn btn-primary px-4 shadow-sm" @onclick="() => SendEmailAndSave(slip)" disabled="@(isSaving || !slip.Items.Any())">
+                                    @if (isSaving)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    <i class="bi bi-envelope-check me-1"></i> Email Supplier & Move to History
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </Authorized>
+
+    <NotAuthorized>
+        <div style="height: 100vh; background: #f8f9fa; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: sans-serif;">
+            <div class="spinner-border text-danger" role="status" style="margin-bottom: 20px;"></div>
+            <h2 style="color: #dc3545;">Admin Session Expired</h2>
+            <p style="color: #6c757d;">Securing supplier data... Redirecting.</p>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     [Parameter, SupplyParameterFromQuery] public int? productId { get; set; }
@@ -204,25 +215,32 @@
 
     private List<OrderSlip>? slips = new();
     private List<Product> allProducts = new();
-    private List<Supplier> allSuppliers = new(); // ADDED
+    private List<Supplier> allSuppliers = new();
     private List<string> distinctBrands = new();
     private List<string> distinctCategories = new();
 
     private int selectedProductId;
-    private int selectedSupplierIdForManual; // ADDED
-    private bool isManualSelecting; // ADDED
+    private int selectedSupplierIdForManual;
+    private bool isManualSelecting;
     private string newProductName = "", newProductBrand = "", newProductCategory = "";
     private bool isLoading, isSaving;
 
     protected override async Task OnInitializedAsync()
     {
-        allProducts = await Context.Products.AsNoTracking().ToListAsync();
-        allSuppliers = await Context.Suppliers.AsNoTracking().ToListAsync(); // ADDED
-        distinctBrands = allProducts.Select(p => p.Brand).Where(b => !string.IsNullOrEmpty(b)).Distinct().OrderBy(b => b).ToList();
-        distinctCategories = allProducts.Select(p => p.Category).Where(c => !string.IsNullOrEmpty(c)).Distinct().OrderBy(c => c).ToList();
+        try
+        {
+            allProducts = await Context.Products.AsNoTracking().ToListAsync();
+            allSuppliers = await Context.Suppliers.AsNoTracking().ToListAsync();
+            distinctBrands = allProducts.Select(p => p.Brand).Where(b => !string.IsNullOrEmpty(b)).Distinct().OrderBy(b => b).ToList();
+            distinctCategories = allProducts.Select(p => p.Category).Where(c => !string.IsNullOrEmpty(c)).Distinct().OrderBy(c => c).ToList();
 
-        if (orderAll == true) { await GenerateSlips(); }
-        else if (productId > 0) { slips = await OrderService.GenerateSingleProductSlipAsync(productId.Value); }
+            if (orderAll == true) { await GenerateSlips(); }
+            else if (productId > 0) { slips = await OrderService.GenerateSingleProductSlipAsync(productId.Value); }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Auth or Data Error: " + ex.Message);
+        }
     }
 
     private async Task GenerateSlips()
@@ -232,7 +250,6 @@
         isLoading = false;
     }
 
-    // --- ADDED: MANUAL ORDER LOGIC ---
     private void StartManualOrder()
     {
         if (selectedSupplierIdForManual == 0) return;
@@ -251,7 +268,7 @@
         };
 
         slips ??= new List<OrderSlip>();
-        slips.Insert(0, newSlip); // Add to the top of the list
+        slips.Insert(0, newSlip);
         isManualSelecting = false;
         selectedSupplierIdForManual = 0;
     }
@@ -275,15 +292,20 @@
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", "Email Error: " + ex.Message);
+            await JS.InvokeVoidAsync("alert", "Session may have expired or Email Error: " + ex.Message);
+            // If it's a 401, the AuthorizeView will kick in automatically on the next UI update
         }
         finally { isSaving = false; }
     }
 
     private async Task DownloadPdf(OrderSlip slip)
     {
-        var bytes = await OrderService.GeneratePdfBytesAsync(slip);
-        await JS.InvokeVoidAsync("downloadFile", $"Preview_{slip.SlipNumber}.pdf", Convert.ToBase64String(bytes));
+        try
+        {
+            var bytes = await OrderService.GeneratePdfBytesAsync(slip);
+            await JS.InvokeVoidAsync("downloadFile", $"Preview_{slip.SlipNumber}.pdf", Convert.ToBase64String(bytes));
+        }
+        catch { /* AuthView will handle the logout */ }
     }
 
     private void ManuallyAddItem(OrderSlip slip)
