@@ -28,6 +28,31 @@ builder.Services.AddAuthentication(options =>
 })
     .AddIdentityCookies();
 
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.ExpireTimeSpan = TimeSpan.FromSeconds(5);
+    options.SlidingExpiration = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+
+    // --- ADD THIS PART TO STOP THE REDIRECT ---
+    options.Events.OnRedirectToLogin = context =>
+    {
+        // Check if the request is an API call (like your appointments)
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            // Instead of redirecting to /Account/Login, send a 401
+            context.Response.StatusCode = 401;
+        }
+        else
+        {
+            // Regular page navigation can still redirect
+            context.Response.Redirect(context.RedirectUri);
+        }
+        return Task.CompletedTask;
+    };
+});
+
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));

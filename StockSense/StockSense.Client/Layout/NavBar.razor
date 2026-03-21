@@ -2,6 +2,10 @@
 @implements IDisposable
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
 
 <header style="position: sticky; top: 0; z-index: 50; width: 100%; border-bottom: 1px solid var(--border); background-color: var(--background); backdrop-filter: blur(8px); box-sizing: border-box;">
     <div class="header-wrapper" style="display: flex; height: 3.5rem; width: 100%; align-items: center; justify-content: space-between; box-sizing: border-box;">
@@ -22,11 +26,11 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
-
             <div class="navbar-desktop-nav" style="padding: var(--space-2) var(--space-3); align-items: center; gap: 0.5rem;">
                 <AuthorizeView>
                     <Authorized>
                         <a href="/Account/Manage" class="navbar-btn" style="display: inline-flex; align-items: center; border-radius: var(--radius); font-size: 0.875rem; font-weight: 500; font-family: var(--font-sans); cursor: pointer; padding: 0.5rem 0.75rem; color: var(--foreground); background-color: @(IsActive("/Account/Manage") ? "var(--secondary)" : "transparent"); text-decoration: none; white-space: nowrap;">Profile</a>
+
                         <form action="Account/Logout" method="post" style="margin: 0; display: inline-flex;">
                             <AntiforgeryToken />
                             <input type="hidden" name="ReturnUrl" value="@currentUrl" />
@@ -89,14 +93,82 @@
 </header>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
     private string? currentUrl;
     private bool isDarkMode = false;
     private bool mobileMenuOpen = false;
+    private CancellationTokenSource _cts = new();
 
     protected override void OnInitialized()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
+
+        // Start the heartbeat only if we are in the browser (not during server prerender)
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Create("WEBASSEMBLY")))
+        {
+            _ = StartHeartbeat();
+        }
+    }
+
+    private async Task StartHeartbeat()
+    {
+        while (!_cts.IsCancellationRequested)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(10), _cts.Token); // Check every 10s for testing
+
+            var state = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (state.User.Identity?.IsAuthenticated == true)
+            {
+                try
+                {
+                    var response = await Http.GetAsync("api/auth/check");
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        // 1. Tell the Provider to flip to "Not Authorized"
+                        if (AuthStateProvider is PersistentAuthenticationStateProvider clientProvider)
+                        {
+                            clientProvider.NotifyLogout();
+                        }
+
+                        // 2. Force the jump to the landing page
+                        Navigation.NavigateTo("/", forceLoad: true);
+                        break;
+                    }
+                }
+                catch { /* Server unreachable */ }
+            }
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthState != null)
+        {
+            var state = await AuthState;
+            if (state.User.Identity?.IsAuthenticated == false)
+            {
+                var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+                // Don't redirect if we are already on a public page
+                if (!path.Contains("Account/Login") && !path.Contains("Account/Register") && !string.IsNullOrEmpty(path))
+                {
+                    await HandleAutoLogout();
+                }
+            }
+        }
+    }
+
+    private async Task HandleAutoLogout()
+    {
+        if (AuthStateProvider is PersistentAuthenticationStateProvider clientProvider)
+        {
+            clientProvider.NotifyLogout();
+        }
+
+        // Force reload to the landing page to clear all WebAssembly memory
+        NavigationManager.NavigateTo("/", forceLoad: true);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -107,9 +179,9 @@
             {
                 var theme = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "theme");
                 isDarkMode = theme == "dark";
+                StateHasChanged();
             }
             catch { }
-            StateHasChanged();
         }
     }
 
@@ -133,9 +205,13 @@
     {
         var currentPath = "/" + (currentUrl ?? "");
         if (path == "/" && currentPath == "/") return true;
-        if (path != "/" && currentPath.StartsWith(path, StringComparison.OrdinalIgnoreCase)) return true;
-        return false;
+        return path != "/" && currentPath.StartsWith(path, StringComparison.OrdinalIgnoreCase);
     }
 
-    public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
 }

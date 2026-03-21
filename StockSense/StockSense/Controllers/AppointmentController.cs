@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StockSense.Data;
-using StockSense.shared;
+using Microsoft.AspNetCore.Authorization;
 
 namespace StockSense.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AppointmentsController : ControllerBase

@@ -6,162 +6,176 @@
 @using StockSense.shared
 @using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
+@inject NavigationManager NavigationManager
 
 @attribute [Authorize]
 
-@if (isLoading)
-{
-    @* --- FULL PAGE LOADING OVERLAY --- *@
-    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-                    background: #000; display: flex; flex-direction: column;
-                    justify-content: center; align-items: center; z-index: 9999;">
+<AuthorizeView>
+    <Authorized>
+        @if (isLoading)
+        {
+            @* --- FULL PAGE LOADING OVERLAY --- *@
+            <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                            background: #000; display: flex; flex-direction: column;
+                            justify-content: center; align-items: center; z-index: 9999;">
 
-        <div class="spinner-grow text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+                <div class="spinner-grow text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
 
-        <h3 style="color: white; margin-top: 20px; font-family: 'Segoe UI', sans-serif; letter-spacing: 3px; font-weight: 200;">
-            <span style="font-weight: 700; color: #d32f2f;">SAP</span>SHOP
-        </h3>
-        <p style="color: #666; font-size: 0.8rem; text-transform: uppercase; margin-top: 10px;">Syncing with Server...</p>
-    </div>
-}
-
-<div class="page-content" style="display: @(isLoading ? "none" : "flex"); gap: 40px; color: white; background: #111; padding: 20px; font-family: 'Segoe UI', sans-serif; min-height: 100vh;">
-
-    @* --- LEFT SIDE: SELECTION --- *@
-    <div style="flex: 2;">
-
-        <div style="margin-bottom: 30px; background: #222; padding: 20px; border-radius: 8px; border: 1px solid #333;">
-            <h2 style="margin-top: 0; margin-bottom: 15px; color: #fff;">Customer Details & Time</h2>
-
-            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-                <div style="flex: 1;">
-                    <label style="display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9em;">Selected Date</label>
-                    <input type="date" @bind="newAppt.AppointmentDate" @bind:after="FetchBookedSlots"
-                           style="width: 100%; padding: 12px; background: #111; color: white; border: 1px solid #444; border-radius: 5px;" />
-                </div>
+                <h3 style="color: white; margin-top: 20px; font-family: 'Segoe UI', sans-serif; letter-spacing: 3px; font-weight: 200;">
+                    <span style="font-weight: 700; color: #d32f2f;">SAP</span>SHOP
+                </h3>
+                <p style="color: #666; font-size: 0.8rem; text-transform: uppercase; margin-top: 10px;">Syncing with Server...</p>
             </div>
+        }
 
-            <div>
-                <label style="display: block; margin-bottom: 10px; color: #aaa; font-size: 0.9em;">Select Available Time Slot</label>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 10px;">
-                    @foreach (var time in availableTimeSlots)
+        <div class="page-content" style="display: @(isLoading ? "none" : "flex"); gap: 40px; color: white; background: #111; padding: 20px; font-family: 'Segoe UI', sans-serif; min-height: 100vh;">
+
+            @* --- LEFT SIDE: SELECTION --- *@
+            <div style="flex: 2;">
+
+                <div style="margin-bottom: 30px; background: #222; padding: 20px; border-radius: 8px; border: 1px solid #333;">
+                    <h2 style="margin-top: 0; margin-bottom: 15px; color: #fff;">Customer Details & Time</h2>
+
+                    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9em;">Selected Date</label>
+                            <input type="date" @bind="newAppt.AppointmentDate" @bind:after="FetchBookedSlots"
+                                   style="width: 100%; padding: 12px; background: #111; color: white; border: 1px solid #444; border-radius: 5px;" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display: block; margin-bottom: 10px; color: #aaa; font-size: 0.9em;">Select Available Time Slot</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 10px;">
+                            @foreach (var time in availableTimeSlots)
+                            {
+                                bool isBooked = bookedTimeSlots.Contains(time);
+
+                                <div @onclick="() => { if (!isBooked) SelectTimeSlot(time); }"
+                                     style="border: 1px solid @(newAppt.TimeSlot == time ? "white" : (isBooked ? "#222" : "#444"));
+                                                    background: @(newAppt.TimeSlot == time ? "white" : (isBooked ? "#222" : "#111"));
+                                                    color: @(newAppt.TimeSlot == time ? "black" : (isBooked ? "#555" : "white"));
+                                                    text-decoration: @(isBooked ? "line-through" : "none");
+                                                    cursor: @(isBooked ? "not-allowed" : "pointer");
+                                                    padding: 8px; border-radius: 4px; text-align: center; flex: 1 1 calc(16% - 10px); min-width: 75px; font-size: 0.85em; transition: 0.2s;">
+                                    @time
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <h2 style="color: #fff; margin-bottom: 20px;">1. Select the services you want to avail</h2>
+
+                <div style="margin-bottom: 25px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <span style="color: #888; font-size: 0.9em; margin-right: 5px;">Filter:</span>
+                    <button @onclick='() => selectedCategory = "All"'
+                            style="padding: 6px 18px; border-radius: 20px; border: 1px solid #444;
+                                   background: @(selectedCategory == "All" ? "white" : "#111");
+                                   color: @(selectedCategory == "All" ? "black" : "white"); cursor: pointer; font-size: 0.85em; transition: 0.3s;">
+                        All
+                    </button>
+                    @foreach (var cat in availableServices.Select(s => s.Category).Distinct().OrderBy(c => c))
                     {
-                        bool isBooked = bookedTimeSlots.Contains(time);
+                        <button @onclick="() => selectedCategory = cat"
+                                style="padding: 6px 18px; border-radius: 20px; border: 1px solid #444;
+                                               background: @(selectedCategory == cat ? "white" : "#111");
+                                               color: @(selectedCategory == cat ? "black" : "white"); cursor: pointer; font-size: 0.85em; text-transform: capitalize; transition: 0.3s;">
+                            @cat
+                        </button>
+                    }
+                </div>
 
-                        <div @onclick="() => { if (!isBooked) SelectTimeSlot(time); }"
-                             style="border: 1px solid @(newAppt.TimeSlot == time ? "white" : (isBooked ? "#222" : "#444"));
-                                        background: @(newAppt.TimeSlot == time ? "white" : (isBooked ? "#222" : "#111"));
-                                        color: @(newAppt.TimeSlot == time ? "black" : (isBooked ? "#555" : "white"));
-                                        text-decoration: @(isBooked ? "line-through" : "none");
-                                        cursor: @(isBooked ? "not-allowed" : "pointer");
-                                        padding: 8px; border-radius: 4px; text-align: center; flex: 1 1 calc(16% - 10px); min-width: 75px; font-size: 0.85em; transition: 0.2s;">
-                            @time
+                @if (showSuccessMessage)
+                {
+                    <div style="background: rgba(76, 175, 80, 0.1); color: #4CAF50; font-weight: bold; margin-bottom: 15px; padding: 15px; border: 1px solid #4CAF50; border-radius: 5px;">
+                        Appointment booked successfully!
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div style="background: rgba(244, 67, 54, 0.1); color: #f44336; font-weight: bold; margin-bottom: 15px; padding: 15px; border: 1px solid #f44336; border-radius: 5px;">
+                        @errorMessage
+                    </div>
+                }
+
+                <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                    @foreach (var service in FilteredServices)
+                    {
+                        <div @onclick="() => ToggleService(service)"
+                             style="border: 2px solid @(service.IsSelected ? "#d32f2f" : "#333");
+                                            background: #222; padding: 15px; cursor: pointer; width: 220px; border-radius: 8px; transition: 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: space-between;">
+
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <strong style="font-size: 1.1em; color: white; width: 80%;">@service.Name</strong>
+                                <input type="checkbox" checked="@service.IsSelected" style="accent-color: #d32f2f; pointer-events: none;" />
+                            </div>
+
+                            <div style="color: #81c784; font-weight: bold; font-size: 1.1em;">
+                                ₱ @service.Price.ToString("N0")
+                            </div>
                         </div>
                     }
                 </div>
             </div>
-        </div>
 
-        <h2 style="color: #fff; margin-bottom: 20px;">1. Select the services you want to avail</h2>
+            @* --- RIGHT SIDE: SUMMARY --- *@
+            <div style="flex: 1; background: #000; padding: 25px; border-radius: 12px; border: 1px solid #333; display: flex; flex-direction: column; position: sticky; top: 20px; height: fit-content;">
+                <h2 style="margin-top: 0; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px;">3. Booking Summary</h2>
 
-        <div style="margin-bottom: 25px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-            <span style="color: #888; font-size: 0.9em; margin-right: 5px;">Filter:</span>
-            <button @onclick='() => selectedCategory = "All"'
-                    style="padding: 6px 18px; border-radius: 20px; border: 1px solid #444;
-                           background: @(selectedCategory == "All" ? "white" : "#111");
-                           color: @(selectedCategory == "All" ? "black" : "white"); cursor: pointer; font-size: 0.85em; transition: 0.3s;">
-                All
-            </button>
-            @foreach (var cat in availableServices.Select(s => s.Category).Distinct().OrderBy(c => c))
-            {
-                <button @onclick="() => selectedCategory = cat"
-                        style="padding: 6px 18px; border-radius: 20px; border: 1px solid #444;
-                                   background: @(selectedCategory == cat ? "white" : "#111");
-                                   color: @(selectedCategory == cat ? "black" : "white"); cursor: pointer; font-size: 0.85em; text-transform: capitalize; transition: 0.3s;">
-                    @cat
-                </button>
-            }
-        </div>
+                <div style="margin: 15px 0;">
+                    <small style="color: #666; text-transform: uppercase;">Customer</small>
+                    <div style="font-weight: bold; color: #fff;">@newAppt.CustomerName</div>
+                </div>
 
-        @if (showSuccessMessage)
-        {
-            <div style="background: rgba(76, 175, 80, 0.1); color: #4CAF50; font-weight: bold; margin-bottom: 15px; padding: 15px; border: 1px solid #4CAF50; border-radius: 5px;">
-                Appointment booked successfully!
-            </div>
-        }
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <div style="background: rgba(244, 67, 54, 0.1); color: #f44336; font-weight: bold; margin-bottom: 15px; padding: 15px; border: 1px solid #f44336; border-radius: 5px;">
-                @errorMessage
-            </div>
-        }
+                <ul style="list-style: none; padding: 0; margin-top: 10px; flex-grow: 1;">
+                    @if (!SelectedServices.Any())
+                    {
+                        <li style="color: #555; font-style: italic;">No services selected yet.</li>
+                    }
+                    @foreach (var selected in SelectedServices)
+                    {
+                        <li style="display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #111; padding-bottom: 5px;">
+                            <span style="font-size: 0.9em; color: #ccc;">@selected.Name</span>
+                            <span style="font-weight: bold; color: #fff;">₱ @selected.Price.ToString("N0")</span>
+                        </li>
+                    }
+                </ul>
 
-        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
-            @foreach (var service in FilteredServices)
-            {
-                <div @onclick="() => ToggleService(service)"
-                     style="border: 2px solid @(service.IsSelected ? "#d32f2f" : "#333");
-                                background: #222; padding: 15px; cursor: pointer; width: 220px; border-radius: 8px; transition: 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: space-between;">
-
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <strong style="font-size: 1.1em; color: white; width: 80%;">@service.Name</strong>
-                        <input type="checkbox" checked="@service.IsSelected" style="accent-color: #d32f2f; pointer-events: none;" />
-                    </div>
-
-                    <div style="color: #81c784; font-weight: bold; font-size: 1.1em;">
-                        ₱ @service.Price.ToString("N0")
+                <div style="margin-top: 20px; background: #111; padding: 15px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.3em; color: #81c784;">
+                        <span>Total</span>
+                        <span>₱ @TotalPrice.ToString("N0")</span>
                     </div>
                 </div>
-            }
-        </div>
-    </div>
 
-    @* --- RIGHT SIDE: SUMMARY --- *@
-    <div style="flex: 1; background: #000; padding: 25px; border-radius: 12px; border: 1px solid #333; display: flex; flex-direction: column; position: sticky; top: 20px; height: fit-content;">
-        <h2 style="margin-top: 0; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px;">3. Booking Summary</h2>
+                <button @onclick="HandleSubmit"
+                        disabled="@isProcessing"
+                        style="width: 100%; margin-top: 20px; padding: 18px; background: @(isProcessing ? "#444" : "white"); color: black; font-weight: 800; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;">
+                    @if (isProcessing)
+                    {
+                        <span>Processing...</span>
+                    }
+                    else
+                    {
 
-        <div style="margin: 15px 0;">
-            <small style="color: #666; text-transform: uppercase;">Customer</small>
-            <div style="font-weight: bold; color: #fff;">@newAppt.CustomerName</div>
-        </div>
-
-        <ul style="list-style: none; padding: 0; margin-top: 10px; flex-grow: 1;">
-            @if (!SelectedServices.Any())
-            {
-                <li style="color: #555; font-style: italic;">No services selected yet.</li>
-            }
-            @foreach (var selected in SelectedServices)
-            {
-                <li style="display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #111; padding-bottom: 5px;">
-                    <span style="font-size: 0.9em; color: #ccc;">@selected.Name</span>
-                    <span style="font-weight: bold; color: #fff;">₱ @selected.Price.ToString("N0")</span>
-                </li>
-            }
-        </ul>
-
-        <div style="margin-top: 20px; background: #111; padding: 15px; border-radius: 8px;">
-            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.3em; color: #81c784;">
-                <span>Total</span>
-                <span>₱ @TotalPrice.ToString("N0")</span>
+                        <span>Confirm Booking</span>
+                    }
+                </button>
             </div>
+
         </div>
+    </Authorized>
 
-        <button @onclick="HandleSubmit"
-                disabled="@isProcessing"
-                style="width: 100%; margin-top: 20px; padding: 18px; background: @(isProcessing ? "#444" : "white"); color: black; font-weight: 800; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;">
-            @if (isProcessing)
-            {
-                <span>Processing...</span>
-            }
-            else
-            {
-
-                <span>Confirm Booking</span>
-            }
-        </button>
-    </div>
-
-</div>
+    <NotAuthorized>
+        @* --- SHOWN IMMEDIATELY WHEN TOKEN EXPIRES --- *@
+        <div style="height: 100vh; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;">
+            <div class="spinner-border text-danger" role="status"></div>
+            <h2 style="margin-top: 20px; color: #d32f2f;">Session Expired</h2>
+            <p style="color: #666;">Protecting your data... Redirecting to Home.</p>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 <style>
     .page-content {
@@ -320,6 +334,15 @@
         try
         {
             var response = await Http.PostAsJsonAsync("api/appointments", newAppt);
+
+            // --- SECURITY CHECK ---
+            // If the server returns 401 because the cookie died during form filling
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                NavigationManager.NavigateTo("/", forceLoad: true);
+                return;
+            }
+
             if (response.IsSuccessStatusCode)
             {
                 showSuccessMessage = true;
