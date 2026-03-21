@@ -5,150 +5,138 @@
 @using System.Globalization
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
-@inject NavigationManager Nav
 
 @attribute [Authorize(Roles = "Admin")]
 
-<AuthorizeView Roles="Admin">
-    <Authorized>
-        <div class="admin-container">
-            <div class="header-section">
-                <h2>Manage Custom Builds</h2>
-                <span class="badge-count">@ActiveBuilds.Count(b => b.Status == "Pending") Pending</span>
-            </div>
+<div class="admin-container">
+    <div class="header-section">
+        <h2>Manage Custom Builds</h2>
+        <span class="badge-count">@ActiveBuilds.Count(b => b.Status == "Pending") Pending</span>
+    </div>
 
-            @if (allBuilds == null)
-            {
-                <div class="loading-state">Loading build requests...</div>
-            }
-            else
-            {
-                @* --- NEW TABS NAVIGATION --- *@
-                <div class="tabs-container">
-                    <button class="tab-btn @(activeTab == "Active" ? "active" : "")" @onclick='() => activeTab = "Active"'>
-                        Active Builds (@ActiveBuilds.Count())
-                    </button>
-                    <button class="tab-btn @(activeTab == "History" ? "active" : "")" @onclick='() => activeTab = "History"'>
-                        History (@HistoryBuilds.Count())
-                    </button>
+    @if (allBuilds == null)
+    {
+        <div class="loading-state">Loading build requests...</div>
+    }
+    else
+    {
+        @* --- NEW TABS NAVIGATION --- *@
+        <div class="tabs-container">
+            <button class="tab-btn @(activeTab == "Active" ? "active" : "")" @onclick='() => activeTab = "Active"'>
+                Active Builds (@ActiveBuilds.Count())
+            </button>
+            <button class="tab-btn @(activeTab == "History" ? "active" : "")" @onclick='() => activeTab = "History"'>
+                History (@HistoryBuilds.Count())
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table-dark">
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">Customer</th>
+                        <th style="width: 20%;">Date</th>
+                        <th style="width: 15%;">Summary</th>
+                        <th style="width: 15%;">Total Value</th>
+                        <th style="width: 15%;">Status</th>
+                        <th style="width: 15%;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @* --- NOW LOOPING THROUGH 'DisplayBuilds' INSTEAD OF ALL BUILDS --- *@
+                    @foreach (var build in DisplayBuilds)
+                    {
+                        var parts = ParseParts(build.SelectedPartsJson);
+                        var totalPrice = parts.Sum(p => p.Price);
+
+                        <tr class="table-row">
+                            <td class="customer-name">@build.CustomerName</td>
+                            <td class="date">@build.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
+
+                            <td class="summary">
+                                <span class="item-count">@parts.Count items</span>
+                            </td>
+
+                            <td class="price">@totalPrice.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))</td>
+
+                            <td>
+                                <select value="@build.Status"
+                                        @onchange="@(e => UpdateStatus(build, e.Value?.ToString() ?? "Pending"))"
+                                        class="status-dropdown @GetStatusClass(build.Status)">
+                                    <option value="Pending">Pending</option>
+                                    <option value="Confirmed">Confirmed</option>
+                                    <option value="Completed">Completed</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                </select>
+                            </td>
+                            <td>
+                                <button class="btn-view" @onclick="() => OpenModal(build, parts)">
+                                    <span class="icon">👁</span> View Details
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                    @if (!DisplayBuilds.Any())
+                    {
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 30px; color: #888;">No builds found in this section.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (ShowModal && CurrentParts != null)
+    {
+        <div class="modal-backdrop" @onclick="CloseModal">
+            <div class="modal-content" @onclick:stopPropagation>
+                <div class="modal-header">
+                    <div>
+                        <h3>@CurrentBuild?.CustomerName's Build</h3>
+                        <span class="modal-date">@CurrentBuild?.CreatedAt.ToString("f")</span>
+                    </div>
+                    <button class="close-btn" @onclick="CloseModal">×</button>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table-dark">
-                        <thead>
-                            <tr>
-                                <th style="width: 20%;">Customer</th>
-                                <th style="width: 20%;">Date</th>
-                                <th style="width: 15%;">Summary</th>
-                                <th style="width: 15%;">Total Value</th>
-                                <th style="width: 15%;">Status</th>
-                                <th style="width: 15%;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var build in DisplayBuilds)
+                <div class="modal-body">
+                    @foreach (var group in CurrentParts.GroupBy(p => p.Category))
+                    {
+                        <div class="category-section">
+                            <h4 class="category-header">@group.Key</h4>
+                            @foreach (var part in group)
                             {
-                                var parts = ParseParts(build.SelectedPartsJson);
-                                var totalPrice = parts.Sum(p => p.Price);
-
-                                <tr class="table-row">
-                                    <td class="customer-name">@build.CustomerName</td>
-                                    <td class="date">@build.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
-
-                                    <td class="summary">
-                                        <span class="item-count">@parts.Count items</span>
-                                    </td>
-
-                                    <td class="price">@totalPrice.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))</td>
-
-                                    <td>
-                                        <select value="@build.Status"
-                                                @onchange="@(e => UpdateStatus(build, e.Value?.ToString() ?? "Pending"))"
-                                                class="status-dropdown @GetStatusClass(build.Status)">
-                                            <option value="Pending">Pending</option>
-                                            <option value="Confirmed">Confirmed</option>
-                                            <option value="Completed">Completed</option>
-                                            <option value="Cancelled">Cancelled</option>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <button class="btn-view" @onclick="() => OpenModal(build, parts)">
-                                            <span class="icon">👁</span> View Details
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                            @if (!DisplayBuilds.Any())
-                            {
-                                <tr>
-                                    <td colspan="6" style="text-align: center; padding: 30px; color: #888;">No builds found in this section.</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-
-            @* --- MODAL FOR VIEWING DETAILS --- *@
-            @if (ShowModal && CurrentParts != null)
-            {
-                <div class="modal-backdrop" @onclick="CloseModal">
-                    <div class="modal-content" @onclick:stopPropagation>
-                        <div class="modal-header">
-                            <div>
-                                <h3>@CurrentBuild?.CustomerName's Build</h3>
-                                <span class="modal-date">@CurrentBuild?.CreatedAt.ToString("f")</span>
-                            </div>
-                            <button class="close-btn" @onclick="CloseModal">×</button>
-                        </div>
-
-                        <div class="modal-body">
-                            @foreach (var group in CurrentParts.GroupBy(p => p.Category))
-                            {
-                                <div class="category-section">
-                                    <h4 class="category-header">@group.Key</h4>
-                                    @foreach (var part in group)
-                                    {
-                                        <div class="part-item">
-                                            <div class="part-details">
-                                                <span class="brand-tag">@part.Brand</span>
-                                                <span class="part-name">@part.Name</span>
-                                            </div>
-                                            <div class="part-price">
-                                                @part.Price.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))
-                                            </div>
-                                        </div>
-                                    }
+                                <div class="part-item">
+                                    <div class="part-details">
+                                        <span class="brand-tag">@part.Brand</span>
+                                        <span class="part-name">@part.Name</span>
+                                    </div>
+                                    <div class="part-price">
+                                        @part.Price.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))
+                                    </div>
                                 </div>
                             }
                         </div>
-
-                        <div class="modal-footer">
-                            <div class="total-summary">
-                                <span>Grand Total:</span>
-                                <span class="total-amount">@CurrentParts.Sum(p => p.Price).ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))</span>
-                            </div>
-                            <button class="btn-close" @onclick="CloseModal">Close</button>
-                        </div>
-                    </div>
+                    }
                 </div>
-            }
-        </div>
-    </Authorized>
 
-    <NotAuthorized>
-        <div style="height: 100vh; background: #121212; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: sans-serif;">
-            <div class="spinner-border text-danger" role="status" style="margin-bottom: 20px;"></div>
-            <h2 style="color: #d32f2f;">Admin Session Expired</h2>
-            <p style="color: #666;">Securing customer build data... Redirecting.</p>
+                <div class="modal-footer">
+                    <div class="total-summary">
+                        <span>Grand Total:</span>
+                        <span class="total-amount">@CurrentParts.Sum(p => p.Price).ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))</span>
+                    </div>
+                    <button class="btn-close" @onclick="CloseModal">Close</button>
+                </div>
+            </div>
         </div>
-    </NotAuthorized>
-</AuthorizeView>
+    }
+</div>
 
 @code {
     private List<BuildRequest>? allBuilds;
+
+    // --- NEW TAB STATE & FILTERING LOGIC ---
     private string activeTab = "Active";
 
     private IEnumerable<BuildRequest> ActiveBuilds =>
@@ -158,57 +146,24 @@
         allBuilds?.Where(b => b.Status == "Completed" || b.Status == "Cancelled").OrderByDescending(b => b.CreatedAt) ?? Enumerable.Empty<BuildRequest>();
 
     private IEnumerable<BuildRequest> DisplayBuilds => activeTab == "Active" ? ActiveBuilds : HistoryBuilds;
+    // ----------------------------------------
 
+    // Modal State
     private bool ShowModal = false;
     private BuildRequest? CurrentBuild;
     private List<Product> CurrentParts = new List<Product>();
 
     protected override async Task OnInitializedAsync() => await LoadBuilds();
 
-    private async Task LoadBuilds()
-    {
-        try
-        {
-            var response = await Http.GetAsync("api/builds/all");
-
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                Nav.NavigateTo("/session-expired");
-                return;
-            }
-
-            if (response.IsSuccessStatusCode)
-            {
-                allBuilds = await response.Content.ReadFromJsonAsync<List<BuildRequest>>();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading builds: {ex.Message}");
-        }
-    }
+    private async Task LoadBuilds() => allBuilds = await Http.GetFromJsonAsync<List<BuildRequest>>("api/builds/all");
 
     private async Task UpdateStatus(BuildRequest build, string newStatus)
     {
-        try
-        {
-            var response = await Http.PutAsJsonAsync($"api/builds/{build.Id}/status", newStatus);
+        await Http.PutAsJsonAsync($"api/builds/{build.Id}/status", newStatus);
+        build.Status = newStatus;
 
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                Nav.NavigateTo("/session-expired");
-                return;
-            }
-
-            if (response.IsSuccessStatusCode)
-            {
-                build.Status = newStatus;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error updating status: {ex.Message}");
-        }
+        // Note: Because 'build.Status' is updated, Blazor will automatically recalculate
+        // ActiveBuilds and HistoryBuilds, moving the row to the other tab instantly!
     }
 
     private List<Product> ParseParts(string json)
@@ -219,7 +174,11 @@
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             return JsonSerializer.Deserialize<List<Product>>(json, options) ?? new List<Product>();
         }
-        catch { return new List<Product>(); }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error parsing JSON: {ex.Message}");
+            return new List<Product>();
+        }
     }
 
     private void OpenModal(BuildRequest build, List<Product> parts)
@@ -242,7 +201,7 @@
 }
 
 <style>
-    /* ... (Keep all existing CSS styles for .admin-container, .tabs, .table, and .modal) ... */
+    /* MAIN LAYOUT */
     .admin-container {
         padding: 30px;
         background-color: #121212;
@@ -275,6 +234,7 @@
         font-weight: bold;
     }
 
+    /* --- NEW TABS STYLES --- */
     .tabs-container {
         display: flex;
         gap: 10px;
@@ -293,13 +253,20 @@
         transition: all 0.2s ease;
     }
 
+        .tab-btn:hover {
+            background: #252525;
+            color: #ddd;
+        }
+
         .tab-btn.active {
             background: #333;
             color: #fff;
             border-color: #555;
             box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
+    /* ----------------------- */
 
+    /* TABLE STYLES */
     .table-responsive {
         background: #1e1e1e;
         border-radius: 8px;
@@ -355,6 +322,7 @@
         color: #81c784;
     }
 
+    /* DROPDOWN & BUTTONS */
     .status-dropdown {
         padding: 6px 10px;
         border-radius: 4px;
@@ -401,6 +369,7 @@
             border-color: #666;
         }
 
+    /* MODAL STYLES */
     .modal-backdrop {
         position: fixed;
         top: 0;

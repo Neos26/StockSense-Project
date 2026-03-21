@@ -3,100 +3,87 @@
 @using StockSense.Shared
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
-@inject NavigationManager Nav
 
 @attribute [Authorize(Roles = "Admin")]
 
-<AuthorizeView Roles="Admin">
-    <Authorized>
-        <div class="admin-container">
-            <div class="header-section">
-                <h2>Manage Appointments</h2>
-                <span class="badge-count">@ActiveAppointments.Count(a => a.Status == "Pending") Pending</span>
-            </div>
+<div class="admin-container">
+    <div class="header-section">
+        <h2>Manage Appointments</h2>
+        <span class="badge-count">@ActiveAppointments.Count(a => a.Status == "Pending") Pending</span>
+    </div>
 
-            @if (allAppointments == null)
-            {
-                <div class="loading-state">Loading appointment requests...</div>
-            }
-            else
-            {
-                @* --- TABS NAVIGATION --- *@
-                <div class="tabs-container">
-                    <button class="tab-btn @(currentTab == "Active" ? "active" : "")" @onclick='() => currentTab = "Active"'>
-                        Active (@ActiveAppointments.Count())
-                    </button>
-                    <button class="tab-btn @(currentTab == "History" ? "active" : "")" @onclick='() => currentTab = "History"'>
-                        History (@HistoryAppointments.Count())
-                    </button>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table-dark">
-                        <thead>
-                            <tr>
-                                <th style="width: 20%;">Customer</th>
-                                <th style="width: 25%;">Date & Time</th>
-                                <th style="width: 25%;">Services</th>
-                                <th style="width: 15%;">Total Value</th>
-                                <th style="width: 15%;">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var appt in DisplayAppointments)
-                            {
-                                <tr class="table-row">
-                                    <td class="customer-name">@appt.CustomerName</td>
-                                    <td class="date">
-                                        @appt.AppointmentDate.ToShortDateString()
-                                        <span class="time-slot">@appt.TimeSlot</span>
-                                    </td>
-
-                                    <td class="summary">
-                                        @appt.ServicesRequested
-                                    </td>
-
-                                    <td class="price">P @appt.TotalAmount.ToString("N2")</td>
-
-                                    <td>
-                                        <select value="@appt.Status"
-                                                @onchange="@(e => UpdateStatus(appt, e.Value?.ToString() ?? "Pending"))"
-                                                class="status-dropdown @GetStatusClass(appt.Status)">
-                                            <option value="Pending">Pending</option>
-                                            <option value="Confirmed">Confirmed</option>
-                                            <option value="Completed">Completed</option>
-                                            <option value="Cancelled">Cancelled</option>
-                                        </select>
-                                    </td>
-                                </tr>
-                            }
-                            @if (!DisplayAppointments.Any())
-                            {
-                                <tr>
-                                    <td colspan="5" style="text-align: center; padding: 30px; color: #888;">No appointments found in this section.</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
+    @if (allAppointments == null)
+    {
+        <div class="loading-state">Loading appointment requests...</div>
+    }
+    else
+    {
+        @* --- TABS NAVIGATION (Matches Admin Builds) --- *@
+        <div class="tabs-container">
+            <button class="tab-btn @(currentTab == "Active" ? "active" : "")" @onclick='() => currentTab = "Active"'>
+                Active (@ActiveAppointments.Count())
+            </button>
+            <button class="tab-btn @(currentTab == "History" ? "active" : "")" @onclick='() => currentTab = "History"'>
+                History (@HistoryAppointments.Count())
+            </button>
         </div>
-    </Authorized>
 
-    <NotAuthorized>
-        @* --- SHOWN IMMEDIATELY WHEN TOKEN EXPIRES --- *@
-        <div style="height: 100vh; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: 'Segoe UI', sans-serif;">
-            <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;"></div>
-            <h2 style="margin-top: 20px; color: #d32f2f; font-weight: 700; letter-spacing: 2px;">ADMIN SESSION EXPIRED</h2>
-            <p style="color: #666;">Protecting business data... Redirecting to Home.</p>
+        <div class="table-responsive">
+            <table class="table-dark">
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">Customer</th>
+                        <th style="width: 25%;">Date & Time</th>
+                        <th style="width: 25%;">Services</th>
+                        <th style="width: 15%;">Total Value</th>
+                        <th style="width: 15%;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var appt in DisplayAppointments)
+                    {
+                        <tr class="table-row">
+                            <td class="customer-name">@appt.CustomerName</td>
+                            <td class="date">
+                                @appt.AppointmentDate.ToShortDateString()
+                                <span class="time-slot">@appt.TimeSlot</span>
+                            </td>
+
+                            <td class="summary">
+                                @appt.ServicesRequested
+                            </td>
+
+                            <td class="price">P @appt.TotalAmount.ToString("N2")</td>
+
+                            <td>
+                                <select value="@appt.Status"
+                                        @onchange="@(e => UpdateStatus(appt, e.Value?.ToString() ?? "Pending"))"
+                                        class="status-dropdown @GetStatusClass(appt.Status)">
+                                    <option value="Pending">Pending</option>
+                                    <option value="Confirmed">Confirmed</option>
+                                    <option value="Completed">Completed</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                </select>
+                            </td>
+                        </tr>
+                    }
+                    @if (!DisplayAppointments.Any())
+                    {
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 30px; color: #888;">No appointments found in this section.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
-    </NotAuthorized>
-</AuthorizeView>
+    }
+</div>
 
 @code {
     private List<Appointment>? allAppointments;
+
+    // --- TAB STATE & FILTERING LOGIC ---
     private string currentTab = "Active";
 
     private IEnumerable<Appointment> ActiveAppointments =>
@@ -106,6 +93,7 @@
         allAppointments?.Where(a => a.Status == "Completed" || a.Status == "Cancelled").OrderByDescending(a => a.AppointmentDate) ?? Enumerable.Empty<Appointment>();
 
     private IEnumerable<Appointment> DisplayAppointments => currentTab == "Active" ? ActiveAppointments : HistoryAppointments;
+    // ----------------------------------------
 
     protected override async Task OnInitializedAsync()
     {
@@ -116,19 +104,7 @@
     {
         try
         {
-            var response = await Http.GetAsync("api/appointments/all");
-
-            // --- SECURITY CHECK ---
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                Nav.NavigateTo("/", forceLoad: true);
-                return;
-            }
-
-            if (response.IsSuccessStatusCode)
-            {
-                allAppointments = await response.Content.ReadFromJsonAsync<List<Appointment>>();
-            }
+            allAppointments = await Http.GetFromJsonAsync<List<Appointment>>("api/appointments/all");
         }
         catch (Exception ex)
         {
@@ -142,16 +118,10 @@
         {
             var response = await Http.PutAsJsonAsync($"api/appointments/{appt.Id}/status", newStatus);
 
-            // --- SECURITY CHECK ---
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                Nav.NavigateTo("/", forceLoad: true);
-                return;
-            }
-
             if (response.IsSuccessStatusCode)
             {
                 appt.Status = newStatus;
+                // Blazor automatically recalculates DisplayAppointments and moves the row!
             }
             else
             {
@@ -164,6 +134,7 @@
         }
     }
 
+    // Colors the border of the dropdown so the admin can quickly scan the table
     private string GetStatusClass(string status) => status?.ToLower() switch
     {
         "pending" => "status-pending",
@@ -213,6 +184,7 @@
         font-style: italic;
     }
 
+    /* --- TABS STYLES --- */
     .tabs-container {
         display: flex;
         gap: 10px;
@@ -242,7 +214,9 @@
             border-color: #555;
             box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
+    /* ----------------------- */
 
+    /* TABLE STYLES */
     .table-responsive {
         background: #1e1e1e;
         border-radius: 8px;
@@ -303,6 +277,7 @@
         color: #81c784;
     }
 
+    /* DROPDOWN */
     .status-dropdown {
         padding: 6px 10px;
         border-radius: 4px;

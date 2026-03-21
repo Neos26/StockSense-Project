@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using StockSense.Data;
 using StockSense.shared;
 
-[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ServicesController : ControllerBase

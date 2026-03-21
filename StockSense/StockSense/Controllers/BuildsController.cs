@@ -8,7 +8,6 @@ using StockSense.Shared;      // Points to BuildRequest model
 namespace StockSense.Server.Controllers
 {
     // 👇 Forces the URL to be "api/builds" regardless of class name
-    [Authorize]
 
     [Route("api/builds")]
     [ApiController]

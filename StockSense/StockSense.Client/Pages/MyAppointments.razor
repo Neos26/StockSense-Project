@@ -4,60 +4,46 @@
 @using StockSense.shared
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
-@inject NavigationManager NavigationManager
 
 @attribute [Authorize]
 
-<AuthorizeView>
-    <Authorized>
-        <div style="padding: 20px; color: white; background: #111; min-height: 100vh;">
-            <h2 style="margin-bottom: 20px;">My Appointment History</h2>
+<div style="padding: 20px; color: white; background: #111; min-height: 100vh;">
+    <h2 style="margin-bottom: 20px;">My Appointment History</h2>
 
-            @if (isLoading)
+    @if (isLoading)
+    {
+        <p style="color: gray;">Loading your records...</p>
+    }
+    else if (myAppointments == null || !myAppointments.Any())
+    {
+        <div style="padding: 20px; background: #222; border-radius: 8px; text-align: center;">
+            <p style="color: gray;">You have no booking history yet.</p>
+            <a href="/book" style="color: #2196F3; text-decoration: none; font-weight: bold;">Book your first appointment</a>
+        </div>
+    }
+    else
+    {
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            @foreach (var appt in myAppointments)
             {
-                <p style="color: gray;">Loading your records...</p>
-            }
-            else if (myAppointments == null || !myAppointments.Any())
-            {
-                <div style="padding: 20px; background: #222; border-radius: 8px; text-align: center;">
-                    <p style="color: gray;">You have no booking history yet.</p>
-                    <a href="/appointment" style="color: #2196F3; text-decoration: none; font-weight: bold;">Book your first appointment</a>
-                </div>
-            }
-            else
-            {
-                <div style="display: flex; flex-direction: column; gap: 15px;">
-                    @foreach (var appt in myAppointments)
-                    {
-                        <div style="background: #222; padding: 20px; border-radius: 8px; border-left: 5px solid @GetStatusColor(appt.Status);">
+                <div style="background: #222; padding: 20px; border-radius: 8px; border-left: 5px solid @GetStatusColor(appt.Status);">
 
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <h3 style="margin: 0;">@appt.AppointmentDate.ToShortDateString() at @appt.TimeSlot</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3 style="margin: 0;">@appt.AppointmentDate.ToShortDateString() at @appt.TimeSlot</h3>
 
-                                <span style="padding: 5px 12px; font-weight: bold; background: #111; border-radius: 20px; color: @GetStatusColor(appt.Status);">
-                                    @appt.Status
-                                </span>
-                            </div>
+                        <span style="padding: 5px 12px; font-weight: bold; background: #111; border-radius: 20px; color: @GetStatusColor(appt.Status);">
+                            @appt.Status
+                        </span>
+                    </div>
 
-                            <p style="margin: 5px 0; color: #aaa;"><strong>Services:</strong> @appt.ServicesRequested</p>
-                            <p style="margin: 5px 0; color: white; font-size: 1.1em;"><strong>Total:</strong> P @appt.TotalAmount</p>
-                        </div>
-                    }
+                    <p style="margin: 5px 0; color: #aaa;"><strong>Services:</strong> @appt.ServicesRequested</p>
+                    <p style="margin: 5px 0; color: white; font-size: 1.1em;"><strong>Total:</strong> P @appt.TotalAmount</p>
                 </div>
             }
         </div>
-    </Authorized>
-
-    <NotAuthorized>
-        <div style="height: 100vh; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: sans-serif;">
-            <div class="spinner-border text-primary" role="status" style="margin-bottom: 20px;"></div>
-            <h2 style="color: #2196F3;">Session Expired</h2>
-            <p style="color: #666;">Protecting your records... Redirecting to security center.</p>
-        </div>
-    </NotAuthorized>
-</AuthorizeView>
+    }
+</div>
 
 @code {
     [CascadingParameter]
@@ -75,35 +61,22 @@
 
             if (user.Identity is not null && user.Identity.IsAuthenticated)
             {
+                // 1. Figure out the user's Full Name (matching the logic from your Booking page)
                 string customerName = user.Identity.Name ?? "Account User";
-
                 try
                 {
-                    // 1. Fetch Profile
-                    var profileResponse = await Http.GetAsync("api/user/profile");
-
-                    if (profileResponse.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                    {
-                        NavigationManager.NavigateTo("/session-expired");
-                        return;
-                    }
-
-                    var profile = await profileResponse.Content.ReadFromJsonAsync<UserProfile>();
+                    var profile = await Http.GetFromJsonAsync<UserProfile>("api/user/profile");
                     if (profile != null)
                     {
                         customerName = $"{profile.FirstName ?? ""} {profile.LastName ?? ""}".Trim();
                     }
+                }
+                catch { /* Silent fallback to username */ }
 
-                    // 2. Fetch Bookings
-                    var bookingsResponse = await Http.GetAsync($"api/appointments/my-bookings?name={Uri.EscapeDataString(customerName)}");
-
-                    if (bookingsResponse.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                    {
-                        NavigationManager.NavigateTo("/session-expired");
-                        return;
-                    }
-
-                    myAppointments = await bookingsResponse.Content.ReadFromJsonAsync<List<Appointment>>();
+                // 2. Fetch ONLY their bookings from the server
+                try
+                {
+                    myAppointments = await Http.GetFromJsonAsync<List<Appointment>>($"api/appointments/my-bookings?name={Uri.EscapeDataString(customerName)}");
                 }
                 catch (Exception ex)
                 {
@@ -114,6 +87,7 @@
         isLoading = false;
     }
 
+    // A helper function to color-code the badges!
     private string GetStatusColor(string status)
     {
         return status switch

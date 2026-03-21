@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace StockSense.Controllers
 {
-    [Authorize(Roles = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class DashboardController : ControllerBase

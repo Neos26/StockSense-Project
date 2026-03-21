@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace StockSense.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
 

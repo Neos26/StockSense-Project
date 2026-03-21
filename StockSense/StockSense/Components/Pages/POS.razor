@@ -3,128 +3,112 @@
 @using StockSense.Services
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @inject StockSense.Data.ApplicationDbContext Context
 @inject TransactionService SaleService
-@inject NavigationManager Nav
 @rendermode InteractiveServer
 
 @attribute [Authorize(Roles = "Admin")]
 
-<AuthorizeView Roles="Admin">
-    <Authorized>
-        <div class="container-fluid mt-3">
-            <div class="row">
-                @* --- Category Sidebar --- *@
-                <div class="col-md-2">
-                    <div class="list-group shadow-sm sticky-top" style="top: 20px;">
-                        <button type="button" class="list-group-item list-group-item-action @(selectedCategory == null ? "active" : "")"
-                                @onclick="() => selectedCategory = null">
-                            All Categories
-                        </button>
-                        @foreach (var cat in categories)
+<div class="container-fluid mt-3">
+    <div class="row">
+        @* --- Category Sidebar --- *@
+        <div class="col-md-2">
+            <div class="list-group shadow-sm sticky-top" style="top: 20px;">
+                <button type="button" class="list-group-item list-group-item-action @(selectedCategory == null ? "active" : "")"
+                        @onclick="() => selectedCategory = null">
+                    All Categories
+                </button>
+                @foreach (var cat in categories)
+                {
+                    <button type="button" class="list-group-item list-group-item-action @(selectedCategory == cat ? "active" : "")"
+                            @onclick="() => selectedCategory = cat">
+                        @cat
+                    </button>
+                }
+            </div>
+        </div>
+
+        @* --- Product Catalog --- *@
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">@(selectedCategory ?? "All Items")</h6>
+                    <input type="text" class="form-control form-control-sm w-50" placeholder="Search..." @bind-value="searchTerm" @bind-value:event="oninput" />
+                </div>
+                <div class="card-body bg-light overflow-auto" style="max-height: 80vh;">
+                    <div class="row g-2">
+                        @foreach (var p in FilteredProducts)
                         {
-                            <button type="button" class="list-group-item list-group-item-action @(selectedCategory == cat ? "active" : "")"
-                                    @onclick="() => selectedCategory = cat">
-                                @cat
-                            </button>
-                        }
-                    </div>
-                </div>
-
-                @* --- Product Catalog --- *@
-                <div class="col-md-5">
-                    <div class="card shadow-sm border-0">
-                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">@(selectedCategory ?? "All Items")</h6>
-                            <input type="text" class="form-control form-control-sm w-50" placeholder="Search..." @bind-value="searchTerm" @bind-value:event="oninput" />
-                        </div>
-                        <div class="card-body bg-light overflow-auto" style="max-height: 80vh;">
-                            <div class="row g-2">
-                                @foreach (var p in FilteredProducts)
-                                {
-                                    <div class="col-6">
-                                        <div class="card h-100 border-0 shadow-sm @(p.CurrentStock <= 0 ? "opacity-50" : "")"
-                                             style="cursor: pointer;" @onclick="() => AddToCart(p)">
-                                            <div class="card-body p-2 text-center">
-                                                <div class="fw-bold small text-truncate">@p.Name</div>
-                                                <div class="text-muted" style="font-size: 0.75rem;">@p.Brand</div>
-                                                <div class="text-primary fw-bold">₱@p.Price.ToString("N2")</div>
-                                                <div class="small mt-1">Stock: @p.CurrentStock</div>
-                                            </div>
-                                        </div>
+                            <div class="col-6">
+                                <div class="card h-100 border-0 shadow-sm @(p.CurrentStock <= 0 ? "opacity-50" : "")"
+                                     style="cursor: pointer;" @onclick="() => AddToCart(p)">
+                                    <div class="card-body p-2 text-center">
+                                        <div class="fw-bold small text-truncate">@p.Name</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">@p.Brand</div>
+                                        <div class="text-primary fw-bold">₱@p.Price.ToString("N2")</div>
+                                        <div class="small mt-1">Stock: @p.CurrentStock</div>
                                     </div>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                @* --- Cart Section --- *@
-                <div class="col-md-5">
-                    <div class="card shadow border-0">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="bi bi-cart3 me-2"></i>Current Order</h5>
-                        </div>
-                        <div class="card-body">
-                            @if (!cart.Any())
-                            {
-                                <div class="text-center py-5 text-muted">Cart is empty</div>
-                            }
-                            else
-                            {
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr class="small text-muted">
-                                            <th>Item</th>
-                                            <th>Qty</th>
-                                            <th class="text-end">Total</th>
-                                            <th></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var item in cart)
-                                        {
-                                            <tr>
-                                                <td class="small">@item.ProductName</td>
-                                                <td><input type="number" class="form-control form-control-sm" @bind="item.Quantity" style="width: 60px;" /></td>
-                                                <td class="text-end small">₱@((item.Price * item.Quantity).ToString("N2"))</td>
-                                                <td><button class="btn btn-sm text-danger" @onclick="() => cart.Remove(item)">×</button></td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                                <div class="border-top pt-3">
-                                    @if (!string.IsNullOrEmpty(statusMessage))
-                                    {
-                                        <div class="alert alert-success p-2 small">@statusMessage</div>
-                                    }
-                                    <div class="d-flex justify-content-between h4">
-                                        <span>Total:</span>
-                                        <span class="text-primary fw-bold">₱@TotalAmount.ToString("N2")</span>
-                                    </div>
-                                    <button class="btn btn-success w-100 py-2 fw-bold" @onclick="Checkout" disabled="@isProcessing">
-                                        @(isProcessing ? "PROCESSING..." : "CONFIRM SALE")
-                                    </button>
                                 </div>
-                            }
-                        </div>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
         </div>
-    </Authorized>
 
-    <NotAuthorized>
-        @* Shown immediately if the Admin token expires during a sale *@
-        <div style="height: 100vh; background: #f8f9fa; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: sans-serif; text-align: center;">
-            <div class="spinner-border text-primary" role="status" style="margin-bottom: 20px; width: 3rem; height: 3rem;"></div>
-            <h2 style="color: #0d6efd;">POS Session Expired</h2>
-            <p style="color: #6c757d; max-width: 400px;">For security, the transaction has been paused. Please log in again to continue with the sale.</p>
-            <button class="btn btn-primary mt-3" @onclick='() => Nav.NavigateTo("/Account/Login", true)'>Log In Again</button>
+        @* --- Cart Section --- *@
+        <div class="col-md-5">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-cart3 me-2"></i>Current Order</h5>
+                </div>
+                <div class="card-body">
+                    @if (!cart.Any())
+                    {
+                        <div class="text-center py-5 text-muted">Cart is empty</div>
+                    }
+                    else
+                    {
+                        <table class="table table-sm">
+                            <thead>
+                                <tr class="small text-muted">
+                                    <th>Item</th>
+                                    <th>Qty</th>
+                                    <th class="text-end">Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in cart)
+                                {
+                                    <tr>
+                                        <td class="small">@item.ProductName</td>
+                                        <td><input type="number" class="form-control form-control-sm" @bind="item.Quantity" style="width: 60px;" /></td>
+                                        <td class="text-end small">₱@((item.Price * item.Quantity).ToString("N2"))</td>
+                                        <td><button class="btn btn-sm text-danger" @onclick="() => cart.Remove(item)">×</button></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <div class="border-top pt-3">
+                            @if (!string.IsNullOrEmpty(statusMessage))
+                            {
+                                <div class="alert alert-success p-2 small">@statusMessage</div>
+                            }
+                            <div class="d-flex justify-content-between h4">
+                                <span>Total:</span>
+                                <span class="text-primary fw-bold">₱@TotalAmount.ToString("N2")</span>
+                            </div>
+                            <button class="btn btn-success w-100 py-2 fw-bold" @onclick="Checkout" disabled="@isProcessing">
+                                @(isProcessing ? "PROCESSING..." : "CONFIRM SALE")
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
-    </NotAuthorized>
-</AuthorizeView>
+    </div>
+</div>
 
 @code {
     private List<Product> allProducts = new();
@@ -142,20 +126,14 @@
 
     private async Task LoadData()
     {
-        try
-        {
-            allProducts = await Context.Products.AsNoTracking().ToListAsync();
-            categories = allProducts
-                .Select(p => p.Category)
-                .Where(c => !string.IsNullOrEmpty(c))
-                .Distinct()
-                .OrderBy(c => c)
-                .ToList();
-        }
-        catch (Exception)
-        {
-            // If the circuit breaks due to auth, AuthorizeView will take over
-        }
+        allProducts = await Context.Products.AsNoTracking().ToListAsync();
+        // Extract unique categories from your product list
+        categories = allProducts
+            .Select(p => p.Category)
+            .Where(c => !string.IsNullOrEmpty(c))
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
     }
 
     private IEnumerable<Product> FilteredProducts => allProducts
@@ -186,10 +164,7 @@
             cart.Clear();
             await LoadData(); // Refresh stock counts
         }
-        catch (Exception ex)
-        {
-            statusMessage = "Error: " + ex.Message;
-        }
+        catch (Exception ex) { statusMessage = "Error: " + ex.Message; }
         finally { isProcessing = false; }
     }
 }

@@ -6,7 +6,6 @@ using StockSense.Shared;
 using System.Text;
 
 
-[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class ProductsController : ControllerBase

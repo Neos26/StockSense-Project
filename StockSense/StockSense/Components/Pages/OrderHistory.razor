@@ -2,129 +2,116 @@
 @using StockSense.shared
 @using StockSense.Services
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @inject OrderSlipService OrderService
 @inject IJSRuntime JS
-@inject NavigationManager Nav
 @rendermode InteractiveServer
 
 @attribute [Authorize(Roles = "Admin")]
 
 <PageTitle>Order History & Receiving</PageTitle>
 
-<AuthorizeView Roles="Admin">
-    <Authorized>
-        <div class="container mt-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="text-dark"><i class="bi bi-clock-history me-2"></i>Order History</h2>
-                <a href="/admin/orderslips" class="btn btn-primary shadow-sm">
-                    <i class="bi bi-plus-lg"></i> Create New Order
-                </a>
-            </div>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-dark"><i class="bi bi-clock-history me-2"></i>Order History</h2>
+        <a href="/admin/orderslips" class="btn btn-primary shadow-sm">
+            <i class="bi bi-plus-lg"></i> Create New Order
+        </a>
+    </div>
 
-            @if (savedSlips == null)
-            {
-                <div class="text-center mt-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2">Loading History...</p>
-                </div>
-            }
-            else if (!savedSlips.Any())
-            {
-                <div class="alert alert-info border-0 shadow-sm text-center p-5">
-                    <i class="bi bi-journal-x fs-1 d-block mb-3"></i>
-                    <h5>No order history found.</h5>
-                </div>
-            }
-            else
-            {
-                @foreach (var slip in savedSlips)
-                {
-                    <div class="card mb-4 shadow-sm @(slip.IsReceived ? "border-success" : "border-warning")">
-                        <div class="card-header @(slip.IsReceived ? "bg-success" : "bg-warning") text-white d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="fw-bold">@slip.SlipNumber</span>
-                                <span class="mx-2">|</span>
-                                <span>Supplier: @slip.Supplier?.Name</span>
-                            </div>
-                            <div>
-                                <span class="badge bg-light text-dark">@(slip.IsReceived ? "COMPLETED" : "PENDING")</span>
-                            </div>
-                        </div>
-                        <div class="card-body bg-white">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light small text-uppercase">
-                                    <tr>
-                                        <th>Product Details</th>
-                                        <th class="text-center">Qty Ordered</th>
-                                        <th class="text-center" style="width: 180px;">Qty Received</th>
-                                        <th class="text-center" style="width: 120px;">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var item in slip.Items)
-                                    {
-                                        <tr>
-                                            <td>
-                                                <div class="fw-bold">@item.ProductName</div>
-                                                <div class="small text-muted">@item.Brand</div>
-                                            </td>
-                                            <td class="text-center fw-bold">@item.Quantity</td>
-                                            <td>
-                                                @if (slip.IsReceived)
-                                                {
-                                                    <div class="text-center fw-bold text-success">@item.ReceivedQuantity</div>
-                                                }
-                                                else
-                                                {
-                                                    <input type="number" class="form-control form-control-sm text-center border-primary fw-bold"
-                                                           @bind="item.ReceivedQuantity" min="0" />
-                                                }
-                                            </td>
-                                            <td class="text-center">
-                                                @if (!slip.IsReceived)
-                                                {
-                                                    <button class="btn btn-danger btn-sm px-2 py-1"
-                                                            @onclick="() => RemoveProduct(item.Id)">
-                                                        <i class="bi bi-trash-fill me-1"></i> Remove
-                                                    </button>
-                                                }
-                                                else
-                                                {
-                                                    <span class="text-success small fw-bold"><i class="bi bi-check-circle"></i> Stocked</span>
-                                                }
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-
-                            @if (!slip.IsReceived)
-                            {
-                                <div class="d-flex justify-content-end mt-3 gap-2">
-                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteSlip(slip.Id)">
-                                        <i class="bi bi-x-square me-1"></i> Delete Entire Slip
-                                    </button>
-                                    <button class="btn btn-success shadow-sm" @onclick="() => ConfirmStockIn(slip)">
-                                        <i class="bi bi-box-seam me-1"></i> Confirm Stock In
-                                    </button>
-                                </div>
-                            }
-                        </div>
+    @if (savedSlips == null)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Loading History...</p>
+        </div>
+    }
+    else if (!savedSlips.Any())
+    {
+        <div class="alert alert-info border-0 shadow-sm text-center p-5">
+            <i class="bi bi-journal-x fs-1 d-block mb-3"></i>
+            <h5>No order history found.</h5>
+        </div>
+    }
+    else
+    {
+        @foreach (var slip in savedSlips)
+        {
+            <div class="card mb-4 shadow-sm @(slip.IsReceived ? "border-success" : "border-warning")">
+                <div class="card-header @(slip.IsReceived ? "bg-success" : "bg-warning") text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-bold">@slip.SlipNumber</span>
+                        <span class="mx-2">|</span>
+                        <span>Supplier: @slip.Supplier?.Name</span>
                     </div>
-                }
-            }
-        </div>
-    </Authorized>
+                    <div>
+                        <span class="badge bg-light text-dark">@(slip.IsReceived ? "COMPLETED" : "PENDING")</span>
+                    </div>
+                </div>
+                <div class="card-body bg-white">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase">
+                            <tr>
+                                <th>Product Details</th>
+                                <th class="text-center">Qty Ordered</th>
+                                <th class="text-center" style="width: 180px;">Qty Received</th>
+                                <th class="text-center" style="width: 120px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in slip.Items)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">@item.ProductName</div>
+                                        <div class="small text-muted">@item.Brand</div>
+                                    </td>
+                                    <td class="text-center fw-bold">@item.Quantity</td>
+                                    <td>
+                                        @if (slip.IsReceived)
+                                        {
+                                            <div class="text-center fw-bold text-success">@item.ReceivedQuantity</div>
+                                        }
+                                        else
+                                        {
+                                            <input type="number" class="form-control form-control-sm text-center border-primary fw-bold"
+                                                   @bind="item.ReceivedQuantity" min="0" />
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (!slip.IsReceived)
+                                        {
+                                            @* Fixed Button: Added background color and visible text *@
+                                            <button class="btn btn-danger btn-sm px-2 py-1"
+                                                    @onclick="() => RemoveProduct(item.Id)">
+                                                <i class="bi bi-trash-fill me-1"></i> Remove
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-success small fw-bold"><i class="bi bi-check-circle"></i> Stocked</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
 
-    <NotAuthorized>
-        <div style="height: 100vh; background: #f8f9fa; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: sans-serif;">
-            <div class="spinner-border text-danger" role="status" style="margin-bottom: 20px;"></div>
-            <h2 style="color: #dc3545;">Admin Session Expired</h2>
-            <p style="color: #6c757d;">Protecting procurement records... Redirecting.</p>
-        </div>
-    </NotAuthorized>
-</AuthorizeView>
+                    @if (!slip.IsReceived)
+                    {
+                        <div class="d-flex justify-content-end mt-3 gap-2">
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteSlip(slip.Id)">
+                                <i class="bi bi-x-square me-1"></i> Delete Entire Slip
+                            </button>
+                            <button class="btn btn-success shadow-sm" @onclick="() => ConfirmStockIn(slip)">
+                                <i class="bi bi-box-seam me-1"></i> Confirm Stock In
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
 
 @code {
     private List<OrderSlip>? savedSlips;
@@ -136,25 +123,17 @@
 
     private async Task LoadHistory()
     {
-        try
-        {
-            savedSlips = await OrderService.GetSavedOrderSlipsAsync();
+        savedSlips = await OrderService.GetSavedOrderSlipsAsync();
 
-            if (savedSlips != null)
+        if (savedSlips != null)
+        {
+            foreach (var slip in savedSlips.Where(s => !s.IsReceived))
             {
-                foreach (var slip in savedSlips.Where(s => !s.IsReceived))
+                foreach (var item in slip.Items)
                 {
-                    foreach (var item in slip.Items)
-                    {
-                        if (item.ReceivedQuantity == 0) item.ReceivedQuantity = item.Quantity;
-                    }
+                    if (item.ReceivedQuantity == 0) item.ReceivedQuantity = item.Quantity;
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading history: {ex.Message}");
-            // Optional: check for auth error here if needed, but AuthorizeView handles most cases
         }
     }
 
