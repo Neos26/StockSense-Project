@@ -170,123 +170,123 @@
     }
 
     private RenderFragment NavContent(bool isCollapsed) => __builder =>
+    {
+        @* --- MAIN SECTION --- *@
+        if (!isCollapsed)
         {
-            @* --- MAIN SECTION --- *@
-            if (!isCollapsed)
-            {
-                <p style="font-size: var(--text-xs); font-weight: var(--font-medium); color: var(--muted-foreground); padding: 0 var(--space-2); margin: 0 0 var(--space-1) 0; text-transform: uppercase; letter-spacing: 0.05em;">Main</p>
-            }
-            <a href="/Dashboard" title="Dashboard" style="@NavLinkStyle(IsActive("/Dashboard"), isCollapsed)">
-                <LucideIcon Name="layout-dashboard" Size="16" />
-                @if (!isCollapsed)
-                {
-                    <span style="white-space: nowrap;">Dashboard</span>
-                }
-            </a>
-            <a href="/admin/pos" title="POS" style="@NavLinkStyle(IsActive("/admin/pos"), isCollapsed)">
-                <LucideIcon Name="scan-barcode" Size="16" />
-                @if (!isCollapsed)
-                {
-                    <span style="white-space: nowrap;">POS</span>
-                }
-            </a>
-
-            @* --- STAFF SECTION (Employee & Admin) --- *@
-            <AuthorizeView Roles="Employee, Admin">
-                <Authorized>
-                    <div style="margin: var(--space-4) 0 var(--space-1) 0; border-top: 1px solid var(--sidebar-border);"></div>
-                    @if (!isCollapsed)
-                    {
-                        <p style="font-size: var(--text-xs); font-weight: var(--font-medium); color: var(--muted-foreground); padding: 0 var(--space-2); margin: var(--space-2) 0 var(--space-1) 0; text-transform: uppercase; letter-spacing: 0.05em;">Staff Tools</p>
-                    }
-                    <a href="/admin/appointments" title="Appointments" style="@NavLinkStyle(IsActive("/admin/appointments"), isCollapsed)">
-                        <LucideIcon Name="calendar" Size="16" />
-                        @if (!isCollapsed)
-                        {
-                            <span style="white-space: nowrap;">Appointments</span>
-                        }
-                    </a>
-                    <a href="/admin/builds" title="Builds" style="@NavLinkStyle(IsActive("/admin/builds"), isCollapsed)">
-                        <LucideIcon Name="wrench" Size="16" />
-                        @if (!isCollapsed)
-                        {
-                            <span style="white-space: nowrap;">Builds</span>
-                        }
-                    </a>
-                    <a href="/admin/orderslips" title="Order Slips" style="@NavLinkStyle(IsActive("/admin/orderslips"), isCollapsed)">
-                        <LucideIcon Name="clipboard-list" Size="16" />
-                        @if (!isCollapsed)
-                        {
-                            <span style="white-space: nowrap;">Order Slips</span>
-                        }
-                    </a>
-                </Authorized>
-            </AuthorizeView>
-
-            @* --- SYSTEM SECTION (Strictly Admin) --- *@
-            <AuthorizeView Roles="Admin">
-                <Authorized>
-                    <div style="margin: var(--space-4) 0 var(--space-1) 0; border-top: 1px solid var(--sidebar-border);"></div>
-                    @if (!isCollapsed)
-                    {
-                        <p style="font-size: var(--text-xs); font-weight: var(--font-medium); color: var(--muted-foreground); padding: 0 var(--space-2); margin: var(--space-2) 0 var(--space-1) 0; text-transform: uppercase; letter-spacing: 0.05em;">System</p>
-                    }
-                    <a href="/admin/management" title="User Management" style="@NavLinkStyle(IsActive("/admin/management"), isCollapsed)">
-                        <LucideIcon Name="users" Size="16" />
-                        @if (!isCollapsed)
-                        {
-                            <span style="white-space: nowrap;">Management</span>
-                        }
-                    </a>
-                </Authorized>
-            </AuthorizeView>
-
-            <div style="margin: var(--space-4) 0 var(--space-1) 0; border-top: 1px solid var(--sidebar-border);"></div>
-
-            @* --- ACCOUNT SECTION --- *@
+            <p style="font-size: var(--text-xs); font-weight: var(--font-medium); color: var(--muted-foreground); padding: 0 var(--space-2); margin: 0 0 var(--space-1) 0; text-transform: uppercase; letter-spacing: 0.05em;">Main</p>
+        }
+        <a href="/Dashboard" title="Dashboard" style="@NavLinkStyle(IsActive("/Dashboard"), isCollapsed)">
+            <LucideIcon Name="layout-dashboard" Size="16" />
             @if (!isCollapsed)
             {
-                <p style="font-size: var(--text-xs); font-weight: var(--font-medium); color: var(--muted-foreground); padding: 0 var(--space-2); margin: var(--space-2) 0 var(--space-1) 0; text-transform: uppercase; letter-spacing: 0.05em;">Account</p>
-                <button @onclick="ToggleProfile" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: var(--space-2); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--sidebar-foreground); background: none; border: none; cursor: pointer; font-family: var(--font-sans); margin-bottom: var(--space-1);">
-                    <span style="display: flex; align-items: center; gap: var(--space-2);">
-                        <LucideIcon Name="user" Size="16" />
-                        Profile
-                    </span>
-                    <LucideIcon Name="@(profileOpen ? "chevron-up" : "chevron-down")" Size="14" />
-                </button>
-                @if (profileOpen)
-                {
-                    <div style="padding-left: var(--space-3);">
-                        <a href="Account/Manage" style="@NavLinkStyle(IsExact("Account/Manage"), false)">
-                            <LucideIcon Name="user" Size="16" />
-                            <span style="white-space: nowrap;">Profile</span>
-                        </a>
-                        <a href="Account/Manage/Email" style="@NavLinkStyle(IsExact("Account/Manage/Email"), false)">
-                            <LucideIcon Name="mail" Size="16" />
-                            <span style="white-space: nowrap;">Email</span>
-                        </a>
-                        <a href="Account/Manage/ChangePassword" style="@NavLinkStyle(IsExact("Account/Manage/ChangePassword"), false)">
-                            <LucideIcon Name="lock" Size="16" />
-                            <span style="white-space: nowrap;">Password</span>
-                        </a>
-                        <a href="Account/Manage/TwoFactorAuthentication" style="@NavLinkStyle(IsExact("Account/Manage/TwoFactorAuthentication"), false)">
-                            <LucideIcon Name="shield-check" Size="16" />
-                            <span style="white-space: nowrap;">Two-Factor Auth</span>
-                        </a>
-                        <a href="Account/Manage/PersonalData" style="@NavLinkStyle(IsExact("Account/Manage/PersonalData"), false)">
-                            <LucideIcon Name="database" Size="16" />
-                            <span style="white-space: nowrap;">Personal Data</span>
-                        </a>
-                    </div>
-                }
+                <span style="white-space: nowrap;">Dashboard</span>
             }
-            else
+        </a>
+        <a href="/admin/pos" title="POS" style="@NavLinkStyle(IsActive("/admin/pos"), isCollapsed)">
+            <LucideIcon Name="scan-barcode" Size="16" />
+            @if (!isCollapsed)
             {
-                <a href="Account/Manage" title="Profile" style="@NavLinkStyle(IsActive("Account/Manage"), true)">
-                    <LucideIcon Name="user" Size="16" />
-                </a>
+                <span style="white-space: nowrap;">POS</span>
             }
-        };
+        </a>
+
+        @* --- STAFF SECTION (Employee & Admin) --- *@
+        <AuthorizeView Roles="Employee, Admin">
+            <Authorized>
+                <div style="margin: var(--space-4) 0 var(--space-1) 0; border-top: 1px solid var(--sidebar-border);"></div>
+                @if (!isCollapsed)
+                {
+                    <p style="font-size: var(--text-xs); font-weight: var(--font-medium); color: var(--muted-foreground); padding: 0 var(--space-2); margin: var(--space-2) 0 var(--space-1) 0; text-transform: uppercase; letter-spacing: 0.05em;">Staff Tools</p>
+                }
+                <a href="/admin/appointments" title="Appointments" style="@NavLinkStyle(IsActive("/admin/appointments"), isCollapsed)">
+                    <LucideIcon Name="calendar" Size="16" />
+                    @if (!isCollapsed)
+                    {
+                        <span style="white-space: nowrap;">Appointments</span>
+                    }
+                </a>
+                <a href="/admin/builds" title="Builds" style="@NavLinkStyle(IsActive("/admin/builds"), isCollapsed)">
+                    <LucideIcon Name="wrench" Size="16" />
+                    @if (!isCollapsed)
+                    {
+                        <span style="white-space: nowrap;">Builds</span>
+                    }
+                </a>
+                <a href="/admin/orderslips" title="Order Slips" style="@NavLinkStyle(IsActive("/admin/orderslips"), isCollapsed)">
+                    <LucideIcon Name="clipboard-list" Size="16" />
+                    @if (!isCollapsed)
+                    {
+                        <span style="white-space: nowrap;">Order Slips</span>
+                    }
+                </a>
+            </Authorized>
+        </AuthorizeView>
+
+        @* --- SYSTEM SECTION (Strictly Admin) --- *@
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div style="margin: var(--space-4) 0 var(--space-1) 0; border-top: 1px solid var(--sidebar-border);"></div>
+                @if (!isCollapsed)
+                {
+                    <p style="font-size: var(--text-xs); font-weight: var(--font-medium); color: var(--muted-foreground); padding: 0 var(--space-2); margin: var(--space-2) 0 var(--space-1) 0; text-transform: uppercase; letter-spacing: 0.05em;">System</p>
+                }
+                <a href="/admin/management" title="User Management" style="@NavLinkStyle(IsActive("/admin/management"), isCollapsed)">
+                    <LucideIcon Name="users" Size="16" />
+                    @if (!isCollapsed)
+                    {
+                        <span style="white-space: nowrap;">Management</span>
+                    }
+                </a>
+            </Authorized>
+        </AuthorizeView>
+
+        <div style="margin: var(--space-4) 0 var(--space-1) 0; border-top: 1px solid var(--sidebar-border);"></div>
+
+        @* --- ACCOUNT SECTION --- *@
+        @if (!isCollapsed)
+        {
+            <p style="font-size: var(--text-xs); font-weight: var(--font-medium); color: var(--muted-foreground); padding: 0 var(--space-2); margin: var(--space-2) 0 var(--space-1) 0; text-transform: uppercase; letter-spacing: 0.05em;">Account</p>
+            <button @onclick="ToggleProfile" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: var(--space-2); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--sidebar-foreground); background: none; border: none; cursor: pointer; font-family: var(--font-sans); margin-bottom: var(--space-1);">
+                <span style="display: flex; align-items: center; gap: var(--space-2);">
+                    <LucideIcon Name="user" Size="16" />
+                    Profile
+                </span>
+                <LucideIcon Name="@(profileOpen ? "chevron-up" : "chevron-down")" Size="14" />
+            </button>
+            @if (profileOpen)
+            {
+                <div style="padding-left: var(--space-3);">
+                    <a href="Account/Manage" style="@NavLinkStyle(IsExact("Account/Manage"), false)">
+                        <LucideIcon Name="user" Size="16" />
+                        <span style="white-space: nowrap;">Profile</span>
+                    </a>
+                    <a href="Account/Manage/Email" style="@NavLinkStyle(IsExact("Account/Manage/Email"), false)">
+                        <LucideIcon Name="mail" Size="16" />
+                        <span style="white-space: nowrap;">Email</span>
+                    </a>
+                    <a href="Account/Manage/ChangePassword" style="@NavLinkStyle(IsExact("Account/Manage/ChangePassword"), false)">
+                        <LucideIcon Name="lock" Size="16" />
+                        <span style="white-space: nowrap;">Password</span>
+                    </a>
+                    <a href="Account/Manage/TwoFactorAuthentication" style="@NavLinkStyle(IsExact("Account/Manage/TwoFactorAuthentication"), false)">
+                        <LucideIcon Name="shield-check" Size="16" />
+                        <span style="white-space: nowrap;">Two-Factor Auth</span>
+                    </a>
+                    <a href="Account/Manage/PersonalData" style="@NavLinkStyle(IsExact("Account/Manage/PersonalData"), false)">
+                        <LucideIcon Name="database" Size="16" />
+                        <span style="white-space: nowrap;">Personal Data</span>
+                    </a>
+                </div>
+            }
+        }
+        else
+        {
+            <a href="Account/Manage" title="Profile" style="@NavLinkStyle(IsActive("Account/Manage"), true)">
+                <LucideIcon Name="user" Size="16" />
+            </a>
+        }
+    };
 
     private string NavLinkStyle(bool isActive, bool isCollapsed) =>
         $"display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); color: {(isActive ? "var(--sidebar-foreground)" : "var(--muted-foreground)")}; text-decoration: none; background-color: {(isActive ? "var(--sidebar-accent)" : "transparent")}; margin-bottom: var(--space-1); justify-content: {(isCollapsed ? "center" : "flex-start")};";
