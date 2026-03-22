@@ -68,6 +68,7 @@ builder.Services.Configure<IdentityOptions>(options =>
 {
     options.Lockout.MaxFailedAccessAttempts = 5; // Lock after 5 tries
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(1); // Only lock for 1 min
+    options.Lockout.AllowedForNewUsers = true;
 });
 builder.Services.AddTransient<IEmailSender<ApplicationUser>, EmailSender>();
 builder.Services.AddTransient<EmailSender>();
