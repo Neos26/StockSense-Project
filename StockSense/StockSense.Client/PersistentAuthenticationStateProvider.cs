@@ -27,7 +27,9 @@ namespace StockSense.Client
             var claims = new[] {
                 new Claim(ClaimTypes.NameIdentifier, userInfo.UserId ?? ""),
                 new Claim(ClaimTypes.Name, userInfo.Email ?? ""),
-                new Claim(ClaimTypes.Email, userInfo.Email ?? "")
+                new Claim(ClaimTypes.Email, userInfo.Email ?? ""),
+                new Claim(ClaimTypes.Role, userInfo.Role ?? "")
+
             };
 
             _authStateTask = Task.FromResult(new AuthenticationState(new ClaimsPrincipal(
@@ -38,8 +40,9 @@ namespace StockSense.Client
 
         public void NotifyLogout()
         {
-            _authStateTask = _unauthenticatedTask;
-            NotifyAuthenticationStateChanged(_authStateTask);
+            var anonymous = new ClaimsPrincipal(new ClaimsIdentity());
+            var authState = Task.FromResult(new AuthenticationState(anonymous));
+            NotifyAuthenticationStateChanged(authState);
         }
     }
 }

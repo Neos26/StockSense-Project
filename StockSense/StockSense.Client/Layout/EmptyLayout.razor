@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
 
 <div style="display: flex; flex-direction: column; height: 100vh;">
     <NavBar />
@@ -6,3 +7,20 @@
         @Body
     </main>
 </div>
+
+@code {
+    // This parameter "catches" the signal from the CascadingAuthenticationState in Routes.razor
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthStateTask != null)
+        {
+            // When the Heartbeat calls NotifyLogout(),
+            // this task completes, triggering StateHasChanged()
+            await AuthStateTask;
+            StateHasChanged();
+        }
+    }
+}

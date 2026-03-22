@@ -1,9 +1,14 @@
 ﻿@implements IDisposable
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Net
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject HttpClient Http
 @rendermode InteractiveWebAssembly
 
 <BbSidebarContent>
 
+    @* --- MAIN SECTION --- *@
     <BbSidebarGroup>
         <BbSidebarGroupLabel>Main</BbSidebarGroupLabel>
         <BbSidebarMenu>
@@ -15,53 +20,71 @@
         </BbSidebarMenu>
     </BbSidebarGroup>
 
-    <BbSidebarGroup>
-        <BbSidebarGroupLabel>Admin</BbSidebarGroupLabel>
-        <BbSidebarMenu>
-            <BbSidebarMenuItem>
-                <BbSidebarMenuButton IsActive="@IsActive("/admin/appointments")" href="/admin/appointments">
-                    Appointments
-                </BbSidebarMenuButton>
-            </BbSidebarMenuItem>
-            <BbSidebarMenuItem>
-                <BbSidebarMenuButton IsActive="@IsActive("/admin/builds")" href="/admin/builds">
-                    Builds
-                </BbSidebarMenuButton>
-            </BbSidebarMenuItem>
-        </BbSidebarMenu>
-    </BbSidebarGroup>
+    @* --- ADMIN SECTION --- *@
+    <AuthorizeView Roles="Admin" Context="adminContext">
+        <Authorized>
+            <BbSidebarGroup>
+                <BbSidebarGroupLabel>Admin</BbSidebarGroupLabel>
+                <BbSidebarMenu>
+                    <BbSidebarMenuItem>
+                        <BbSidebarMenuButton IsActive="@IsActive("/admin/appointments")" href="/admin/appointments">
+                            Appointments
+                        </BbSidebarMenuButton>
+                    </BbSidebarMenuItem>
+                    <BbSidebarMenuItem>
+                        <BbSidebarMenuButton IsActive="@IsActive("/admin/builds")" href="/admin/builds">
+                            Builds
+                        </BbSidebarMenuButton>
+                    </BbSidebarMenuItem>
+                </BbSidebarMenu>
+            </BbSidebarGroup>
+        </Authorized>
+    </AuthorizeView>
 
+    @* --- ACCOUNT SECTION --- *@
     <BbSidebarGroup>
         <BbSidebarGroupLabel>Account</BbSidebarGroupLabel>
         <BbSidebarMenu>
-            <BbSidebarMenuItem>
-                <BbCollapsible @bind-Open="profileOpen">
-                    <BbCollapsibleTrigger AsChild="true">
-                        <BbSidebarMenuButton>
-                            Profile
+            <AuthorizeView Context="authContext">
+                <Authorized>
+                    <BbSidebarMenuItem>
+                        <BbCollapsible @bind-Open="profileOpen">
+                            <BbCollapsibleTrigger AsChild="true">
+                                <BbSidebarMenuButton>
+                                    Profile
+                                </BbSidebarMenuButton>
+                            </BbCollapsibleTrigger>
+                            <BbCollapsibleContent>
+                                <BbSidebarMenuSub>
+                                    <BbSidebarMenuSubItem>
+                                        <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage")" href="Account/Manage">Profile</BbSidebarMenuSubButton>
+                                    </BbSidebarMenuSubItem>
+                                    <BbSidebarMenuSubItem>
+                                        <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/Email")" href="Account/Manage/Email">Email</BbSidebarMenuSubButton>
+                                    </BbSidebarMenuSubItem>
+                                    <BbSidebarMenuSubItem>
+                                        <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/ChangePassword")" href="Account/Manage/ChangePassword">Password</BbSidebarMenuSubButton>
+                                    </BbSidebarMenuSubItem>
+                                    <BbSidebarMenuSubItem>
+                                        <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/TwoFactorAuthentication")" href="Account/Manage/TwoFactorAuthentication">Two-Factor Auth</BbSidebarMenuSubButton>
+                                    </BbSidebarMenuSubItem>
+                                    <BbSidebarMenuSubItem>
+                                        <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/PersonalData")" href="Account/Manage/PersonalData">Personal Data</BbSidebarMenuSubButton>
+                                    </BbSidebarMenuSubItem>
+                                </BbSidebarMenuSub>
+                            </BbCollapsibleContent>
+                        </BbCollapsible>
+                    </BbSidebarMenuItem>
+                </Authorized>
+                <NotAuthorized>
+                    @* This displays the Login button when the session expires *@
+                    <BbSidebarMenuItem>
+                        <BbSidebarMenuButton href="Account/Login">
+                            Login
                         </BbSidebarMenuButton>
-                    </BbCollapsibleTrigger>
-                    <BbCollapsibleContent>
-                        <BbSidebarMenuSub>
-                            <BbSidebarMenuSubItem>
-                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage")" href="Account/Manage">Profile</BbSidebarMenuSubButton>
-                            </BbSidebarMenuSubItem>
-                            <BbSidebarMenuSubItem>
-                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/Email")" href="Account/Manage/Email">Email</BbSidebarMenuSubButton>
-                            </BbSidebarMenuSubItem>
-                            <BbSidebarMenuSubItem>
-                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/ChangePassword")" href="Account/Manage/ChangePassword">Password</BbSidebarMenuSubButton>
-                            </BbSidebarMenuSubItem>
-                            <BbSidebarMenuSubItem>
-                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/TwoFactorAuthentication")" href="Account/Manage/TwoFactorAuthentication">Two-Factor Auth</BbSidebarMenuSubButton>
-                            </BbSidebarMenuSubItem>
-                            <BbSidebarMenuSubItem>
-                                <BbSidebarMenuSubButton IsActive="@IsExact("Account/Manage/PersonalData")" href="Account/Manage/PersonalData">Personal Data</BbSidebarMenuSubButton>
-                            </BbSidebarMenuSubItem>
-                        </BbSidebarMenuSub>
-                    </BbCollapsibleContent>
-                </BbCollapsible>
-            </BbSidebarMenuItem>
+                    </BbSidebarMenuItem>
+                </NotAuthorized>
+            </AuthorizeView>
         </BbSidebarMenu>
     </BbSidebarGroup>
 
@@ -69,12 +92,41 @@
 
 @code {
     private bool profileOpen = false;
+    private System.Threading.Timer? _sessionTimer;
 
     protected override void OnInitialized()
     {
         var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         profileOpen = path.StartsWith("Account/Manage", StringComparison.OrdinalIgnoreCase);
         NavigationManager.LocationChanged += OnLocationChanged;
+
+        // Start Heartbeat Check every 10 seconds
+        _sessionTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(CheckSessionStatus);
+        }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+    }
+
+    private async Task CheckSessionStatus()
+    {
+        try
+        {
+            // Pings the server check endpoint
+            var response = await Http.GetAsync("api/auth/check");
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                // Force AuthStateProvider to update UI immediately
+                if (AuthStateProvider is PersistentAuthenticationStateProvider clientProvider)
+                {
+                    clientProvider.NotifyLogout();
+                }
+
+                // Perform hard reload to redirect to landing page
+                NavigationManager.NavigateTo("/", forceLoad: true);
+            }
+        }
+        catch { /* Silent fail for network blips */ }
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -94,5 +146,9 @@
         NavigationManager.ToBaseRelativePath(NavigationManager.Uri)
             .Equals(path, StringComparison.OrdinalIgnoreCase);
 
-    public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+        _sessionTimer?.Dispose();
+    }
 }

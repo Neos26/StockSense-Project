@@ -1,11 +1,11 @@
 ﻿@rendermode InteractiveWebAssembly
 @implements IDisposable
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Net
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
-@inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
-
 
 <header style="position: sticky; top: 0; z-index: 50; width: 100%; border-bottom: 1px solid var(--border); background-color: var(--background); backdrop-filter: blur(8px); box-sizing: border-box;">
     <div class="header-wrapper" style="display: flex; height: 3.5rem; width: 100%; align-items: center; justify-content: space-between; box-sizing: border-box;">
@@ -55,14 +55,7 @@
             </button>
 
             <button type="button" @onclick="ToggleMobileMenu" class="navbar-mobile-trigger navbar-btn" style="align-items: center; justify-content: center; border-radius: var(--radius); cursor: pointer; height: 2.25rem; width: 2.25rem; padding: 0; color: var(--foreground); background-color: transparent; border: none; flex-shrink: 0;">
-                @if (mobileMenuOpen)
-                {
-                    <LucideIcon Name="x" Size="20" />
-                }
-                else
-                {
-                    <LucideIcon Name="menu" Size="20" />
-                }
+                <LucideIcon Name="@(mobileMenuOpen ? "x" : "menu")" Size="20" />
             </button>
 
         </div>
@@ -99,76 +92,64 @@
     private string? currentUrl;
     private bool isDarkMode = false;
     private bool mobileMenuOpen = false;
-    private CancellationTokenSource _cts = new();
+    private System.Threading.Timer? sessionCheckTimer;
 
     protected override void OnInitialized()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
 
-        // Start the heartbeat only if we are in the browser (not during server prerender)
-        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Create("WEBASSEMBLY")))
+        // HEARTBEAT: Checks every 10 seconds (Matches Sidebar logic)
+        sessionCheckTimer = new System.Threading.Timer(async _ =>
         {
-            _ = StartHeartbeat();
+            await CheckSession();
+        }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+    }
+
+    private async Task CheckSession()
+    {
+        try
+        {
+            // Ping an authorized endpoint
+            var response = await Http.GetAsync("api/auth/check");
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                await HandleAutoLogout();
+            }
+        }
+        catch
+        {
+            // Fail silently if server is down or unreachable
         }
     }
 
-    private async Task StartHeartbeat()
+    private async Task HandleAutoLogout()
     {
-        while (!_cts.IsCancellationRequested)
+        sessionCheckTimer?.Dispose();
+
+        // 1. Manually notify the provider to flip UI buttons immediately
+        if (AuthStateProvider is PersistentAuthenticationStateProvider clientProvider)
         {
-            await Task.Delay(TimeSpan.FromSeconds(10), _cts.Token); // Check every 10s for testing
-
-            var state = await AuthStateProvider.GetAuthenticationStateAsync();
-            if (state.User.Identity?.IsAuthenticated == true)
-            {
-                try
-                {
-                    var response = await Http.GetAsync("api/auth/check");
-                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                    {
-                        // 1. Tell the Provider to flip to "Not Authorized"
-                        if (AuthStateProvider is PersistentAuthenticationStateProvider clientProvider)
-                        {
-                            clientProvider.NotifyLogout();
-                        }
-
-                        // 2. Force the jump to the landing page
-                        Navigation.NavigateTo("/", forceLoad: true);
-                        break;
-                    }
-                }
-                catch { /* Server unreachable */ }
-            }
+            clientProvider.NotifyLogout();
         }
+
+        // 2. Force re-render of Navbar
+        await InvokeAsync(StateHasChanged);
+
+        // 3. Force navigate to home with hard reload
+        NavigationManager.NavigateTo("/", forceLoad: true);
     }
 
     protected override async Task OnParametersSetAsync()
     {
         if (AuthState != null)
         {
-            var state = await AuthState;
-            if (state.User.Identity?.IsAuthenticated == false)
-            {
-                var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-                // Don't redirect if we are already on a public page
-                if (!path.Contains("Account/Login") && !path.Contains("Account/Register") && !string.IsNullOrEmpty(path))
-                {
-                    await HandleAutoLogout();
-                }
-            }
+            // This ensures the <AuthorizeView> inside the Navbar
+            // flips from Authorized to NotAuthorized instantly.
+            await AuthState;
+            StateHasChanged();
         }
-    }
-
-    private async Task HandleAutoLogout()
-    {
-        if (AuthStateProvider is PersistentAuthenticationStateProvider clientProvider)
-        {
-            clientProvider.NotifyLogout();
-        }
-
-        // Force reload to the landing page to clear all WebAssembly memory
-        NavigationManager.NavigateTo("/", forceLoad: true);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -210,8 +191,7 @@
 
     public void Dispose()
     {
-        _cts.Cancel();
-        _cts.Dispose();
         NavigationManager.LocationChanged -= OnLocationChanged;
+        sessionCheckTimer?.Dispose();
     }
 }
