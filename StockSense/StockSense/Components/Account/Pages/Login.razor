@@ -97,7 +97,12 @@
 
     public async Task LoginUser()
     {
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        // CHANGE 1: Set lockoutOnFailure to true
+        var result = await SignInManager.PasswordSignInAsync(
+            Input.Email,
+            Input.Password,
+            Input.RememberMe,
+            lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
@@ -115,6 +120,12 @@
             {
                 RedirectManager.RedirectTo(ReturnUrl ?? "/");
             }
+        }
+        // CHANGE 2: Add a check for result.IsLockedOut
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("/Account/Lockout");
         }
         else if (result.RequiresTwoFactor)
         {
