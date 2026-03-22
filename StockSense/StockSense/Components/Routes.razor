@@ -1,20 +1,14 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-namespace StockSense.Controllers // Update this to match your namespace
-{
-    [Route("api/[controller]")]
-    [ApiController]
-    public class AuthController : ControllerBase
-    {
-        // This is the endpoint the Navbar is pinging
-        [Authorize]
-        [HttpGet("check")]
-        public IActionResult CheckSession()
-        {
-            // If the user reaches here, the token is VALID.
-            // If the token is EXPIRED, ASP.NET Core automatically returns 401.
-            return Ok();
-        }
-    }
-}
+﻿@* Routes.razor *@
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }">
+        <Found Context="routeData">
+            @* This handles the PAGE security *@
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(StockSense.Client.Layout.MainLayout)">
+                <NotAuthorized>
+                    <RedirectToLogin />
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+    </Router>
+</CascadingAuthenticationState>
