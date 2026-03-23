@@ -79,7 +79,7 @@
                                 </td>
                                 <td style="padding: var(--space-3) var(--space-4);">
                                     <select value="@appt.Status"
-                                            @onchange="@(e => UpdateStatus(appt, e.Value?.ToString() ?? "Pending"))"
+                                            @onchange="@((ChangeEventArgs e) => UpdateStatus(appt, e.Value?.ToString() ?? "Pending"))"
                                             style="padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--border); border-left: 3px solid @GetStatusBorderColor(appt.Status); background-color: var(--background); color: var(--foreground); font-size: var(--text-sm); cursor: pointer; font-family: var(--font-sans);">
                                         <option value="Pending">Pending</option>
                                         <option value="Confirmed">Confirmed</option>
