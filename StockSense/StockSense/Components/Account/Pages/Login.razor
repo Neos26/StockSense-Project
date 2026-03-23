@@ -5,6 +5,8 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using StockSense.Data
+@using Microsoft.AspNetCore.RateLimiting
+@attribute [EnableRateLimiting("login-policy")]
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
