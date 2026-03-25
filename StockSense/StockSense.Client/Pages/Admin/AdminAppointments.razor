@@ -7,83 +7,97 @@
 
 @attribute [Authorize(Roles = "Admin")]
 
-<div class="admin-container">
-    <div class="header-section">
-        <h2>Manage Appointments</h2>
-        <span class="badge-count">@ActiveAppointments.Count(a => a.Status == "Pending") Pending</span>
+<PageTitle>Manage Appointments</PageTitle>
+
+<div>
+    <div style="display: flex; align-items: start; margin-bottom: var(--space-6); flex-wrap: wrap; flex-direction: column;">
+        <div style="display: flex; align-items: center; gap: var(--space-2); flex: 1; flex-direction: row;">
+            <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0;">Manage Appointments</h1>
+            <BbBadge Variant="BadgeVariant.Destructive">
+                @ActiveAppointments.Count(a => a.Status == "Pending") Pending
+            </BbBadge>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Review and manage customer appointment requests.</p>
     </div>
 
     @if (allAppointments == null)
     {
-        <div class="loading-state">Loading appointment requests...</div>
+        <div style="display: flex; justify-content: center; align-items: center; padding: var(--space-8); color: var(--muted-foreground); gap: var(--space-3);">
+            <BbSpinner Size="SpinnerSize.Small" />
+            <span>Loading appointment requests...</span>
+        </div>
     }
     else
     {
-        @* --- TABS NAVIGATION (Matches Admin Builds) --- *@
-        <div class="tabs-container">
-            <button class="tab-btn @(currentTab == "Active" ? "active" : "")" @onclick='() => currentTab = "Active"'>
+        @* Tabs *@
+        <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4);">
+            <button @onclick='() => currentTab = "Active"'
+                    style="padding: var(--space-2) var(--space-4); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); cursor: pointer; border: 1px solid var(--border); background-color: @(currentTab == "Active" ? "var(--secondary)" : "transparent"); color: @(currentTab == "Active" ? "var(--foreground)" : "var(--muted-foreground)"); font-family: var(--font-sans);">
                 Active (@ActiveAppointments.Count())
             </button>
-            <button class="tab-btn @(currentTab == "History" ? "active" : "")" @onclick='() => currentTab = "History"'>
+            <button @onclick='() => currentTab = "History"'
+                    style="padding: var(--space-2) var(--space-4); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); cursor: pointer; border: 1px solid var(--border); background-color: @(currentTab == "History" ? "var(--secondary)" : "transparent"); color: @(currentTab == "History" ? "var(--foreground)" : "var(--muted-foreground)"); font-family: var(--font-sans);">
                 History (@HistoryAppointments.Count())
             </button>
         </div>
 
-        <div class="table-responsive">
-            <table class="table-dark">
-                <thead>
-                    <tr>
-                        <th style="width: 20%;">Customer</th>
-                        <th style="width: 25%;">Date & Time</th>
-                        <th style="width: 25%;">Services</th>
-                        <th style="width: 15%;">Total Value</th>
-                        <th style="width: 15%;">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var appt in DisplayAppointments)
-                    {
-                        <tr class="table-row">
-                            <td class="customer-name">@appt.CustomerName</td>
-                            <td class="date">
-                                @appt.AppointmentDate.ToShortDateString()
-                                <span class="time-slot">@appt.TimeSlot</span>
-                            </td>
-
-                            <td class="summary">
-                                @appt.ServicesRequested
-                            </td>
-
-                            <td class="price">P @appt.TotalAmount.ToString("N2")</td>
-
-                            <td>
-                                <select value="@appt.Status"
-                                        @onchange="@(e => UpdateStatus(appt, e.Value?.ToString() ?? "Pending"))"
-                                        class="status-dropdown @GetStatusClass(appt.Status)">
-                                    <option value="Pending">Pending</option>
-                                    <option value="Confirmed">Confirmed</option>
-                                    <option value="Completed">Completed</option>
-                                    <option value="Cancelled">Cancelled</option>
-                                </select>
-                            </td>
+        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius);">
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm); min-width: 600px;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 20%;">Customer</th>
+                            <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 25%;">Date & Time</th>
+                            <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 25%;">Services</th>
+                            <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 15%;">Total Value</th>
+                            <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 15%;">Status</th>
                         </tr>
-                    }
-                    @if (!DisplayAppointments.Any())
-                    {
-                        <tr>
-                            <td colspan="5" style="text-align: center; padding: 30px; color: #888;">No appointments found in this section.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @if (!DisplayAppointments.Any())
+                        {
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: var(--space-8); color: var(--muted-foreground);">
+                                    <div style="display: flex; flex-direction: column; align-items: center; gap: var(--space-2);">
+                                        <LucideIcon Name="calendar-x" Size="32" />
+                                        <span>No appointments found in this section.</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var appt in DisplayAppointments)
+                        {
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: var(--space-3) var(--space-4); font-weight: var(--font-medium); color: var(--foreground);">@appt.CustomerName</td>
+                                <td style="padding: var(--space-3) var(--space-4);">
+                                    <div style="color: var(--foreground); font-size: var(--text-sm);">@appt.AppointmentDate.ToShortDateString()</div>
+                                    <div style="color: var(--color-blue-accent); font-size: var(--text-xs); font-weight: var(--font-semibold); margin-top: var(--space-1);">@appt.TimeSlot</div>
+                                </td>
+                                <td style="padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-size: var(--text-sm);">@appt.ServicesRequested</td>
+                                <td style="padding: var(--space-3) var(--space-4); font-weight: var(--font-semibold); color: var(--foreground);">
+                                    ₱@appt.TotalAmount.ToString("N2")
+                                </td>
+                                <td style="padding: var(--space-3) var(--space-4);">
+                                    <select value="@appt.Status"
+                                            @onchange="@((ChangeEventArgs e) => UpdateStatus(appt, e.Value?.ToString() ?? "Pending"))"
+                                            style="padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--border); border-left: 3px solid @GetStatusBorderColor(appt.Status); background-color: var(--background); color: var(--foreground); font-size: var(--text-sm); cursor: pointer; font-family: var(--font-sans);">
+                                        <option value="Pending">Pending</option>
+                                        <option value="Confirmed">Confirmed</option>
+                                        <option value="Completed">Completed</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     }
 </div>
 
 @code {
     private List<Appointment>? allAppointments;
-
-    // --- TAB STATE & FILTERING LOGIC ---
     private string currentTab = "Active";
 
     private IEnumerable<Appointment> ActiveAppointments =>
@@ -93,12 +107,8 @@
         allAppointments?.Where(a => a.Status == "Completed" || a.Status == "Cancelled").OrderByDescending(a => a.AppointmentDate) ?? Enumerable.Empty<Appointment>();
 
     private IEnumerable<Appointment> DisplayAppointments => currentTab == "Active" ? ActiveAppointments : HistoryAppointments;
-    // ----------------------------------------
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadAppointments();
-    }
+    protected override async Task OnInitializedAsync() => await LoadAppointments();
 
     private async Task LoadAppointments()
     {
@@ -117,16 +127,10 @@
         try
         {
             var response = await Http.PutAsJsonAsync($"api/appointments/{appt.Id}/status", newStatus);
-
             if (response.IsSuccessStatusCode)
-            {
                 appt.Status = newStatus;
-                // Blazor automatically recalculates DisplayAppointments and moves the row!
-            }
             else
-            {
                 Console.WriteLine("Server failed to update status.");
-            }
         }
         catch (Exception ex)
         {
@@ -134,174 +138,12 @@
         }
     }
 
-    // Colors the border of the dropdown so the admin can quickly scan the table
-    private string GetStatusClass(string status) => status?.ToLower() switch
+    private string GetStatusBorderColor(string status) => status?.ToLower() switch
     {
-        "pending" => "status-pending",
-        "confirmed" => "status-confirmed",
-        "completed" => "status-completed",
-        "cancelled" => "status-cancelled",
-        _ => ""
+        "pending" => "var(--warning)",
+        "confirmed" => "var(--color-blue-accent)",
+        "completed" => "var(--success)",
+        "cancelled" => "var(--destructive)",
+        _ => "var(--border)"
     };
 }
-
-<style>
-    /* MAIN LAYOUT */
-    .admin-container {
-        padding: 30px;
-        background-color: #121212;
-        min-height: 100vh;
-        color: #e0e0e0;
-        font-family: 'Segoe UI', sans-serif;
-    }
-
-    .header-section {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 25px;
-        border-bottom: 1px solid #333;
-        padding-bottom: 15px;
-    }
-
-    h2 {
-        margin: 0;
-        font-weight: 600;
-        color: #fff;
-    }
-
-    .badge-count {
-        background: #d32f2f;
-        color: white;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: bold;
-    }
-
-    .loading-state {
-        color: #888;
-        font-style: italic;
-    }
-
-    /* --- TABS STYLES --- */
-    .tabs-container {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-
-    .tab-btn {
-        background: #1e1e1e;
-        color: #888;
-        border: 1px solid #333;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 0.95rem;
-        transition: all 0.2s ease;
-    }
-
-        .tab-btn:hover {
-            background: #252525;
-            color: #ddd;
-        }
-
-        .tab-btn.active {
-            background: #333;
-            color: #fff;
-            border-color: #555;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-    /* ----------------------- */
-
-    /* TABLE STYLES */
-    .table-responsive {
-        background: #1e1e1e;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-
-    .table-dark {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-        .table-dark th {
-            background: #252525;
-            padding: 15px;
-            text-align: left;
-            font-size: 0.85rem;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .table-dark td {
-            padding: 15px;
-            border-top: 1px solid #2a2a2a;
-            vertical-align: middle;
-        }
-
-    .table-row:hover {
-        background-color: #2a2a2a;
-    }
-
-    .customer-name {
-        font-weight: bold;
-        color: #fff;
-    }
-
-    .date {
-        color: #ccc;
-        font-size: 0.95rem;
-    }
-
-    .time-slot {
-        display: block;
-        color: #2196F3;
-        font-size: 0.85rem;
-        margin-top: 4px;
-        font-weight: bold;
-    }
-
-    .summary {
-        color: #ccc;
-        font-size: 0.9rem;
-    }
-
-    .price {
-        font-weight: bold;
-        color: #81c784;
-    }
-
-    /* DROPDOWN */
-    .status-dropdown {
-        padding: 6px 10px;
-        border-radius: 4px;
-        border: 1px solid #444;
-        background: #121212;
-        color: #fff;
-        font-size: 0.9rem;
-        cursor: pointer;
-        outline: none;
-    }
-
-    .status-pending {
-        border-left: 3px solid #ff9800;
-    }
-
-    .status-confirmed {
-        border-left: 3px solid #2196f3;
-    }
-
-    .status-completed {
-        border-left: 3px solid #4caf50;
-    }
-
-    .status-cancelled {
-        border-left: 3px solid #f44336;
-    }
-</style>

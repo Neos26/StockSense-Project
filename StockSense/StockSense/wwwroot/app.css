@@ -1,4 +1,39 @@
 @layer app {
+
+    /* --- Utility Colors --- */
+    .text-destructive {
+        color: var(--destructive) !important;
+    }
+
+    .text-success {
+        color: var(--success) !important;
+    }
+
+    .text-warning {
+        color: var(--warning) !important;
+    }
+
+    .text-info {
+        color: var(--info) !important;
+    }
+
+    /* --- Card Variants --- */
+    .card-destructive {
+        border-color: var(--destructive) !important;
+    }
+
+    .card-warning {
+        border-color: var(--warning) !important;
+    }
+
+    .card-success {
+        border-color: var(--success) !important;
+    }
+
+    .card-info {
+        border-color: var(--info) !important;
+    }
+
     /* --- Validation --- */
     .valid.modified:not([type=checkbox]) {
         outline: 1px solid #26b050;
@@ -29,9 +64,6 @@
         color: var(--accent-foreground) !important;
     }
 
-
-
-
     .navbar-desktop-nav {
         display: flex;
     }
@@ -39,13 +71,53 @@
     .navbar-mobile-trigger {
         display: none;
     }
+
+    .settings-nav-label {
+        display: none;
+    }
+
+    .settings-nav-label-active {
+        display: inline;
+    }
+
+    .admin-sidebar-desktop {
+        display: flex;
+    }
+
+    .admin-sidebar-mobile-trigger {
+        display: none;
+    }
 }
+
+/* --- Outside @layer (media queries must be outside to avoid suppression) --- */
 
 .header-wrapper {
     padding: 0 6rem;
 }
 
-/* Outside @layer so media queries aren't suppressed */
+.settings-mobile-trigger {
+    display: none;
+}
+
+.settings-mobile-nav {
+    display: none;
+}
+
+.settings-sidebar {
+    width: 14rem;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    background-color: var(--background);
+    padding: var(--space-4) var(--space-2);
+    overflow-y: auto;
+}
+
+@media (min-width: 641px) {
+    .settings-nav-label {
+        display: inline !important;
+    }
+}
+
 @media (max-width: 640px) {
     .navbar-desktop-nav {
         display: none !important;
@@ -57,5 +129,46 @@
 
     .header-wrapper {
         padding: 0 1rem;
+    }
+
+    .settings-mobile-trigger {
+        display: flex !important;
+    }
+
+    .settings-mobile-nav {
+        display: block;
+        border-bottom: 1px solid var(--border);
+        background-color: var(--background);
+        overflow-x: auto;
+    }
+
+        .settings-mobile-nav nav {
+            flex-direction: row !important;
+            flex-wrap: nowrap;
+            padding: var(--space-2) var(--space-4);
+            gap: var(--space-1);
+            overflow-x: auto;
+        }
+
+        .settings-mobile-nav p {
+            display: none;
+        }
+
+    .settings-sidebar {
+        display: none !important;
+    }
+
+    .settings-main {
+        padding: var(--space-4) !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .admin-sidebar-desktop {
+        display: none !important;
+    }
+
+    .admin-sidebar-mobile-trigger {
+        display: block !important;
     }
 }

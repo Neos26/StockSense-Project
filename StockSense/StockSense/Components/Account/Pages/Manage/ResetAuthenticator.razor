@@ -1,4 +1,5 @@
 ﻿@page "/Account/Manage/ResetAuthenticator"
+@layout SettingsLayout
 
 @using Microsoft.AspNetCore.Identity
 @using StockSense.Data
@@ -12,24 +13,24 @@
 
 <PageTitle>Reset authenticator key</PageTitle>
 
+<h1 style="font-size: var(--text-2xl); font-weight: var(--font-semibold); color: var(--destructive); margin: 0 0 var(--space-1) 0;">Reset Authenticator</h1>
+<h2 style="font-size: var(--text-base); font-weight: var(--font-normal); color: var(--muted-foreground); margin: 0 0 var(--space-6) 0;">Reset your two-factor authenticator app key.</h2>
+<div style="border-top: 1px solid var(--border); margin-bottom: var(--space-6);"></div>
+
 <StatusMessage />
-<h3>Reset authenticator key</h3>
-<div class="alert alert-warning" role="alert">
-    <p>
-        <span class="glyphicon glyphicon-warning-sign"></span>
-        <strong>If you reset your authenticator key your authenticator app will not work until you reconfigure it.</strong>
-    </p>
-    <p>
-        This process disables 2FA until you verify your authenticator app.
-        If you do not complete your authenticator app configuration you may lose access to your account.
-    </p>
+
+<div style="padding: var(--space-4); border-radius: var(--radius); background-color: var(--warning-muted); border: 1px solid var(--warning-border); margin-bottom: var(--space-6); display: flex; flex-direction: column; gap: var(--space-2);">
+    <p style="font-size: var(--text-sm); color: var(--warning-foreground); margin: 0;"><strong>If you reset your authenticator key your authenticator app will not work until you reconfigure it.</strong></p>
+    <p style="font-size: var(--text-sm); color: var(--warning-foreground); margin: 0;">This process disables 2FA until you verify your authenticator app. If you do not complete your authenticator app configuration you may lose access to your account.</p>
 </div>
-<div>
-    <form @formname="reset-authenticator" @onsubmit="OnSubmitAsync" method="post">
-        <AntiforgeryToken />
-        <button class="btn btn-danger" type="submit">Reset authenticator key</button>
-    </form>
-</div>
+
+<form @formname="reset-authenticator" @onsubmit="OnSubmitAsync" method="post">
+    <AntiforgeryToken />
+    <button type="submit"
+            style="width: 100%; padding: var(--btn-padding-y) var(--btn-padding-x); border-radius: var(--radius); background-color: var(--destructive); color: var(--destructive-foreground); font-size: var(--btn-font-size); font-weight: var(--btn-font-weight); border: none; cursor: pointer;">
+        Reset authenticator key
+    </button>
+</form>
 
 @code {
     [CascadingParameter]

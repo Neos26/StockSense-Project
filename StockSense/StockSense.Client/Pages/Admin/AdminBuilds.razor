@@ -9,134 +9,158 @@
 
 @attribute [Authorize(Roles = "Admin")]
 
-<div class="admin-container">
-    <div class="header-section">
-        <h2>Manage Custom Builds</h2>
-        <span class="badge-count">@ActiveBuilds.Count(b => b.Status == "Pending") Pending</span>
+<PageTitle>Manage Builds</PageTitle>
+
+<div>
+    <div style="display: flex; align-items: start; margin-bottom: var(--space-6); flex-wrap: wrap; flex-direction: column;">
+        <div style="display: flex; align-items: center; gap: var(--space-2); flex: 1; flex-direction: row;">
+            <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0;">Manage Builds</h1>
+            <BbBadge Variant="BadgeVariant.Destructive">
+                @ActiveBuilds.Count(b => b.Status == "Pending") Pending
+            </BbBadge>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Review and manage customer build requests.</p>
     </div>
 
     @if (allBuilds == null)
     {
-        <div class="loading-state">Loading build requests...</div>
+        <div style="display: flex; justify-content: center; align-items: center; padding: var(--space-8); color: var(--muted-foreground); gap: var(--space-3);">
+            <BbSpinner Size="SpinnerSize.Small" />
+            <span>Loading build requests...</span>
+        </div>
     }
     else
     {
-        @* --- NEW TABS NAVIGATION --- *@
-        <div class="tabs-container">
-            <button class="tab-btn @(activeTab == "Active" ? "active" : "")" @onclick='() => activeTab = "Active"'>
-                Active Builds (@ActiveBuilds.Count())
+        @* Tabs *@
+        <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4);">
+            <button @onclick='() => activeTab = "Active"'
+                    style="padding: var(--space-2) var(--space-4); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); cursor: pointer; border: 1px solid var(--border); background-color: @(activeTab == "Active" ? "var(--secondary)" : "transparent"); color: @(activeTab == "Active" ? "var(--foreground)" : "var(--muted-foreground)"); font-family: var(--font-sans);">
+                Active (@ActiveBuilds.Count())
             </button>
-            <button class="tab-btn @(activeTab == "History" ? "active" : "")" @onclick='() => activeTab = "History"'>
+            <button @onclick='() => activeTab = "History"'
+                    style="padding: var(--space-2) var(--space-4); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); cursor: pointer; border: 1px solid var(--border); background-color: @(activeTab == "History" ? "var(--secondary)" : "transparent"); color: @(activeTab == "History" ? "var(--foreground)" : "var(--muted-foreground)"); font-family: var(--font-sans);">
                 History (@HistoryBuilds.Count())
             </button>
         </div>
 
-        <div class="table-responsive">
-            <table class="table-dark">
-                <thead>
-                    <tr>
-                        <th style="width: 20%;">Customer</th>
-                        <th style="width: 20%;">Date</th>
-                        <th style="width: 15%;">Summary</th>
-                        <th style="width: 15%;">Total Value</th>
-                        <th style="width: 15%;">Status</th>
-                        <th style="width: 15%;">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @* --- NOW LOOPING THROUGH 'DisplayBuilds' INSTEAD OF ALL BUILDS --- *@
-                    @foreach (var build in DisplayBuilds)
-                    {
-                        var parts = ParseParts(build.SelectedPartsJson);
-                        var totalPrice = parts.Sum(p => p.Price);
-
-                        <tr class="table-row">
-                            <td class="customer-name">@build.CustomerName</td>
-                            <td class="date">@build.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
-
-                            <td class="summary">
-                                <span class="item-count">@parts.Count items</span>
-                            </td>
-
-                            <td class="price">@totalPrice.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))</td>
-
-                            <td>
-                                <select value="@build.Status"
-                                        @onchange="@(e => UpdateStatus(build, e.Value?.ToString() ?? "Pending"))"
-                                        class="status-dropdown @GetStatusClass(build.Status)">
-                                    <option value="Pending">Pending</option>
-                                    <option value="Confirmed">Confirmed</option>
-                                    <option value="Completed">Completed</option>
-                                    <option value="Cancelled">Cancelled</option>
-                                </select>
-                            </td>
-                            <td>
-                                <button class="btn-view" @onclick="() => OpenModal(build, parts)">
-                                    <span class="icon">👁</span> View Details
-                                </button>
-                            </td>
+        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius);">
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm); min-width: 600px;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 20%;">Customer</th>
+                            <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 20%;">Date</th>
+                            <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 15%;">Summary</th>
+                            <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 15%;">Total Value</th>
+                            <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 15%;">Status</th>
+                            <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 15%;">Action</th>
                         </tr>
-                    }
-                    @if (!DisplayBuilds.Any())
-                    {
-                        <tr>
-                            <td colspan="6" style="text-align: center; padding: 30px; color: #888;">No builds found in this section.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-
-    @if (ShowModal && CurrentParts != null)
-    {
-        <div class="modal-backdrop" @onclick="CloseModal">
-            <div class="modal-content" @onclick:stopPropagation>
-                <div class="modal-header">
-                    <div>
-                        <h3>@CurrentBuild?.CustomerName's Build</h3>
-                        <span class="modal-date">@CurrentBuild?.CreatedAt.ToString("f")</span>
-                    </div>
-                    <button class="close-btn" @onclick="CloseModal">×</button>
-                </div>
-
-                <div class="modal-body">
-                    @foreach (var group in CurrentParts.GroupBy(p => p.Category))
-                    {
-                        <div class="category-section">
-                            <h4 class="category-header">@group.Key</h4>
-                            @foreach (var part in group)
-                            {
-                                <div class="part-item">
-                                    <div class="part-details">
-                                        <span class="brand-tag">@part.Brand</span>
-                                        <span class="part-name">@part.Name</span>
+                    </thead>
+                    <tbody>
+                        @if (!DisplayBuilds.Any())
+                        {
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: var(--space-8); color: var(--muted-foreground);">
+                                    <div style="display: flex; flex-direction: column; align-items: center; gap: var(--space-2);">
+                                        <LucideIcon Name="inbox" Size="32" />
+                                        <span>No builds found in this section.</span>
                                     </div>
-                                    <div class="part-price">
-                                        @part.Price.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var build in DisplayBuilds)
+                        {
+                            var parts = ParseParts(build.SelectedPartsJson);
+                            var totalPrice = parts.Sum(p => p.Price);
 
-                <div class="modal-footer">
-                    <div class="total-summary">
-                        <span>Grand Total:</span>
-                        <span class="total-amount">@CurrentParts.Sum(p => p.Price).ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))</span>
-                    </div>
-                    <button class="btn-close" @onclick="CloseModal">Close</button>
-                </div>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: var(--space-3) var(--space-4); font-weight: var(--font-medium); color: var(--foreground);">@build.CustomerName</td>
+                                <td style="padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-size: var(--text-xs);">@build.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
+                                <td style="padding: var(--space-3) var(--space-4);">
+                                    <BbBadge Variant="BadgeVariant.Secondary">@parts.Count items</BbBadge>
+                                </td>
+                                <td style="padding: var(--space-3) var(--space-4); font-weight: var(--font-semibold); color: var(--foreground);">
+                                    @totalPrice.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))
+                                </td>
+                                <td style="padding: var(--space-3) var(--space-4);">
+                                    <select value="@build.Status"
+                                            @onchange="@((ChangeEventArgs e) => UpdateStatus(build, e.Value?.ToString() ?? "Pending"))"
+                                            style="padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid @GetStatusBorderColor(build.Status); background-color: var(--background); color: var(--foreground); font-size: var(--text-sm); cursor: pointer; font-family: var(--font-sans);">
+                                        <option value="Pending">Pending</option>
+                                        <option value="Confirmed">Confirmed</option>
+                                        <option value="Completed">Completed</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                    </select>
+                                </td>
+                                <td style="padding: var(--space-3) var(--space-4); text-align: center;">
+                                    <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small"
+                                              OnClick="() => OpenModal(build, parts)">
+                                        <LucideIcon Name="eye" Size="14" />
+                                        View
+                                    </BbButton>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
     }
 </div>
 
+@* Modal *@
+@if (ShowModal && CurrentParts != null)
+{
+    <div @onclick="CloseModal" style="position: fixed; inset: 0; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: var(--space-4);">
+        <div @onclick:stopPropagation style="background-color: var(--card); width: 600px; max-width: 100%; max-height: 85vh; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-lg); display: flex; flex-direction: column;">
+
+            <div style="padding: var(--card-padding); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--foreground); margin: 0;">@CurrentBuild?.CustomerName's Build</h3>
+                    <span style="font-size: var(--text-xs); color: var(--muted-foreground); margin-top: var(--space-1); display: block;">@CurrentBuild?.CreatedAt.ToString("f")</span>
+                </div>
+                <button @onclick="CloseModal" style="background: none; border: none; cursor: pointer; color: var(--muted-foreground); padding: var(--space-1); border-radius: var(--radius); display: flex; align-items: center; justify-content: center;">
+                    <LucideIcon Name="x" Size="18" />
+                </button>
+            </div>
+
+            <div style="padding: var(--card-padding); overflow-y: auto; flex: 1;">
+                @foreach (var group in CurrentParts.GroupBy(p => p.Category))
+                {
+                    <div style="margin-bottom: var(--space-6);">
+                        <h4 style="font-size: var(--text-xs); color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 var(--space-3) 0; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border);">@group.Key</h4>
+                        @foreach (var part in group)
+                        {
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2); padding: var(--space-2) var(--space-3); background-color: var(--muted); border-radius: var(--radius);">
+                                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                                    <BbBadge Variant="BadgeVariant.Secondary">@part.Brand</BbBadge>
+                                    <span style="color: var(--foreground); font-size: var(--text-sm);">@part.Name</span>
+                                </div>
+                                <span style="font-weight: var(--font-semibold); color: var(--foreground); font-size: var(--text-sm);">
+                                    @part.Price.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div style="padding: var(--card-padding); border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span style="font-size: var(--text-sm); color: var(--muted-foreground);">Grand Total</span>
+                    <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground);">
+                        @CurrentParts.Sum(p => p.Price).ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))
+                    </div>
+                </div>
+                <BbButton Variant="ButtonVariant.Outline" OnClick="CloseModal">Close</BbButton>
+            </div>
+
+        </div>
+    </div>
+}
+
 @code {
     private List<BuildRequest>? allBuilds;
-
-    // --- NEW TAB STATE & FILTERING LOGIC ---
     private string activeTab = "Active";
 
     private IEnumerable<BuildRequest> ActiveBuilds =>
@@ -146,9 +170,7 @@
         allBuilds?.Where(b => b.Status == "Completed" || b.Status == "Cancelled").OrderByDescending(b => b.CreatedAt) ?? Enumerable.Empty<BuildRequest>();
 
     private IEnumerable<BuildRequest> DisplayBuilds => activeTab == "Active" ? ActiveBuilds : HistoryBuilds;
-    // ----------------------------------------
 
-    // Modal State
     private bool ShowModal = false;
     private BuildRequest? CurrentBuild;
     private List<Product> CurrentParts = new List<Product>();
@@ -161,9 +183,6 @@
     {
         await Http.PutAsJsonAsync($"api/builds/{build.Id}/status", newStatus);
         build.Status = newStatus;
-
-        // Note: Because 'build.Status' is updated, Blazor will automatically recalculate
-        // ActiveBuilds and HistoryBuilds, moving the row to the other tab instantly!
     }
 
     private List<Product> ParseParts(string json)
@@ -190,330 +209,12 @@
 
     private void CloseModal() => ShowModal = false;
 
-    private string GetStatusClass(string status) => status?.ToLower() switch
+    private string GetStatusBorderColor(string status) => status?.ToLower() switch
     {
-        "pending" => "status-pending",
-        "confirmed" => "status-confirmed",
-        "completed" => "status-completed",
-        "cancelled" => "status-cancelled",
-        _ => ""
+        "pending" => "var(--warning)",
+        "confirmed" => "var(--color-blue-accent)",
+        "completed" => "var(--success)",
+        "cancelled" => "var(--destructive)",
+        _ => "var(--border)"
     };
 }
-
-<style>
-    /* MAIN LAYOUT */
-    .admin-container {
-        padding: 30px;
-        background-color: #121212;
-        min-height: 100vh;
-        color: #e0e0e0;
-        font-family: 'Segoe UI', sans-serif;
-    }
-
-    .header-section {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 25px;
-        border-bottom: 1px solid #333;
-        padding-bottom: 15px;
-    }
-
-    h2 {
-        margin: 0;
-        font-weight: 600;
-        color: #fff;
-    }
-
-    .badge-count {
-        background: #d32f2f;
-        color: white;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: bold;
-    }
-
-    /* --- NEW TABS STYLES --- */
-    .tabs-container {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-
-    .tab-btn {
-        background: #1e1e1e;
-        color: #888;
-        border: 1px solid #333;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 0.95rem;
-        transition: all 0.2s ease;
-    }
-
-        .tab-btn:hover {
-            background: #252525;
-            color: #ddd;
-        }
-
-        .tab-btn.active {
-            background: #333;
-            color: #fff;
-            border-color: #555;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-    /* ----------------------- */
-
-    /* TABLE STYLES */
-    .table-responsive {
-        background: #1e1e1e;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-
-    .table-dark {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-        .table-dark th {
-            background: #252525;
-            padding: 15px;
-            text-align: left;
-            font-size: 0.85rem;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .table-dark td {
-            padding: 15px;
-            border-top: 1px solid #2a2a2a;
-            vertical-align: middle;
-        }
-
-    .table-row:hover {
-        background-color: #2a2a2a;
-    }
-
-    .customer-name {
-        font-weight: bold;
-        color: #fff;
-    }
-
-    .date {
-        color: #888;
-        font-size: 0.9rem;
-    }
-
-    .item-count {
-        background: #333;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        color: #ddd;
-    }
-
-    .price {
-        font-weight: bold;
-        color: #81c784;
-    }
-
-    /* DROPDOWN & BUTTONS */
-    .status-dropdown {
-        padding: 6px 10px;
-        border-radius: 4px;
-        border: 1px solid #444;
-        background: #121212;
-        color: #fff;
-        font-size: 0.9rem;
-        cursor: pointer;
-        outline: none;
-    }
-
-    .status-pending {
-        border-left: 3px solid #ff9800;
-    }
-
-    .status-confirmed {
-        border-left: 3px solid #2196f3;
-    }
-
-    .status-completed {
-        border-left: 3px solid #4caf50;
-    }
-
-    .status-cancelled {
-        border-left: 3px solid #f44336;
-    }
-
-    .btn-view {
-        background: #333;
-        color: #fff;
-        border: 1px solid #444;
-        padding: 6px 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: 0.2s;
-        font-size: 0.9rem;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-        .btn-view:hover {
-            background: #444;
-            border-color: #666;
-        }
-
-    /* MODAL STYLES */
-    .modal-backdrop {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.85);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
-
-    .modal-content {
-        background: #1e1e1e;
-        width: 600px;
-        max-width: 90%;
-        max-height: 85vh;
-        border-radius: 12px;
-        border: 1px solid #333;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    }
-
-    .modal-header {
-        padding: 20px;
-        border-bottom: 1px solid #333;
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        background: #252525;
-        border-radius: 12px 12px 0 0;
-    }
-
-        .modal-header h3 {
-            margin: 0;
-            font-size: 1.2rem;
-            color: #fff;
-        }
-
-    .modal-date {
-        display: block;
-        font-size: 0.85rem;
-        color: #888;
-        margin-top: 4px;
-    }
-
-    .close-btn {
-        background: none;
-        border: none;
-        color: #aaa;
-        font-size: 1.5rem;
-        cursor: pointer;
-        line-height: 1;
-    }
-
-        .close-btn:hover {
-            color: #fff;
-        }
-
-    .modal-body {
-        padding: 20px;
-        overflow-y: auto;
-        flex: 1;
-    }
-
-    .category-section {
-        margin-bottom: 25px;
-    }
-
-    .category-header {
-        font-size: 0.85rem;
-        color: #2196f3;
-        text-transform: uppercase;
-        margin-bottom: 10px;
-        border-bottom: 1px solid #333;
-        padding-bottom: 5px;
-        letter-spacing: 1px;
-    }
-
-    .part-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-        padding: 8px;
-        background: #232323;
-        border-radius: 6px;
-    }
-
-    .brand-tag {
-        background: #424242;
-        color: #fff;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        margin-right: 8px;
-        font-weight: 600;
-    }
-
-    .part-name {
-        color: #ddd;
-        font-size: 0.95rem;
-    }
-
-    .part-price {
-        font-weight: bold;
-        color: #81c784;
-    }
-
-    .modal-footer {
-        padding: 20px;
-        border-top: 1px solid #333;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #252525;
-        border-radius: 0 0 12px 12px;
-    }
-
-    .total-summary {
-        font-size: 1.1rem;
-        color: #ccc;
-    }
-
-    .total-amount {
-        font-size: 1.3rem;
-        font-weight: bold;
-        color: #fff;
-        margin-left: 10px;
-    }
-
-    .btn-close {
-        background: #444;
-        color: #fff;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-        .btn-close:hover {
-            background: #555;
-        }
-</style>

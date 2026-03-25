@@ -9,105 +9,121 @@
 
 @attribute [Authorize(Roles = "Admin")]
 
-<div class="container-fluid mt-3">
-    <div class="row">
-        @* --- Category Sidebar --- *@
-        <div class="col-md-2">
-            <div class="list-group shadow-sm sticky-top" style="top: 20px;">
-                <button type="button" class="list-group-item list-group-item-action @(selectedCategory == null ? "active" : "")"
-                        @onclick="() => selectedCategory = null">
-                    All Categories
+<div style="display: flex; gap: var(--space-6); height: calc(100vh - 8rem); overflow: hidden;">
+
+    @* --- Product Catalog --- *@
+    <div style="flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius);">
+
+        <div style="flex-shrink: 0; padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--space-3);">
+            <BbInput @bind-Value="searchTerm" Placeholder="Search products..." />
+            <div style="display: flex; flex-wrap: wrap; gap: var(--space-1);">
+                <button type="button" @onclick="() => selectedCategory = null"
+                        style="padding: var(--space-1) var(--space-3); border-radius: 9999px; font-size: var(--text-xs); font-weight: var(--font-medium); border: 1px solid @(selectedCategory == null ? "var(--primary)" : "var(--border)"); cursor: pointer; background-color: @(selectedCategory == null ? "var(--primary)" : "transparent"); color: @(selectedCategory == null ? "var(--primary-foreground)" : "var(--foreground)");">
+                    All
                 </button>
                 @foreach (var cat in categories)
                 {
-                    <button type="button" class="list-group-item list-group-item-action @(selectedCategory == cat ? "active" : "")"
-                            @onclick="() => selectedCategory = cat">
+                    <button type="button" @onclick="() => selectedCategory = cat"
+                            style="padding: var(--space-1) var(--space-3); border-radius: 9999px; font-size: var(--text-xs); font-weight: var(--font-medium); border: 1px solid @(selectedCategory == cat ? "var(--primary)" : "var(--border)"); cursor: pointer; background-color: @(selectedCategory == cat ? "var(--primary)" : "transparent"); color: @(selectedCategory == cat ? "var(--primary-foreground)" : "var(--foreground)");">
                         @cat
                     </button>
                 }
             </div>
         </div>
 
-        @* --- Product Catalog --- *@
-        <div class="col-md-5">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">@(selectedCategory ?? "All Items")</h6>
-                    <input type="text" class="form-control form-control-sm w-50" placeholder="Search..." @bind-value="searchTerm" @bind-value:event="oninput" />
-                </div>
-                <div class="card-body bg-light overflow-auto" style="max-height: 80vh;">
-                    <div class="row g-2">
-                        @foreach (var p in FilteredProducts)
-                        {
-                            <div class="col-6">
-                                <div class="card h-100 border-0 shadow-sm @(p.CurrentStock <= 0 ? "opacity-50" : "")"
-                                     style="cursor: pointer;" @onclick="() => AddToCart(p)">
-                                    <div class="card-body p-2 text-center">
-                                        <div class="fw-bold small text-truncate">@p.Name</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">@p.Brand</div>
-                                        <div class="text-primary fw-bold">₱@p.Price.ToString("N2")</div>
-                                        <div class="small mt-1">Stock: @p.CurrentStock</div>
-                                    </div>
-                                </div>
-                            </div>
-                        }
+        <div style="flex: 1; overflow-y: auto; padding: var(--space-4);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-3);">
+                @foreach (var p in FilteredProducts)
+                {
+                    <div @onclick="() => AddToCart(p)"
+                         style="padding: var(--space-3); border-radius: var(--radius); border: 1px solid var(--border); background-color: var(--background); cursor: @(p.CurrentStock <= 0 ? "not-allowed" : "pointer"); opacity: @(p.CurrentStock <= 0 ? "0.5" : "1"); text-align: center;">
+                        <div style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@p.Name</div>
+                        <div style="font-size: var(--text-xs); color: var(--muted-foreground); margin: var(--space-1) 0;">@p.Brand</div>
+                        <div style="font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--primary);">₱@p.Price.ToString("N2")</div>
+                        <div style="font-size: var(--text-xs); color: var(--muted-foreground); margin-top: var(--space-1);">Stock: @p.CurrentStock</div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        @* --- Cart Section --- *@
-        <div class="col-md-5">
-            <div class="card shadow border-0">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-cart3 me-2"></i>Current Order</h5>
-                </div>
-                <div class="card-body">
-                    @if (!cart.Any())
-                    {
-                        <div class="text-center py-5 text-muted">Cart is empty</div>
-                    }
-                    else
-                    {
-                        <table class="table table-sm">
-                            <thead>
-                                <tr class="small text-muted">
-                                    <th>Item</th>
-                                    <th>Qty</th>
-                                    <th class="text-end">Total</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in cart)
-                                {
-                                    <tr>
-                                        <td class="small">@item.ProductName</td>
-                                        <td><input type="number" class="form-control form-control-sm" @bind="item.Quantity" style="width: 60px;" /></td>
-                                        <td class="text-end small">₱@((item.Price * item.Quantity).ToString("N2"))</td>
-                                        <td><button class="btn btn-sm text-danger" @onclick="() => cart.Remove(item)">×</button></td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                        <div class="border-top pt-3">
-                            @if (!string.IsNullOrEmpty(statusMessage))
-                            {
-                                <div class="alert alert-success p-2 small">@statusMessage</div>
-                            }
-                            <div class="d-flex justify-content-between h4">
-                                <span>Total:</span>
-                                <span class="text-primary fw-bold">₱@TotalAmount.ToString("N2")</span>
-                            </div>
-                            <button class="btn btn-success w-100 py-2 fw-bold" @onclick="Checkout" disabled="@isProcessing">
-                                @(isProcessing ? "PROCESSING..." : "CONFIRM SALE")
-                            </button>
-                        </div>
-                    }
-                </div>
+                }
             </div>
         </div>
     </div>
+
+    @* --- Cart Section --- *@
+    <div style="width: 22rem; flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden; background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius);">
+        <div style="flex-shrink: 0; padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: var(--space-2);">
+            <LucideIcon Name="shopping-cart" Size="18" />
+            <span style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--card-foreground);">Current Order</span>
+        </div>
+
+        <div style="flex: 1; overflow-x: hidden; overflow-y: auto; padding: var(--space-4);">
+            @if (!cart.Any())
+            {
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: var(--space-3); color: var(--muted-foreground);">
+                    <LucideIcon Name="shopping-cart" Size="40" />
+                    <p style="font-size: var(--text-sm); margin: 0;">Cart is empty</p>
+                </div>
+            }
+            else
+            {
+                <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <th style="text-align: left; padding: var(--space-2) var(--space-3); color: var(--muted-foreground); font-weight: var(--font-medium);">Item</th>
+                            <th style="text-align: left; padding: var(--space-2) var(--space-3); color: var(--muted-foreground); font-weight: var(--font-medium);">Qty</th>
+                            <th style="text-align: right; padding: var(--space-2) var(--space-3); color: var(--muted-foreground); font-weight: var(--font-medium);">Total</th>
+                            <th style="padding: var(--space-2) var(--space-3);"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in cart)
+                        {
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: var(--space-2) var(--space-3); color: var(--foreground);">@item.ProductName</td>
+                                <td style="padding: var(--space-2) var(--space-3);">
+                                    <input type="number" @bind="item.Quantity"
+                                           style="width: 60px; padding: var(--space-1) var(--space-2); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--text-sm); box-sizing: border-box;" />
+                                </td>
+                                <td style="padding: var(--space-2) var(--space-3); text-align: right; color: var(--foreground);">₱@((item.Price * item.Quantity).ToString("N2"))</td>
+                                <td style="padding: var(--space-2) var(--space-3);">
+                                    <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" OnClick="() => cart.Remove(item)">
+                                        <LucideIcon Name="x" Size="14" />
+                                    </BbButton>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        @if (cart.Any())
+        {
+            <div style="padding: var(--space-4); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--space-3); flex-shrink: 0;">
+                @if (!string.IsNullOrEmpty(statusMessage))
+                {
+                    <div style="padding: var(--space-2) var(--space-3); border-radius: var(--radius); background-color: var(--success-muted); border: 1px solid var(--success-border); font-size: var(--text-sm); color: var(--success-muted-foreground);">
+                        @statusMessage
+                    </div>
+                }
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--foreground);">Total</span>
+                    <span style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--primary);">₱@TotalAmount.ToString("N2")</span>
+                </div>
+                <BbButton Variant="ButtonVariant.Default" Class="w-full" OnClick="Checkout" Disabled="@isProcessing">
+                    @if (isProcessing)
+                    {
+                        <BbSpinner Size="SpinnerSize.Small" />
+                        <span>Processing...</span>
+                    }
+                    else
+                    {
+                        <LucideIcon Name="check-circle" Size="16" />
+                        <span>Confirm Sale</span>
+                    }
+                </BbButton>
+            </div>
+        }
+    </div>
+
 </div>
 
 @code {

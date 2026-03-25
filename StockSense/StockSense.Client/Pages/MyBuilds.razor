@@ -1,5 +1,5 @@
 ﻿@page "/my-builds"
-@layout EmptyLayout
+@layout PublicLayout
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
 @using StockSense.Shared
 @using System.Text.Json
@@ -11,34 +11,44 @@
 
 @attribute [Authorize]
 
-<div class="customer-container">
-    <div class="header-section">
-        <h2>My Build History</h2>
-        <p style="color: #888;">Track the status of your submitted custom builds.</p>
+<PageTitle>My Builds</PageTitle>
+
+<div style="max-width: 900px; margin: 0 auto; padding: var(--space-8) var(--space-4);">
+
+    <div style="margin-bottom: var(--space-6);">
+        <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0 0 var(--space-1) 0;">My Builds</h1>
+        <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Track the status of your submitted custom builds.</p>
     </div>
 
     @if (isLoading)
     {
-        <div style="color: gray;">Loading your builds...</div>
+        <div style="display: flex; align-items: center; gap: var(--space-3); color: var(--muted-foreground); padding: var(--space-8); justify-content: center;">
+            <BbSpinner Size="SpinnerSize.Small" />
+            <span style="font-size: var(--text-sm);">Loading your builds...</span>
+        </div>
     }
     else if (myBuilds == null || !myBuilds.Any())
     {
-        <div style="background: #1e1e1e; padding: 30px; border-radius: 8px; text-align: center; border: 1px solid #333;">
-            <h3 style="color: #ccc;">You haven't submitted any builds yet.</h3>
-            <button @onclick='() => Nav.NavigateTo("/build")' style="margin-top: 15px; padding: 10px 20px; background: #ff3e3e; color: white; border: none; border-radius: 5px; cursor: pointer;">Start a New Build</button>
+        <div style="text-align: center; padding: var(--space-8); background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; align-items: center; gap: var(--space-4);">
+            <LucideIcon Name="wrench" Size="40" />
+            <div>
+                <p style="font-size: var(--text-base); font-weight: var(--font-medium); color: var(--foreground); margin: 0 0 var(--space-1) 0;">No builds yet</p>
+                <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">You haven't submitted any builds yet.</p>
+            </div>
+            <BbButton Variant="ButtonVariant.Default" OnClick='() => Nav.NavigateTo("/build")'>Start a New Build</BbButton>
         </div>
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table-dark">
+        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm); min-width: 600px;">
                 <thead>
-                    <tr>
-                        <th style="width: 25%;">Date Submitted</th>
-                        <th style="width: 20%;">Items</th>
-                        <th style="width: 20%;">Total Value</th>
-                        <th style="width: 20%;">Status</th>
-                        <th style="width: 15%;">Action</th>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium);">Date Submitted</th>
+                        <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium);">Items</th>
+                        <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium);">Total Value</th>
+                        <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium);">Status</th>
+                        <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium);">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -46,23 +56,22 @@
                     {
                         var parts = ParseParts(build.SelectedPartsJson);
                         var totalPrice = parts.Sum(p => p.Price);
-
-                        <tr class="table-row">
-                            <td class="date">@build.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
-
-                            <td><span class="item-count">@parts.Count items</span></td>
-
-                            <td class="price">@totalPrice.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))</td>
-
-                            <td>
-                                <span class="status-badge @GetStatusClass(build.Status)">
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-size: var(--text-xs);">@build.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
+                            <td style="padding: var(--space-3) var(--space-4);">
+                                <BbBadge Variant="BadgeVariant.Secondary">@parts.Count items</BbBadge>
+                            </td>
+                            <td style="padding: var(--space-3) var(--space-4); font-weight: var(--font-semibold); color: var(--foreground);">@totalPrice.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))</td>
+                            <td style="padding: var(--space-3) var(--space-4);">
+                                <span style="padding: var(--space-1) var(--space-3); border-radius: 9999px; font-size: var(--text-xs); font-weight: var(--font-semibold); background-color: var(--muted); color: @GetStatusColor(build.Status);">
                                     @build.Status
                                 </span>
                             </td>
-                            <td>
-                                <button class="btn-view" @onclick="() => OpenModal(build, parts)">
-                                    <span class="icon">👁</span> View
-                                </button>
+                            <td style="padding: var(--space-3) var(--space-4); text-align: center;">
+                                <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small" OnClick="() => OpenModal(build, parts)">
+                                    <LucideIcon Name="eye" Size="14" />
+                                    View
+                                </BbButton>
                             </td>
                         </tr>
                     }
@@ -71,50 +80,52 @@
         </div>
     }
 
-    @* --- MODAL FOR VIEWING DETAILS (Same as Admin) --- *@
     @if (ShowModal && CurrentParts != null)
     {
-        <div class="modal-backdrop" @onclick="CloseModal">
-            <div class="modal-content" @onclick:stopPropagation>
-                <div class="modal-header">
+        <div @onclick="CloseModal" style="position: fixed; inset: 0; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: var(--space-4);">
+            <div @onclick:stopPropagation style="background-color: var(--card); width: 600px; max-width: 100%; max-height: 85vh; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-lg); display: flex; flex-direction: column;">
+
+                <div style="padding: var(--card-padding); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <h3>Build Details</h3>
-                        <span class="modal-date">Submitted: @CurrentBuild?.CreatedAt.ToString("f")</span>
+                        <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--foreground); margin: 0;">Build Details</h3>
+                        <span style="font-size: var(--text-xs); color: var(--muted-foreground); margin-top: var(--space-1); display: block;">Submitted: @CurrentBuild?.CreatedAt.ToString("f")</span>
                     </div>
-                    <button class="close-btn" @onclick="CloseModal">×</button>
+                    <button @onclick="CloseModal" style="background: none; border: none; cursor: pointer; color: var(--muted-foreground); padding: var(--space-1); border-radius: var(--radius); display: flex; align-items: center; justify-content: center;">
+                        <LucideIcon Name="x" Size="18" />
+                    </button>
                 </div>
 
-                <div class="modal-body">
+                <div style="padding: var(--card-padding); overflow-y: auto; flex: 1;">
                     @foreach (var group in CurrentParts.GroupBy(p => p.Category))
                     {
-                        <div class="category-section">
-                            <h4 class="category-header">@group.Key</h4>
+                        <div style="margin-bottom: var(--space-6);">
+                            <h4 style="font-size: var(--text-xs); color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 var(--space-3) 0; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border);">@group.Key</h4>
                             @foreach (var part in group)
                             {
-                                <div class="part-item">
-                                    <div class="part-details">
-                                        <span class="brand-tag">@part.Brand</span>
-                                        <span class="part-name">@part.Name</span>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2); padding: var(--space-2) var(--space-3); background-color: var(--muted); border-radius: var(--radius);">
+                                    <div style="display: flex; align-items: center; gap: var(--space-2);">
+                                        <BbBadge Variant="BadgeVariant.Secondary">@part.Brand</BbBadge>
+                                        <span style="color: var(--foreground); font-size: var(--text-sm);">@part.Name</span>
                                     </div>
-                                    <div class="part-price">
-                                        @part.Price.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))
-                                    </div>
+                                    <span style="font-weight: var(--font-semibold); color: var(--foreground); font-size: var(--text-sm);">@part.Price.ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))</span>
                                 </div>
                             }
                         </div>
                     }
                 </div>
 
-                <div class="modal-footer">
-                    <div class="total-summary">
-                        <span>Grand Total:</span>
-                        <span class="total-amount">@CurrentParts.Sum(p => p.Price).ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))</span>
+                <div style="padding: var(--card-padding); border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span style="font-size: var(--text-sm); color: var(--muted-foreground);">Grand Total</span>
+                        <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground);">@CurrentParts.Sum(p => p.Price).ToString("C0", CultureInfo.CreateSpecificCulture("en-PH"))</div>
                     </div>
-                    <button class="btn-close" @onclick="CloseModal">Close</button>
+                    <BbButton Variant="ButtonVariant.Outline" OnClick="CloseModal">Close</BbButton>
                 </div>
+
             </div>
         </div>
     }
+
 </div>
 
 @code {
@@ -161,7 +172,10 @@
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             return JsonSerializer.Deserialize<List<Product>>(json, options) ?? new List<Product>();
         }
-        catch { return new List<Product>(); }
+        catch
+        {
+            return new List<Product>();
+        }
     }
 
     private void OpenModal(BuildRequest build, List<Product> parts)
@@ -173,286 +187,13 @@
 
     private void CloseModal() => ShowModal = false;
 
-    private string GetStatusClass(string status) => status?.ToLower() switch
+    private string GetStatusColor(string status) => status?.ToLower() switch
     {
-        "pending" => "status-pending",
-        "confirmed" => "status-confirmed",
-        "completed" => "status-completed",
-        "cancelled" => "status-cancelled",
-        _ => "status-pending"
+        "pending" => "var(--warning)",
+        "confirmed" => "var(--color-blue-accent)",
+        "completed" => "var(--success)",
+        "cancelled" => "var(--destructive)",
+        _ => "var(--foreground)"
     };
+
 }
-
-<style>
-    /* MAIN LAYOUT (Matches your dark theme) */
-    .customer-container {
-        padding: 30px;
-        background-color: #000;
-        min-height: 100vh;
-        color: #e0e0e0;
-        font-family: 'Segoe UI', sans-serif;
-    }
-
-    .header-section {
-        margin-bottom: 25px;
-        border-bottom: 1px solid #333;
-        padding-bottom: 15px;
-    }
-
-    h2 {
-        margin: 0;
-        font-weight: 600;
-        color: #fff;
-    }
-
-    /* TABLE STYLES */
-    .table-responsive {
-        background: #111;
-        border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid #333;
-    }
-
-    .table-dark {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-        .table-dark th {
-            background: #1a1a1a;
-            padding: 15px;
-            text-align: left;
-            font-size: 0.85rem;
-            color: #aaa;
-            text-transform: uppercase;
-        }
-
-        .table-dark td {
-            padding: 15px;
-            border-top: 1px solid #222;
-            vertical-align: middle;
-        }
-
-    .table-row:hover {
-        background-color: #1a1a1a;
-    }
-
-    .date {
-        color: #ccc;
-        font-weight: 500;
-    }
-
-    .item-count {
-        background: #333;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        color: #ddd;
-    }
-
-    .price {
-        font-weight: bold;
-        color: #81c784;
-    }
-
-    /* STATUS BADGES (Read-only for customer) */
-    .status-badge {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .status-pending {
-        background: rgba(255, 152, 0, 0.2);
-        color: #ffb74d;
-        border: 1px solid rgba(255, 152, 0, 0.5);
-    }
-
-    .status-confirmed {
-        background: rgba(33, 150, 243, 0.2);
-        color: #64b5f6;
-        border: 1px solid rgba(33, 150, 243, 0.5);
-    }
-
-    .status-completed {
-        background: rgba(76, 175, 80, 0.2);
-        color: #81c784;
-        border: 1px solid rgba(76, 175, 80, 0.5);
-    }
-
-    .status-cancelled {
-        background: rgba(244, 67, 54, 0.2);
-        color: #e57373;
-        border: 1px solid rgba(244, 67, 54, 0.5);
-    }
-
-    .btn-view {
-        background: #333;
-        color: #fff;
-        border: 1px solid #555;
-        padding: 6px 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: 0.2s;
-        font-size: 0.9rem;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-        .btn-view:hover {
-            background: #ff3e3e;
-            border-color: #ff3e3e;
-        }
-
-    /* MODAL STYLES (Reused from Admin) */
-    .modal-backdrop {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.85);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
-
-    .modal-content {
-        background: #111;
-        width: 600px;
-        max-width: 90%;
-        max-height: 85vh;
-        border-radius: 12px;
-        border: 1px solid #333;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .modal-header {
-        padding: 20px;
-        border-bottom: 1px solid #333;
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        background: #1a1a1a;
-        border-radius: 12px 12px 0 0;
-    }
-
-        .modal-header h3 {
-            margin: 0;
-            font-size: 1.2rem;
-            color: #fff;
-        }
-
-    .modal-date {
-        display: block;
-        font-size: 0.85rem;
-        color: #888;
-        margin-top: 4px;
-    }
-
-    .close-btn {
-        background: none;
-        border: none;
-        color: #aaa;
-        font-size: 1.5rem;
-        cursor: pointer;
-        line-height: 1;
-    }
-
-        .close-btn:hover {
-            color: #ff3e3e;
-        }
-
-    .modal-body {
-        padding: 20px;
-        overflow-y: auto;
-        flex: 1;
-    }
-
-    .category-section {
-        margin-bottom: 25px;
-    }
-
-    .category-header {
-        font-size: 0.85rem;
-        color: #ff3e3e;
-        text-transform: uppercase;
-        margin-bottom: 10px;
-        border-bottom: 1px solid #333;
-        padding-bottom: 5px;
-    }
-
-    .part-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-        padding: 8px;
-        background: #1a1a1a;
-        border-radius: 6px;
-        border: 1px solid #222;
-    }
-
-    .brand-tag {
-        background: #333;
-        color: #fff;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        margin-right: 8px;
-        font-weight: 600;
-    }
-
-    .part-name {
-        color: #ddd;
-        font-size: 0.95rem;
-    }
-
-    .part-price {
-        font-weight: bold;
-        color: #81c784;
-    }
-
-    .modal-footer {
-        padding: 20px;
-        border-top: 1px solid #333;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #1a1a1a;
-        border-radius: 0 0 12px 12px;
-    }
-
-    .total-summary {
-        font-size: 1.1rem;
-        color: #ccc;
-    }
-
-    .total-amount {
-        font-size: 1.3rem;
-        font-weight: bold;
-        color: #fff;
-        margin-left: 10px;
-    }
-
-    .btn-close {
-        background: #333;
-        color: #fff;
-        border: 1px solid #555;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-        .btn-close:hover {
-            background: #ff3e3e;
-            border-color: #ff3e3e;
-        }
-</style>
