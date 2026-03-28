@@ -111,7 +111,7 @@
         try
         {
             // Ping an authorized endpoint
-            var response = await Http.GetAsync("api/auth/status");
+            var response = await Http.GetAsync("api/auth/check");
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
