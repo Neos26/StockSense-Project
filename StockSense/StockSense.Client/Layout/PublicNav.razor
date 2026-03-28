@@ -98,10 +98,23 @@
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
 
-        // HEARTBEAT: Checks every 10 seconds (Matches Sidebar logic)
+        // HEARTBEAT: Checks every 10 seconds
         sessionCheckTimer = new System.Threading.Timer(async _ =>
         {
-            await CheckSession();
+            // 1. Get the latest path
+            var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+
+            // 2. Define pages that should be EXEMPT from the kick-out logic
+            bool isAuthPage = path.Contains("Account/Login", StringComparison.OrdinalIgnoreCase) ||
+                             path.Contains("Account/Register", StringComparison.OrdinalIgnoreCase) ||
+                             path.Contains("Account/AwaitingApproval", StringComparison.OrdinalIgnoreCase) ||
+                             string.IsNullOrEmpty(path); // This is usually the landing/home page
+
+            // 3. Only check the session if we are NOT on an auth page
+            if (!isAuthPage)
+            {
+                await InvokeAsync(CheckSession);
+            }
         }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
     }
 
@@ -110,7 +123,7 @@
         try
         {
             // Ping an authorized endpoint
-            var response = await Http.GetAsync("api/auth/check");
+            var response = await Http.GetAsync("api/auth/status");
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {

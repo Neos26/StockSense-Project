@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using StockSense.Data;
 using Microsoft.AspNetCore.Authorization;
+using StockSense.shared; // Ensure your Appointment and Mechanic models are here
 
 namespace StockSense.Controllers;
 
@@ -14,17 +15,24 @@ public class AppointmentsController : ControllerBase
 
     public AppointmentsController(ApplicationDbContext db) => _db = db;
 
-    // --- CREATE: Save Appointment with Category ---
+    // --- 1. CREATE: Save Appointment ---
     [HttpPost]
     public async Task<IActionResult> Create(Appointment appt)
     {
-        // Ensure new appointments always start as Pending
+        // Set Default Values for new Azure Columns
         appt.Status = "Pending";
+        appt.CreatedAt = DateTime.UtcNow;
 
-        // If the category is missing for some reason, default it
+        // Ensure Category isn't null for the DB
         if (string.IsNullOrWhiteSpace(appt.Category))
         {
-            appt.Category = "General";
+            appt.Category = "General Service";
+        }
+
+        // Default Mechanic to Unassigned until Admin picks one
+        if (string.IsNullOrWhiteSpace(appt.MechanicName))
+        {
+            appt.MechanicName = "Unassigned";
         }
 
         _db.Appointments.Add(appt);
@@ -33,7 +41,7 @@ public class AppointmentsController : ControllerBase
         return Ok(new { message = "Appointment booked successfully!", id = appt.Id });
     }
 
-    // --- GET: Booked Slots for Date Picker ---
+    // --- 2. GET: Booked Slots (Used by the MudBlazor/HTML DatePicker) ---
     [HttpGet("booked-slots")]
     public async Task<ActionResult<List<string>>> GetBookedSlots([FromQuery] DateTime date)
     {
@@ -45,20 +53,34 @@ public class AppointmentsController : ControllerBase
         return Ok(bookedSlots);
     }
 
-    // --- GET: All Appointments for Admin Table ---
+    // --- 3. GET: All Appointments (Admin Dashboard) ---
     [HttpGet("all")]
     public async Task<ActionResult<List<Appointment>>> GetAllAppointments()
     {
-        // Now includes the Category field automatically
-        var appointments = await _db.Appointments
+        // Returns the full model including the new MechanicName and DurationMinutes
+        return await _db.Appointments
             .OrderByDescending(a => a.AppointmentDate)
             .ThenBy(a => a.TimeSlot)
             .ToListAsync();
-
-        return Ok(appointments);
     }
 
-    // --- UPDATE: Status (Confirmed, Completed, etc.) ---
+    // --- 4. UPDATE: Assign Mechanic and Duration ---
+    // This uses the new columns we added to the Appointments table
+    [HttpPut("{id}/assign-mechanic")]
+    public async Task<IActionResult> AssignMechanic(int id, [FromBody] MechanicAssignmentDto assignment)
+    {
+        var appointment = await _db.Appointments.FindAsync(id);
+        if (appointment == null) return NotFound();
+
+        appointment.MechanicName = assignment.MechanicName;
+        appointment.DurationMinutes = assignment.DurationMinutes;
+        appointment.Status = "Confirmed"; // Move from Pending to Confirmed
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = $"Assigned to {assignment.MechanicName}" });
+    }
+
+    // --- 5. UPDATE: General Status (Completed, Cancelled, etc.) ---
     [HttpPut("{id}/status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] string newStatus)
     {
@@ -68,18 +90,24 @@ public class AppointmentsController : ControllerBase
         appointment.Status = newStatus;
         await _db.SaveChangesAsync();
 
-        return Ok();
+        return Ok(new { message = "Status updated" });
     }
 
-    // --- GET: Specific User's Appointments ---
+    // --- 6. GET: Specific Customer Bookings ---
     [HttpGet("my-bookings")]
     public async Task<ActionResult<List<Appointment>>> GetMyBookings([FromQuery] string name)
     {
-        var myBookings = await _db.Appointments
+        return await _db.Appointments
             .Where(a => a.CustomerName == name)
-            .OrderByDescending(a => a.AppointmentDate)
+            .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
-
-        return Ok(myBookings);
     }
+}
+
+// Helper DTO for the assignment endpoint
+// You can put this in your StockSense.shared namespace
+public class MechanicAssignmentDto
+{
+    public string MechanicName { get; set; } = string.Empty;
+    public int DurationMinutes { get; set; }
 }

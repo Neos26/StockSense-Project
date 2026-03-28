@@ -10,6 +10,7 @@ public class Appointment
 
     // Date and Time
     public DateTime AppointmentDate { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
     public string TimeSlot { get; set; } = string.Empty; // Stores "09:00", "10:15", etc.
 
     // Service Details
@@ -21,5 +22,9 @@ public class Appointment
     public string Status { get; set; } = "Pending";
 
     public string Category { get; set; } = "General";
+    public string MechanicName { get; set; } = string.Empty;
+
+    public int DurationMinutes { get; set; }
+
 
 }

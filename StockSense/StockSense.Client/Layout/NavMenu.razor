@@ -21,7 +21,7 @@
     </BbSidebarGroup>
 
     @* --- ADMIN SECTION --- *@
-    <AuthorizeView Roles="Admin" Context="adminContext">
+    <AuthorizeView Roles="Employee" Context="EmployeeContext">
         <Authorized>
             <BbSidebarGroup>
                 <BbSidebarGroupLabel>Admin</BbSidebarGroupLabel>
@@ -100,10 +100,22 @@
         profileOpen = path.StartsWith("Account/Manage", StringComparison.OrdinalIgnoreCase);
         NavigationManager.LocationChanged += OnLocationChanged;
 
-        // Start Heartbeat Check every 10 seconds
+        // Start Heartbeat Check
         _sessionTimer = new System.Threading.Timer(async _ =>
         {
-            await InvokeAsync(CheckSessionStatus);
+            // Get the current path relative to the base URL
+            var currentPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+
+            // list of pages where we SHOULD NOT check the session (Auth pages)
+            bool isAuthPage = currentPath.StartsWith("Account/Login", StringComparison.OrdinalIgnoreCase) ||
+                             currentPath.StartsWith("Account/Register", StringComparison.OrdinalIgnoreCase) ||
+                             currentPath.StartsWith("Account/AwaitingApproval", StringComparison.OrdinalIgnoreCase);
+
+            // Only check the session if we AREN'T on a login/register page
+            if (!isAuthPage)
+            {
+                await InvokeAsync(CheckSessionStatus);
+            }
         }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
     }
 
@@ -112,7 +124,7 @@
         try
         {
             // Pings the server check endpoint
-            var response = await Http.GetAsync("api/auth/check");
+            var response = await Http.GetAsync("api/auth/status");
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {

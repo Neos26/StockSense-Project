@@ -5,24 +5,25 @@
 namespace StockSense.Migrations
 {
     /// <inheritdoc />
-    public partial class stockupupdate : Migration
+    public partial class AddedDuration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-        //    migrationBuilder.AddColumn<string>(
-        //        name: "Category",
-        //        table: "OrderSlipItems",
-        //        type: "nvarchar(max)",
-        //        nullable: true);
+            //migrationBuilder.AddColumn<int>(
+            //    name: "DurationMinutes",
+            //    table: "Appointments",
+            //    type: "int",
+            //    nullable: false,
+            //    defaultValue: 0);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Category",
-                table: "OrderSlipItems");
+                name: "DurationMinutes",
+                table: "Appointments");
         }
     }
 }

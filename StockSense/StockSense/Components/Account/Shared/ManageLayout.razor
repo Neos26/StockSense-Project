@@ -1,7 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @using StockSense.Client.Layout
 
-<AuthorizeView Roles="Admin">
+<AuthorizeView Roles="Admin, Employee">
     <Authorized>
         <LayoutView Layout="@typeof(MainLayout)">
             <div style="max-width: 640px; width: 100%;">

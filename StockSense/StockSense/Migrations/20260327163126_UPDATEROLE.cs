@@ -5,24 +5,25 @@
 namespace StockSense.Migrations
 {
     /// <inheritdoc />
-    public partial class stockupupdate : Migration
+    public partial class UPDATEROLE : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-        //    migrationBuilder.AddColumn<string>(
-        //        name: "Category",
-        //        table: "OrderSlipItems",
-        //        type: "nvarchar(max)",
-        //        nullable: true);
+            //migrationBuilder.AddColumn<string>(
+            //    name: "Role",
+            //    table: "AspNetUsers",
+            //    type: "nvarchar(max)",
+            //    nullable: false,
+            //    defaultValue: "");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Category",
-                table: "OrderSlipItems");
+                name: "Role",
+                table: "AspNetUsers");
         }
     }
 }

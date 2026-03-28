@@ -5,20 +5,20 @@
 namespace StockSense.Migrations
 {
     /// <inheritdoc />
-    public partial class dbappointment : Migration
+    public partial class time_Mechanic : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            //migrationBuilder.AddColumn<string>(
-            //    name: "Category",
+            //migrationBuilder.AddColumn<int>(
+            //    name: "EstimatedMinutes",
             //    table: "StoreServices",
-            //    type: "nvarchar(max)",
+            //    type: "int",
             //    nullable: false,
-            //    defaultValue: "");
+            //    defaultValue: 0);
 
             //migrationBuilder.AddColumn<string>(
-            //    name: "Category",
+            //    name: "MechanicName",
             //    table: "Appointments",
             //    type: "nvarchar(max)",
             //    nullable: false,
@@ -29,11 +29,11 @@ namespace StockSense.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Category",
+                name: "EstimatedMinutes",
                 table: "StoreServices");
 
             migrationBuilder.DropColumn(
-                name: "Category",
+                name: "MechanicName",
                 table: "Appointments");
         }
     }

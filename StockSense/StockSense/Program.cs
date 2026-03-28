@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.RateLimiting; // Added
-using System.Threading.RateLimiting;     // Added
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using BlazorBlueprint.Components;
 using StockSense.Components;
 using StockSense.Components.Account;
@@ -50,12 +50,20 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
-// --- 3. DATABASE ---
+// --- 3. DATABASE (UPDATED WITH RETRY LOGIC) ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        // This fixes the "Transient Failure" exception by retrying if the connection blips
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null);
+    }));
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 // --- 4. IDENTITY CONFIGURATION ---
@@ -77,15 +85,13 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    // Specific policy for the Login Page
     options.AddFixedWindowLimiter(policyName: "login-policy", opt =>
     {
-        opt.PermitLimit = 5;            // 5 attempts
+        opt.PermitLimit = 5;
         opt.Window = TimeSpan.FromSeconds(30);
-        opt.QueueLimit = 0;             // Reject immediately if limit exceeded
+        opt.QueueLimit = 0;
     });
 
-    // Global limiter to protect the server from general spam (IP-based)
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? httpContext.Request.Headers.Host.ToString(),
@@ -133,21 +139,27 @@ else
     app.UseHsts();
 }
 
-// Automatic Migration helper
+// --- 8. AUTOMATIC MIGRATION HELPER (ENHANCED) ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        if (context.Database.GetPendingMigrations().Any())
+        // Check if we can actually connect before migrating
+        if (context.Database.CanConnect())
         {
-            context.Database.Migrate();
+            if (context.Database.GetPendingMigrations().Any())
+            {
+                context.Database.Migrate();
+                Console.WriteLine("Migrations applied successfully.");
+            }
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine("Migration Error: " + ex.Message);
+        // Log the error but let the app start so you can debug the UI
+        Console.WriteLine("STARTUP ERROR (Migration): " + ex.Message);
     }
 }
 
@@ -156,11 +168,10 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// MIDDLEWARE ORDER MATTERS HERE:
-app.UseRateLimiter();    // 1. Check if the IP is spamming
-app.UseAuthentication(); // 2. Check who the user is
-app.UseAuthorization();  // 3. Check what they can do
-app.UseAntiforgery();    // 4. Validate CSRF tokens
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()

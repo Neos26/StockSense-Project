@@ -68,12 +68,14 @@
     protected override async Task OnInitializedAsync()
     {
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
-        username = await UserManager.GetUserNameAsync(user);
-        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
 
+        // Fetch roles from the UserManager
         var roles = await UserManager.GetRolesAsync(user);
-        userRole = roles.FirstOrDefault() ?? "No role assigned";
 
+        // If the list is empty, show "Customer (Pending)", otherwise show the role
+        userRole = roles.Any() ? roles.First() : "Customer";
+
+        username = await UserManager.GetUserNameAsync(user);
         Input.PhoneNumber ??= phoneNumber;
     }
 

@@ -15,6 +15,7 @@
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject RoleManager<IdentityRole> RoleManager
 
 <PageTitle>Register</PageTitle>
 
@@ -115,7 +116,6 @@
     {
         var user = CreateUser();
 
-        // --- Map inputs to the user object ---
         user.FirstName = Input.FirstName;
         user.LastName = Input.LastName;
 
@@ -123,7 +123,6 @@
         var emailStore = GetEmailStore();
         await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
 
-        // 1. Create the user without assigning a role yet
         var result = await UserManager.CreateAsync(user, Input.Password);
 
         if (!result.Succeeded)
@@ -132,38 +131,24 @@
             return;
         }
 
-        Logger.LogInformation("User created a new account. Awaiting Admin approval.");
-        var roleResult = await UserManager.AddToRoleAsync(user, "Customer");
+        // --- START OF DEFAULT ROLE LOGIC ---
+        const string defaultRole = "Customer";
 
-        if (!roleResult.Succeeded)
+        // 1. Ensure the 'Customer' role exists in the database
+        if (!await RoleManager.RoleExistsAsync(defaultRole))
         {
-            identityErrors = roleResult.Errors;
-            return;
+            await RoleManager.CreateAsync(new IdentityRole(defaultRole));
         }
 
-        Logger.LogInformation("User created a new account with password and role assigned.");
+        // 2. Assign the user to the 'Customer' role
+        await UserManager.AddToRoleAsync(user, defaultRole);
+        // --- END OF DEFAULT ROLE LOGIC ---
 
-        var userId = await UserManager.GetUserIdAsync(user);
-        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
-            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
-            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+        Logger.LogInformation("User created a new account with Customer role.");
 
-        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
-
-        if (UserManager.Options.SignIn.RequireConfirmedAccount)
-        {
-            RedirectManager.RedirectTo(
-                "Account/RegisterConfirmation",
-                new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
-        }
-
-        // 2. IMPORTANT: We do NOT call SignInManager.SignInAsync here.
-        // Instead, we redirect them to a page explaining they need admin approval.
+        // ... rest of your confirmation and redirect logic
         RedirectManager.RedirectTo("Account/AwaitingApproval");
     }
-
     private ApplicationUser CreateUser()
     {
         try

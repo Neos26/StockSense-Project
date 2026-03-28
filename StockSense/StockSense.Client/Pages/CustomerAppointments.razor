@@ -1,7 +1,7 @@
 ﻿@page "/my-bookings"
 @layout PublicLayout
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
-@using StockSense.shared
+@using StockSense.Shared
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
 @inject HttpClient Http
@@ -38,24 +38,45 @@
     else
     {
         <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-            @foreach (var appt in myAppointments)
+            @* Sorting by date so the newest appointments show up at the top *@
+            @foreach (var appt in myAppointments.OrderByDescending(a => a.AppointmentDate))
             {
                 <div style="background-color: var(--card); border: 1px solid var(--border); border-left: 4px solid @GetStatusColor(appt.Status); border-radius: var(--radius); padding: var(--space-4) var(--space-5);">
+
+                    @* HEADER: Date, Time, and Status Badge *@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); flex-wrap: wrap; gap: var(--space-2);">
                         <span style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--foreground);">
-                            @appt.AppointmentDate.ToShortDateString() at @appt.TimeSlot
+                            @appt.AppointmentDate.ToString("MMM dd, yyyy") at @appt.TimeSlot
                         </span>
-                        <span style="padding: var(--space-1) var(--space-3); border-radius: 9999px; font-size: var(--text-xs); font-weight: var(--font-semibold); background-color: var(--muted); color: @GetStatusColor(appt.Status);">
+                        <span style="padding: var(--space-1) var(--space-3); border-radius: 9999px; font-size: var(--text-xs); font-weight: var(--font-semibold); background-color: var(--muted); color: @GetStatusColor(appt.Status); border: 1px solid @GetStatusColor(appt.Status);">
                             @appt.Status
                         </span>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+
+                    @* BODY: New Data Fields *@
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+
+                        <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">
+                            <span style="font-weight: var(--font-medium); color: var(--foreground);">Mechanic:</span>
+                            @(string.IsNullOrEmpty(appt.MechanicName) ? "Unassigned" : appt.MechanicName)
+                        </p>
+
                         <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">
                             <span style="font-weight: var(--font-medium); color: var(--foreground);">Services:</span> @appt.ServicesRequested
                         </p>
+
                         <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">
+                            <span style="font-weight: var(--font-medium); color: var(--foreground);">Est. Duration:</span> @appt.DurationMinutes mins
+                        </p>
+
+                        <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0; padding-top: 4px;">
                             <span style="font-weight: var(--font-medium); color: var(--foreground);">Total:</span>
-                            <span style="color: var(--primary); font-weight: var(--font-semibold);">₱@appt.TotalAmount</span>
+                            <span style="color: var(--primary); font-weight: var(--font-semibold);">₱@appt.TotalAmount.ToString("N0")</span>
+                        </p>
+
+                        @* FOOTER: Date Booked (Uses the CreatedAt property we added earlier) *@
+                        <p style="font-size: 0.75rem; color: #555; margin: 8px 0 0 0; font-style: italic; border-top: 1px solid var(--border); padding-top: 8px;">
+                            Booked on @appt.CreatedAt.ToString("MMM dd, yyyy h:mm tt")
                         </p>
                     </div>
                 </div>
@@ -81,8 +102,10 @@
 
             if (user.Identity is not null && user.Identity.IsAuthenticated)
             {
-                // 1. Figure out the user's Full Name (matching the logic from your Booking page)
-                string customerName = user.Identity.Name ?? "Account User";
+                // 1. Set email as the default fallback
+                string customerName = user.Identity.Name ?? "User";
+
+                // 2. Fetch their actual First and Last name
                 try
                 {
                     var profile = await Http.GetFromJsonAsync<UserProfile>("api/user/profile");
@@ -91,9 +114,9 @@
                         customerName = $"{profile.FirstName ?? ""} {profile.LastName ?? ""}".Trim();
                     }
                 }
-                catch { /* Silent fallback to username */ }
+                catch { /* Silent fallback */ }
 
-                // 2. Fetch ONLY their bookings from the server
+                // 3. Search the database for bookings matching their real name
                 try
                 {
                     myAppointments = await Http.GetFromJsonAsync<List<Appointment>>($"api/appointments/my-bookings?name={Uri.EscapeDataString(customerName)}");
@@ -112,11 +135,11 @@
     {
         return status switch
         {
-            "Pending" => "#ffc107",   // Yellow
+            "Pending" => "#ff9800",   // Orange-Yellow
             "Confirmed" => "#2196F3", // Blue
             "Completed" => "#4CAF50", // Green
             "Cancelled" => "#f44336", // Red
-            _ => "#ffffff"            // White default
+            _ => "#888888"            // Gray default
         };
     }
 }
