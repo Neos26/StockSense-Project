@@ -19,27 +19,23 @@ namespace StockSense.Controllers
             _userManager = userManager;
         }
 
-        // --- GET: Fetch all users and map to UserDto ---
+        // --- GET: Fetch all users mapped to UserDto ---
         [HttpGet("users")]
         public async Task<IActionResult> GetUsers()
         {
-            var users = await _userManager.Users.ToListAsync();
-            var userDtos = new List<UserDto>();
-
-            foreach (var u in users)
-            {
-                var roles = await _userManager.GetRolesAsync(u);
-                userDtos.Add(new UserDto
+            // Using Projection (Select) is much faster than a loop
+            var users = await _userManager.Users
+                .Select(u => new UserDto
                 {
                     Id = u.Id,
                     Email = u.Email ?? "",
                     FullName = $"{u.FirstName} {u.LastName}",
-                    Role = roles.FirstOrDefault() ?? "Customer",
-                    // Blocked if LockoutEnd is in the future
+                    Role = u.Role, // Uses the custom Role column from migration
                     IsBlocked = u.LockoutEnd.HasValue && u.LockoutEnd.Value > DateTimeOffset.UtcNow
-                });
-            }
-            return Ok(userDtos);
+                })
+                .ToListAsync();
+
+            return Ok(users);
         }
 
         // --- POST: Create a new Employee/Admin account ---
@@ -52,7 +48,8 @@ namespace StockSense.Controllers
                 Email = dto.Email,
                 EmailConfirmed = true,
                 FirstName = dto.FirstName,
-                LastName = dto.LastName
+                LastName = dto.LastName,
+                Role = dto.Role // Save role to the custom column
             };
 
             var result = await _userManager.CreateAsync(user, dto.Password);
@@ -74,14 +71,19 @@ namespace StockSense.Controllers
             var user = await _userManager.FindByIdAsync(req.UserId);
             if (user == null) return NotFound();
 
+            // Update Identity System
             var currentRoles = await _userManager.GetRolesAsync(user);
             await _userManager.RemoveFromRolesAsync(user, currentRoles);
             await _userManager.AddToRoleAsync(user, req.NewRole);
 
+            // Update custom column for fast fetching
+            user.Role = req.NewRole;
+            await _userManager.UpdateAsync(user);
+
             return Ok();
         }
 
-        // --- POST: Toggle Account Lockout (Block/Unblock) ---
+        // --- POST: Toggle Account Lockout ---
         [HttpPost("toggle-block/{id}")]
         public async Task<IActionResult> ToggleBlock(string id)
         {
@@ -90,15 +92,37 @@ namespace StockSense.Controllers
 
             if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow)
             {
-                // Currently Blocked -> Unblock by clearing date
                 await _userManager.SetLockoutEndDateAsync(user, null);
             }
             else
             {
-                // Currently Active -> Block by setting date far in the future
                 await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddYears(100));
             }
             return Ok();
+        }
+
+        // --- DELETE: Remove User Permanently ---
+        // Triggered by ExecuteDelete in SystemManagement.razor
+        [HttpDelete("users/{id}")]
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            // Safety check: Don't let an admin delete themselves
+            var currentUserId = _userManager.GetUserId(User);
+            if (id == currentUserId)
+            {
+                return BadRequest("You cannot delete your own admin account.");
+            }
+
+            var result = await _userManager.DeleteAsync(user);
+            if (result.Succeeded)
+            {
+                return Ok(new { message = "User deleted successfully" });
+            }
+
+            return BadRequest("Failed to delete user.");
         }
     }
 
