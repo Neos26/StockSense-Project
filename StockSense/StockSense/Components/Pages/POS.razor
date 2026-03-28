@@ -8,7 +8,7 @@
 @inject TransactionService SaleService
 @rendermode InteractiveServer
 
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Admin, Employee")]
 
 <div style="display: flex; gap: var(--space-6); height: calc(100vh - 8rem); overflow: hidden;">
 

@@ -6,7 +6,7 @@
 @using Microsoft.AspNetCore.Authorization
 @inject HttpClient Http
 
-@attribute [Authorize(Roles = "Employee")]
+@attribute [Authorize(Roles = "Employee, Admin")]
 
 <PageTitle>Manage Appointments</PageTitle>
 

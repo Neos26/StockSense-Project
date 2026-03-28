@@ -10,7 +10,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager NavManager
 @rendermode InteractiveServer
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Admin, Employee")]
 
 <PageTitle>Order Slips</PageTitle>
 
@@ -35,7 +35,7 @@
                     <BbSpinner Size="SpinnerSize.Small" />
                 }
                 <LucideIcon Name="cpu" Size="16" />
-                AI Analysis (Scan All)
+                Predictive Scan (Scan All)
             </BbButton>
         </div>
     </div>
