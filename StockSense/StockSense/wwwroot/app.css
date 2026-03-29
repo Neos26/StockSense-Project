@@ -90,6 +90,20 @@
 }
 
 /* --- Outside @layer (media queries must be outside to avoid suppression) --- */
+@media (max-width: 768px) {
+    .appt-layout {
+        flex-direction: column !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .appt-sidebar {
+        width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border) !important;
+    }
+}
+
 
 .header-wrapper {
     padding: 0 6rem;
@@ -160,6 +174,22 @@
 
     .settings-main {
         padding: var(--space-4) !important;
+    }
+
+
+    .step3-container {
+        flex-direction: column !important;
+        max-height: none !important;
+    }
+
+    .step3-calendar {
+        border-right: none !important;
+        border-bottom: 1px solid var(--border) !important;
+        overflow-y: visible !important;
+    }
+
+    .step3-slots {
+        max-height: 40vh !important;
     }
 }
 

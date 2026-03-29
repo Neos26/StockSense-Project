@@ -9,332 +9,511 @@
 @inject NavigationManager NavigationManager
 
 @attribute [Authorize]
+
+<PageTitle>Book Appointment</PageTitle>
+
 <AuthorizeView>
     <Authorized>
-        <PageTitle>Book Appointment</PageTitle>
 
         @if (isLoading)
         {
             <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--background); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; gap: var(--space-4);">
-                <div class="spinner-border text-danger" role="status"></div>
+                <BbSpinner Size="SpinnerSize.Large" />
                 <div style="display: flex; flex-direction: column; align-items: center; gap: var(--space-1);">
-                    <span style="font-weight: 800; font-style: italic; font-size: 1.5rem; color: #ff3e3e; letter-spacing: 0.05em;">SAP<br />SHOP</span>
-                    <p style="color: #888; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Syncing with Server...</p>
+                    <span style="font-weight: 800; font-style: italic; font-size: 1.5rem; color: var(--primary); letter-spacing: 0.05em;">SAP<br />SHOP</span>
+                    <p style="color: var(--muted-foreground); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Syncing with Server...</p>
                 </div>
             </div>
         }
 
-        <div style="display: @(isLoading ? "none" : "block"); animation: fadeIn 0.4s ease-in;">
-            <div class="appt-layout">
+        <div class="appt-layout" style="display: @(isLoading ? "none" : "flex"); height: calc(100vh - 3.5rem); overflow: hidden; animation: fadeIn 0.4s ease-in;">
 
-                @* --- LEFT: Mechanic & Services --- *@
-                <div class="appt-services">
+            @* --- LEFT SIDEBAR --- *@
+            <div class="appt-sidebar" style="width: 300px; flex-shrink: 0; display: flex; flex-direction: column; background-color: var(--card); border-right: 1px solid var(--border); overflow: hidden;">
 
-                    @* --- MECHANIC SELECTION --- *@
-                    <div style="margin-bottom: var(--space-5);">
-                        <h2 style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0 0 var(--space-1) 0;">Select Mechanic</h2>
-                        <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0 0 var(--space-3) 0;">Choose your preferred technician.</p>
-
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-2);">
-                            @foreach (var mech in availableMechanics)
-                            {
-                                bool isMechSelected = selectedMechanic == mech;
-                                <button @onclick="() => SelectMechanic(mech)"
-                                        style="padding: var(--space-2); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-medium); border: 1px solid @(isMechSelected ? "var(--primary)" : "var(--border)"); background-color: @(isMechSelected ? "rgba(255,62,62,0.1)" : "var(--card)"); color: @(isMechSelected ? "var(--primary)" : "var(--foreground)"); cursor: pointer; transition: 0.2s;">
-                                    @mech
-                                </button>
-                            }
-                        </div>
-                    </div>
-
-                    @* --- SERVICE SELECTION --- *@
-                    <div style="margin-bottom: var(--space-4);">
-                        <h2 style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0 0 var(--space-1) 0;">Select Services</h2>
-                        <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Total Estimated Time: <span style="color: var(--primary); font-weight: bold;">@TotalDurationMinutes mins</span></p>
-                    </div>
-
-                    @* Category filter pills *@
-                    <div style="display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4);">
-                        <button @onclick='() => selectedCategory = "All"'
-                                style="padding: var(--space-1) var(--space-3); border-radius: 9999px; font-size: var(--text-xs); font-weight: var(--font-medium); border: 1px solid @(selectedCategory == "All" ? "var(--primary)" : "var(--border)"); background-color: @(selectedCategory == "All" ? "var(--primary)" : "transparent"); color: @(selectedCategory == "All" ? "var(--primary-foreground)" : "var(--foreground)"); cursor: pointer;">
-                            All
-                        </button>
-                        @foreach (var cat in availableServices.Select(s => s.Category).Distinct().OrderBy(c => c))
-                        {
-                            <button @onclick="() => selectedCategory = cat"
-                                    style="padding: var(--space-1) var(--space-3); border-radius: 9999px; font-size: var(--text-xs); font-weight: var(--font-medium); border: 1px solid @(selectedCategory == cat ? "var(--primary)" : "var(--border)"); background-color: @(selectedCategory == cat ? "var(--primary)" : "transparent"); color: @(selectedCategory == cat ? "var(--primary-foreground)" : "var(--foreground)"); cursor: pointer;">
-                                @cat
-                            </button>
-                        }
-                    </div>
-
-                    @* Service list *@
-                    <div style="display: flex; flex-direction: column; gap: var(--space-2);">
-                        @foreach (var service in FilteredServices)
-                        {
-                            <div @onclick="() => ToggleService(service)"
-                                 style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); background-color: var(--card); border: 1.5px solid @(service.IsSelected ? "var(--primary)" : "var(--border)"); border-radius: var(--radius); cursor: pointer; transition: border-color 0.15s;">
-                                <div style="display: flex; align-items: center; gap: var(--space-3);">
-                                    <div style="width: 1.25rem; height: 1.25rem; border-radius: 50%; border: 2px solid @(service.IsSelected ? "var(--primary)" : "var(--border)"); background-color: @(service.IsSelected ? "var(--primary)" : "transparent"); display: flex; align-items: center; justify-content: center; transition: 0.15s;">
-                                        @if (service.IsSelected)
-                                        {
-                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--primary-foreground)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                        }
-                                    </div>
-                                    <div>
-                                        <div style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">@service.Name</div>
-                                        <div style="font-size: var(--text-xs); color: var(--muted-foreground);">@service.Category • ⏱ @service.EstimatedMinutes mins</div>
-                                    </div>
-                                </div>
-                                <span style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--primary);">₱@service.Price.ToString("N0")</span>
-                            </div>
-                        }
-                    </div>
+                @* Header *@
+                <div style="padding: var(--space-4); border-bottom: 1px solid var(--border); flex-shrink: 0;">
+                    <h2 style="font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--foreground); margin: 0 0 var(--space-1) 0;">Schedule Service</h2>
+                    <p style="font-size: var(--text-xs); color: var(--muted-foreground); margin: 0;">Step @currentStep of 4 — @Steps.First(s => s.Number == currentStep).Label</p>
                 </div>
 
-                @* --- RIGHT: Calendar + Timeslots + Summary --- *@
-                <div class="appt-right">
-                    <div style="display: flex; flex-direction: row; gap: var(--space-2)">
+                @* Step Indicators *@
+                <div style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 0;">
+                    @foreach (var step in Steps)
+                    {
+                        bool isActive = currentStep == step.Number;
+                        bool isCompleted = currentStep > step.Number;
 
-                        @* Calendar *@
-                        <div style="width: 65%; background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-5); margin-bottom: var(--space-4);">
-                            <h3 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-4) 0;">Choose a Date</h3>
-
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3);">
-                                <button @onclick="PrevMonth" style="background: none; border: none; cursor: pointer; color: var(--foreground);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-                                <span style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground);">@calendarMonth.ToString("MMMM yyyy")</span>
-                                <button @onclick="NextMonth" style="background: none; border: none; cursor: pointer; color: var(--foreground);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--space-1); margin-bottom: var(--space-2);">
-                                @foreach (var day in new[] { "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" })
+                        <div style="display: flex; align-items: center;">
+                            <div @onclick="() => GoToStep(step.Number)"
+                                 style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: var(--font-bold); cursor: @(isCompleted ? "pointer" : "default"); transition: all 0.2s;
+                                           background-color: @(isActive || isCompleted ? "var(--primary)" : "var(--muted)");
+                                           color: @(isActive || isCompleted ? "var(--primary-foreground)" : "var(--muted-foreground)");
+                                           box-shadow: @(isActive ? "0 0 0 3px color-mix(in oklch, var(--primary) 20%, transparent)" : "none");">
+                                @if (isCompleted)
                                 {
-                                    <div style="text-align: center; font-size: var(--text-xs); color: var(--muted-foreground); padding: var(--space-1) 0;">@day</div>
+                                    <LucideIcon Name="check" Size="13" />
+                                }
+                                else
+                                {
+                                    @step.Number
                                 }
                             </div>
+                            @if (step.Number < Steps.Count)
+                            {
+                                <div style="width: 24px; height: 2px; background-color: @(isCompleted ? "var(--primary)" : "var(--border)"); transition: background-color 0.2s;"></div>
+                            }
+                        </div>
+                    }
+                </div>
 
-                            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--space-1);">
-                                @foreach (var cell in CalendarCells)
-                                {
-                                    if (cell == null)
-                                    {
-                                        <div></div>
-                                    }
-                                    else
-                                    {
-                                        var d = cell.Value;
-                                        bool isPast = d < DateTime.Today;
-                                        bool isSelected = newAppt.AppointmentDate.Date == d.Date;
-                                        bool isToday = d.Date == DateTime.Today;
+                @* Order Summary *@
+                <div style="flex: 1; overflow-y: auto; padding: var(--space-4);">
+                    <p style="font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 var(--space-3) 0;">Order Summary</p>
 
-                                        <button @onclick="() => SelectDate(d)" disabled="@isPast"
-                                                style="aspect-ratio: 1; border-radius: var(--radius); border: 1px solid @(isSelected ? "var(--primary)" : "transparent"); background-color: @(isSelected ? "var(--primary)" : (isToday ? "#333" : "transparent")); color: @(isSelected ? "var(--primary-foreground)" : (isPast ? "var(--muted-foreground)" : "var(--foreground)")); font-size: var(--text-xs); cursor: @(isPast ? "not-allowed" : "pointer"); opacity: @(isPast ? "0.4" : "1");">
-                                            @d.Day
-                                        </button>
-                                    }
-                                }
-                            </div>
+                    @if (!SelectedServices.Any())
+                    {
+                        <div style="text-align: center; padding: var(--space-6) 0; color: var(--muted-foreground);">
+                            <LucideIcon Name="shopping-cart" Size="28" />
+                            <p style="font-size: var(--text-xs); margin: var(--space-2) 0 0 0; font-style: italic;">No services selected</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4);">
+                            @foreach (var s in SelectedServices)
+                            {
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: var(--text-xs); color: var(--muted-foreground); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: var(--space-2);">@s.Name</span>
+                                    <span style="font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--foreground); flex-shrink: 0;">₱@s.Price.ToString("N0")</span>
+                                </div>
+                            }
                         </div>
 
-                        @* Time Slots *@
-                        <div style="display: flex; flex-direction: column; width: 35%; background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-2); margin-bottom: var(--space-4);">
-                            <h3 style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-3) 0; text-align: center;">
-                                @newAppt.AppointmentDate.ToString("MMM dd")
-                            </h3>
-
-                            @if (TotalDurationMinutes == 0)
+                        <div style="padding: var(--space-3); border-radius: var(--radius); background-color: var(--muted); margin-bottom: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2);">
+                            @if (!string.IsNullOrEmpty(selectedMechanic))
                             {
-                                <p style="font-size: 0.8rem; color: #888; text-align: center; padding: 10px;">Select services first to see available times.</p>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="font-size: var(--text-xs); color: var(--muted-foreground);">Mechanic</span>
+                                    <span style="font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--foreground);">@selectedMechanic</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(newAppt.TimeSlot))
+                            {
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="font-size: var(--text-xs); color: var(--muted-foreground);">Date</span>
+                                    <span style="font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--foreground);">@newAppt.AppointmentDate.ToString("MMM dd")</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="font-size: var(--text-xs); color: var(--muted-foreground);">Time</span>
+                                    <span style="font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--foreground);">@newAppt.TimeSlot</span>
+                                </div>
+                            }
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: var(--space-3);">
+                            <span style="font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--foreground);">Total</span>
+                            <span style="font-size: var(--text-xl); font-weight: 900; color: var(--primary); letter-spacing: -0.03em;">₱@TotalPrice.ToString("N0")</span>
+                        </div>
+                    }
+                </div>
+
+                @* Error + Actions *@
+                <div style="padding: var(--space-4); border-top: 1px solid var(--border); flex-shrink: 0; background-color: var(--background); display: flex; flex-direction: column; gap: var(--space-2);">
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div style="padding: var(--space-2) var(--space-3); border-radius: var(--radius); background-color: var(--destructive-muted); border: 1px solid var(--destructive-border); color: var(--destructive-muted-foreground); font-size: var(--text-xs); margin-bottom: var(--space-1);">
+                            <LucideIcon Name="alert-circle" Size="12" />
+                            @errorMessage
+                        </div>
+                    }
+
+                    <BbButton Variant="ButtonVariant.Ghost" Class="w-full" OnClick="PrevStep" Disabled="@(currentStep == 1 || isProcessing)">
+                        <LucideIcon Name="arrow-left" Size="14" />
+                        Back
+                    </BbButton>
+
+                    @if (currentStep < 4)
+                    {
+                        <BbButton Variant="ButtonVariant.Default" Class="w-full" OnClick="NextStep" Disabled="@(!CanProceed)">
+                            Next Step
+                            <LucideIcon Name="arrow-right" Size="14" />
+                        </BbButton>
+                    }
+                    else
+                    {
+                        <BbButton Variant="ButtonVariant.Default" Class="w-full" OnClick="HandleSubmit" Disabled="@(isProcessing || !CanProceed)">
+                            @if (isProcessing)
+                            {
+                                <BbSpinner Size="SpinnerSize.Small" />
                             }
                             else
                             {
-                                <div style="display: grid; grid-template-columns: 1fr; gap: var(--space-2); max-height: 220px; overflow-y: auto; padding-right: 5px;">
-                                    @foreach (var time in GenerateAllTimeSlots())
-                                    {
-                                        bool isAvailable = IsTimeSlotAvailable(time);
-                                        bool isSelected = newAppt.TimeSlot == time;
+                                <span>Confirm & Book</span>
+                            }
+                        </BbButton>
+                    }
+                </div>
+            </div>
 
-                                        <button @onclick="@(() => { if (isAvailable) { newAppt.TimeSlot = time; errorMessage = string.Empty; } })"
-                                                style='padding: var(--space-2); border-radius: var(--radius); font-size: var(--text-xs); font-weight: var(--font-medium); border: 1px solid @(isSelected ? "var(--primary)" : "var(--border)"); background-color: @(isSelected ? "var(--primary)" : "transparent"); color: @(isSelected ? "var(--primary-foreground)" : (isAvailable ? "var(--foreground)" : "var(--muted-foreground)")); cursor: @(isAvailable ? "pointer" : "not-allowed"); text-decoration: @(isAvailable ? "none" : "line-through"); opacity: @(isAvailable ? "1" : "0.3"); transition: 0.1s;'>
-                                            @time
-                                        </button>
+            @* --- RIGHT CONTENT --- *@
+            <div style="flex: 1; overflow-y: auto; padding: var(--space-6);">
+
+                @* STEP 1: SERVICES *@
+                @if (currentStep == 1)
+                {
+                    @* SUCCESS ALERT NOTE *@
+                    @if (showSuccessNote)
+                    {
+                        <div style="margin-bottom: var(--space-4); padding: var(--space-3); background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; border-radius: var(--radius); display: flex; align-items: center; gap: var(--space-2); animation: fadeIn 0.3s ease;">
+                            <span style="font-size: var(--text-sm); font-weight: 600;">Booking successful!</span>
+                        </div>
+                    }
+
+                    <div>
+                        <h2 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-4) 0;">Select Services</h2>
+
+                        @* Category filter pills *@
+                        <div style="display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-5);">
+                            <button @onclick='() => selectedCategory = "All"'
+                                    style="padding: var(--space-1) var(--space-4); border-radius: 999px; font-size: var(--text-xs); font-weight: var(--font-medium); border: 1px solid @(selectedCategory == "All" ? "var(--primary)" : "var(--border)"); background-color: @(selectedCategory == "All" ? "var(--primary)" : "var(--background)"); color: @(selectedCategory == "All" ? "var(--primary-foreground)" : "var(--foreground)"); cursor: pointer; font-family: var(--font-sans); transition: all 0.15s;">
+                                All
+                            </button>
+                            @foreach (var cat in availableServices.Select(s => s.Category).Distinct().OrderBy(c => c))
+                            {
+                                <button @onclick="() => selectedCategory = cat"
+                                        style="padding: var(--space-1) var(--space-4); border-radius: 999px; font-size: var(--text-xs); font-weight: var(--font-medium); border: 1px solid @(selectedCategory == cat ? "var(--primary)" : "var(--border)"); background-color: @(selectedCategory == cat ? "var(--primary)" : "var(--background)"); color: @(selectedCategory == cat ? "var(--primary-foreground)" : "var(--foreground)"); cursor: pointer; font-family: var(--font-sans); transition: all 0.15s;">
+                                    @cat
+                                </button>
+                            }
+                        </div>
+
+                        @* Service cards *@
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--space-3);">
+                            @foreach (var service in FilteredServices)
+                            {
+                                <div @onclick="() => ToggleService(service)"
+                                     style="cursor: pointer; background-color: var(--card); border: 2px solid @(service.IsSelected ? "var(--primary)" : "var(--border)"); padding: var(--space-3); border-radius: var(--radius); transition: border-color 0.15s; display: flex; flex-direction: column;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-1);">
+                                        <span style="font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--foreground); line-height: 1.3; flex: 1; padding-right: var(--space-2);">@service.Name</span>
+                                        <div style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid @(service.IsSelected ? "var(--primary)" : "var(--border)"); background-color: @(service.IsSelected ? "var(--primary)" : "transparent"); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s;">
+                                            @if (service.IsSelected)
+                                            {
+                                                <LucideIcon Name="check" Size="11" />
+                                            }
+                                        </div>
+                                    </div>
+                                    <p style="font-size: 10px; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 var(--space-3) 0;">@service.Category</p>
+                                    <div style="margin-top: auto; padding-top: var(--space-2); border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-size: var(--text-xs); color: var(--muted-foreground); font-style: italic;">@service.EstimatedMinutes min</span>
+                                        <span style="font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--primary);">₱@service.Price.ToString("N0")</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @* STEP 2: MECHANIC *@
+                @if (currentStep == 2)
+                {
+                    <div>
+                        <h2 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-4) 0;">Choose Your Technician</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-4);">
+                            @foreach (var mech in availableMechanics)
+                            {
+                                bool isMechSelected = selectedMechanic == mech;
+                                <div @onclick="() => SelectMechanic(mech)"
+                                     style="cursor: pointer; display: flex; flex-direction: column; align-items: center; padding: var(--space-5) var(--space-3); border-radius: var(--radius); border: 2px solid @(isMechSelected ? "var(--primary)" : "var(--border)"); background-color: @(isMechSelected ? "color-mix(in oklch, var(--primary) 5%, var(--card))" : "var(--card)"); transition: border-color 0.15s;">
+                                    <div style="width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-3); background-color: @(isMechSelected ? "var(--primary)" : "var(--muted)"); color: @(isMechSelected ? "var(--primary-foreground)" : "var(--muted-foreground)"); transition: all 0.15s;">
+                                        <LucideIcon Name="user" Size="28" />
+                                    </div>
+                                    <span style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); text-align: center; line-height: 1.3;">@mech</span>
+                                    @if (isMechSelected)
+                                    {
+                                        <span style="font-size: 10px; color: var(--primary); font-weight: var(--font-bold); text-transform: uppercase; margin-top: var(--space-1);">Selected</span>
                                     }
                                 </div>
                             }
                         </div>
                     </div>
+                }
 
-                    @* Summary + Submit *@
-                    <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-5);">
-                        <h3 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-4) 0; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border);">Booking Summary</h3>
+                @* STEP 3: DATE & TIME *@
+                @if (currentStep == 3)
+                {
+                    <div>
+                        <h2 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-4) 0;">Pick a Date & Time</h2>
 
-                        <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-3);">
-                            <div>
-                                <p style="font-size: var(--text-xs); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 var(--space-1) 0;">Customer</p>
-                                <p style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground); margin: 0;">@newAppt.CustomerName</p>
+                        <div class="step3-container" style="display: flex; align-items: stretch; background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; max-height: 50vh;">
+
+                            @* Calendar panel *@
+                            <div class="step3-calendar" style="flex-shrink: 0; padding: var(--space-4); border-right: 1px solid var(--border); overflow-y: auto;">
+
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3);">
+                                    <button @onclick="PrevMonth"
+                                            style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: none; cursor: pointer; color: var(--foreground); transition: background-color 0.15s;"
+                                            onmouseover="this.style.backgroundColor='var(--muted)'" onmouseout="this.style.backgroundColor='transparent'">
+                                        <LucideIcon Name="chevron-left" Size="16" />
+                                    </button>
+                                    <span style="font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--foreground);">
+                                        @calendarMonth.ToString("MMMM")
+                                        <span style="font-weight: var(--font-normal); color: var(--muted-foreground);">@calendarMonth.Year</span>
+                                    </span>
+                                    <button @onclick="NextMonth"
+                                            style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: none; cursor: pointer; color: var(--foreground); transition: background-color 0.15s;"
+                                            onmouseover="this.style.backgroundColor='var(--muted)'" onmouseout="this.style.backgroundColor='transparent'">
+                                        <LucideIcon Name="chevron-right" Size="16" />
+                                    </button>
+                                </div>
+
+                                <table style="border-collapse: collapse; width: 100%;">
+                                    <thead>
+                                        <tr>
+                                            @foreach (var h in new[] { "M", "T", "W", "T", "F", "S", "S" })
+                                            {
+                                                <th style="border: none; text-align: center; padding: 0;">
+                                                    <span style="display: flex; height: 28px; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--muted-foreground); width: 100%;">@h</span>
+                                                </th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            var days = GetCalendarDays().ToList();
+                                            for (int row = 0; row < 6; row++)
+                                            {
+                                                <tr>
+                                                    @for (int col = 0; col < 7; col++)
+                                                    {
+                                                        var date = days[row * 7 + col];
+                                                        bool isCurrentMonth = date.Month == calendarMonth.Month;
+                                                        bool isPast = date.Date < DateTime.Today;
+                                                        bool isSelected = newAppt.AppointmentDate.Date == date.Date;
+                                                        bool isToday = date.Date == DateTime.Today;
+                                                        bool isDisabled = isPast || !isCurrentMonth;
+
+                                                        string bg = isSelected ? "var(--primary)" : "transparent";
+                                                        string color = isSelected ? "var(--primary-foreground)"
+                                                        : isDisabled ? "color-mix(in oklch, var(--muted-foreground) 40%, transparent)"
+                                                        : isToday ? "var(--primary)"
+                                                        : "var(--foreground)";
+                                                        string border = isToday && !isSelected ? "1px dashed var(--primary)" : "1px solid transparent";
+                                                        string fontWeight = isSelected || isToday ? "var(--font-bold)" : "var(--font-normal)";
+                                                        string textDecoration = isDisabled && !isSelected ? "line-through" : "none";
+
+                                                        <td style="border: none; text-align: center; padding: 0;">
+                                                            <span style="display: flex; align-items: center; justify-content: center; padding: 3px 5px;">
+                                                                <button @onclick="() => SelectDate(date)"
+                                                                        disabled="@isDisabled"
+                                                                        style="width: 28px; height: 28px; border-radius: 6px; border: @border; background-color: @bg; color: @color; font-size: var(--text-xs); font-weight: @fontWeight; cursor: @(isDisabled ? "default" : "pointer"); display: flex; align-items: center; justify-content: center; transition: background-color 0.15s; font-family: var(--font-sans); text-decoration: @textDecoration;">
+                                                                    @date.Day
+                                                                </button>
+                                                            </span>
+                                                        </td>
+                                                    }
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
                             </div>
-                            <div style="text-align: right;">
-                                <p style="font-size: var(--text-xs); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 var(--space-1) 0;">Mechanic</p>
-                                <p style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--primary); margin: 0;">@selectedMechanic</p>
+
+                            @* Time Slots panel *@
+                            <div class="step3-slots" style="flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden;">
+                                <div style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); flex-shrink: 0;">
+                                    <span style="font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--foreground);">
+                                        @newAppt.AppointmentDate.ToString("dddd d MMMM") - @selectedMechanic
+                                    </span>
+                                </div>
+
+                                <div style="flex: 1; overflow-y: auto; padding: var(--space-3) var(--space-4);">
+                                    @if (TotalDurationMinutes == 0)
+                                    {
+                                        <div style="padding: var(--space-4); border-radius: var(--radius); background-color: var(--muted); border: 1px dashed var(--border); text-align: center; font-size: var(--text-xs); color: var(--muted-foreground);">
+                                            Select services first to see available slots.
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2);">
+                                            @foreach (var time in GenerateAllTimeSlots())
+                                            {
+                                                bool isAvailable = IsTimeSlotAvailable(time);
+                                                bool isSlotSelected = newAppt.TimeSlot == time;
+
+                                                TimeSpan.TryParse(time, out var ts);
+                                                var displayHour = ts.Hours > 12 ? ts.Hours - 12 : (ts.Hours == 0 ? 12 : ts.Hours);
+                                                var ampm = ts.Hours >= 12 ? "PM" : "AM";
+                                                var displayTime = $"{displayHour}:{ts.Minutes:D2}";
+
+                                                <button @onclick="@(() => { if (isAvailable) { newAppt.TimeSlot = time; errorMessage = ""; } })"
+                                                        disabled="@(!isAvailable)"
+                                                        style="height: 36px; padding: 0 var(--space-3); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-normal); text-align: center; cursor: @(isAvailable ? "pointer" : "not-allowed"); font-family: var(--font-sans); transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 3px;
+                                                               border: 1px solid @(isSlotSelected ? "var(--primary)" : "var(--border)");
+                                                               background-color: @(isSlotSelected ? "var(--primary)" : "var(--muted)");
+                                                               color: @(isSlotSelected ? "var(--primary-foreground)" : isAvailable ? "var(--foreground)" : "var(--muted-foreground)");
+                                                               opacity: @(isAvailable ? "1" : "0.35");
+                                                               text-decoration: @(isAvailable ? "none" : "line-through");">
+                                                    <span style="font-size: var(--text-sm);">@displayTime</span>
+                                                    <span style="font-size: var(--text-xs); color: @(isSlotSelected ? "var(--primary-foreground)" : "var(--muted-foreground)");">@ampm</span>
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                }
+
+                @* STEP 4: REVIEW *@
+                @if (currentStep == 4)
+                {
+                    <div>
+                        <h2 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-1) 0;">Review Your Booking</h2>
+                        <p style="font-size: var(--text-xs); color: var(--muted-foreground); margin: 0 0 var(--space-5) 0;">Double-check everything before confirming.</p>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-4);">
+                            <div style="padding: var(--space-4); border-radius: var(--radius); background-color: var(--card); border: 1px solid var(--border);">
+                                <span style="font-size: 10px; font-weight: var(--font-bold); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.08em;">Customer</span>
+                                <p style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground); margin: var(--space-1) 0 0 0;">@newAppt.CustomerName</p>
+                            </div>
+                            <div style="padding: var(--space-4); border-radius: var(--radius); background-color: var(--card); border: 1px solid var(--border);">
+                                <span style="font-size: 10px; font-weight: var(--font-bold); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.08em;">Mechanic</span>
+                                <p style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--primary); margin: var(--space-1) 0 0 0;">@selectedMechanic</p>
+                            </div>
+                            <div style="padding: var(--space-4); border-radius: var(--radius); background-color: var(--card); border: 1px solid var(--border); grid-column: 1 / -1;">
+                                <span style="font-size: 10px; font-weight: var(--font-bold); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.08em;">Schedule</span>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-1);">
+                                    <p style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground); margin: 0;">@newAppt.AppointmentDate.ToString("MMMM dd, yyyy") at @newAppt.TimeSlot</p>
+                                    <span style="font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--primary); background-color: color-mix(in oklch, var(--primary) 10%, transparent); padding: 2px 10px; border-radius: 999px;">~@TotalDurationMinutes mins</span>
+                                </div>
                             </div>
                         </div>
 
-                        @if (!string.IsNullOrEmpty(newAppt.TimeSlot))
-                        {
-                            <div style="margin-bottom: var(--space-3); background: rgba(255,62,62,0.1); padding: 10px; border-radius: 5px; border-left: 3px solid var(--primary);">
-                                <p style="font-size: var(--text-xs); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 var(--space-1) 0;">Schedule</p>
-                                <p style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground); margin: 0;">@newAppt.AppointmentDate.ToString("MMM dd, yyyy") at @newAppt.TimeSlot</p>
-                                <p style="font-size: var(--text-xs); color: var(--muted-foreground); margin: 4px 0 0 0;">Duration: Approx. @TotalDurationMinutes mins</p>
-                            </div>
-                        }
-
-                        @* ADDED: max-height: 160px; overflow-y: auto; padding-right: 8px; *@
-                        <div style="display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); max-height: 160px; overflow-y: auto; padding-right: 8px;">
-                            @if (!SelectedServices.Any())
+                        <p style="font-size: 10px; font-weight: var(--font-bold); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 var(--space-2) 0;">Selected Services</p>
+                        <div style="border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background-color: var(--card);">
+                            @foreach (var s in SelectedServices)
                             {
-                                <p style="font-size: var(--text-sm); color: var(--muted-foreground); font-style: italic; margin: 0;">No services selected yet.</p>
-                            }
-                            @foreach (var selected in SelectedServices)
-                            {
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border);">
-                                    <span style="font-size: var(--text-sm); color: var(--foreground);">@selected.Name</span>
-                                    <span style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">₱@selected.Price.ToString("N0")</span>
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border);">
+                                    <span style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">@s.Name</span>
+                                    <span style="font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--primary);">₱@s.Price.ToString("N0")</span>
                                 </div>
                             }
                         </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background-color: #1a1a1a; border-radius: var(--radius); margin-bottom: var(--space-4);">
-                            <span style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground);">Total</span>
-                            <span style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--primary);">₱@TotalPrice.ToString("N0")</span>
-                        </div>
-
-                        @if (showSuccessMessage)
-                        {
-                            <div style="margin-bottom: var(--space-3); padding: var(--space-3); border-radius: var(--radius); background-color: rgba(76, 175, 80, 0.2); border: 1px solid #4CAF50; color: #81c784; font-size: var(--text-sm);">
-                                Appointment booked successfully!
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(errorMessage))
-                        {
-                            <div style="margin-bottom: var(--space-3); padding: var(--space-3); border-radius: var(--radius); background-color: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; color: #e57373; font-size: var(--text-sm);">
-                                @errorMessage
-                            </div>
-                        }
-
-                        <button @onclick="HandleSubmit" disabled="@isProcessing" style="width: 100%; padding: 12px; background-color: var(--primary); color: var(--primary-foreground); border: none; border-radius: var(--radius); font-weight: bold; cursor: @(isProcessing ? "not-allowed" : "pointer");">
-                            @(isProcessing ? "Processing..." : "Confirm Booking")
-                        </button>
-
-                        @* --- NEW VIEW MY APPOINTMENTS BUTTON --- *@
-                        <button @onclick='() => NavigationManager.NavigateTo("/my-bookings")' type="button" style="width: 100%; padding: 12px; background-color: transparent; color: var(--primary); border: 2px solid var(--primary); border-radius: var(--radius); font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s;">
-                            View My Appointments
-                        </button>
                     </div>
-                </div>
+                }
+
             </div>
         </div>
+
+        @* SUCCESS DIALOG *@
+        <BbDialog @bind-Open="showSuccessModal">
+            <BbDialogContent Class="max-w-sm">
+                <div style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: var(--space-4) var(--space-2) var(--space-2);">
+                    
+                    <div style="width: 72px; height: 72px; border-radius: 50%; background-color: color-mix(in oklch, var(--primary) 10%, transparent); color: var(--primary); display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-4);">
+                        <LucideIcon Name="calendar-check" Size="36" />
+                    </div>
+
+                    <BbDialogTitle>Booking Confirmed!</BbDialogTitle>
+                    <BbDialogDescription style="margin-bottom: var(--space-5);">
+                        Your appointment has been successfully scheduled. You can now view it in your dashboard.
+                    </BbDialogDescription>
+
+                    <div style="width: 100%; display: flex; flex-direction: column; gap: var(--space-2);">
+                        <BbButton Variant="ButtonVariant.Default" Class="w-full" OnClick='() => NavigationManager.NavigateTo("/my-bookings")'>
+                            View My Bookings
+                        </BbButton>
+                        <BbButton Variant="ButtonVariant.Ghost" Class="w-full" OnClick="CloseSuccessModal">
+                            Book Another
+                        </BbButton>
+                    </div>
+                </div>
+            </BbDialogContent>
+        </BbDialog>
+
     </Authorized>
+
     <NotAuthorized>
-        <div style="height: 100vh; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;">
-            <h2 style="margin-top: 20px; color: #ff3e3e;">Session Expired</h2>
-            <p style="color: #666;">Redirecting to Login...</p>
+        <div style="height: 100vh; background-color: var(--background); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: var(--space-4);">
+            <LucideIcon Name="lock" Size="40" />
+            <h2 style="font-weight: var(--font-bold); font-size: var(--text-xl); color: var(--foreground); margin: 0;">Access Restricted</h2>
+            <p style="color: var(--muted-foreground); font-size: var(--text-sm); margin: 0;">Please sign in to book an appointment.</p>
+            <BbButton Variant="ButtonVariant.Default" OnClick='() => NavigationManager.NavigateTo("/login")'>Go to Login</BbButton>
         </div>
     </NotAuthorized>
 </AuthorizeView>
 
 <style>
-    /* Ensure you have these CSS variables in your app.css or layout */
-    :root {
-        --background: #000;
-        --foreground: #fff;
-        --card: #111;
-        --border: #333;
-        --muted: #1a1a1a;
-        --muted-foreground: #888;
-        --primary: #ff3e3e;
-        --primary-foreground: #fff;
-        --radius: 8px;
-        --space-1: 4px;
-        --space-2: 8px;
-        --space-3: 12px;
-        --space-4: 16px;
-        --space-5: 24px;
-        --space-6: 32px;
-        --text-xs: 0.75rem;
-        --text-sm: 0.875rem;
-        --text-base: 1rem;
-        --text-xl: 1.25rem;
-        --font-medium: 500;
-        --font-semibold: 600;
-        --font-bold: 700;
-        --font-sans: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    .appt-layout {
-        display: flex;
-        gap: var(--space-6);
-        padding: var(--space-6);
-        min-height: calc(100vh - 3.5rem);
-        align-items: flex-start;
-    }
-
-    .appt-services {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .appt-right {
-        width: 450px;
-        flex-shrink: 0;
-        position: sticky;
-        top: var(--space-6);
-    }
-
     @@keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
 </style>
 
 @code {
     private bool isLoading = true;
-    private Appointment newAppt = new() { AppointmentDate = DateTime.Now, TimeSlot = "" };
-    private bool showSuccessMessage = false;
+    private Appointment newAppt = new() { AppointmentDate = DateTime.Today, TimeSlot = "" };
+    private bool showSuccessModal = false;
+    private bool showSuccessNote = false; 
     private bool isProcessing = false;
     private string errorMessage = "";
     private string selectedCategory = "All";
+    private int currentStep = 1;
 
-    // --- MECHANIC STATE ---
-    // Start with ONLY "Any Available" as the default option
+    private List<(int Number, string Label)> Steps = new()
+    {
+        (1, "Services"),
+        (2, "Mechanic"),
+        (3, "Schedule"),
+        (4, "Confirm")
+    };
+
+    private bool CanProceed => currentStep switch
+    {
+        1 => SelectedServices.Any(),
+        2 => !string.IsNullOrEmpty(selectedMechanic),
+        3 => !string.IsNullOrEmpty(newAppt.TimeSlot),
+        _ => true
+    };
+
+    private void NextStep() { 
+        if (CanProceed && currentStep < 4) {
+            currentStep++; 
+            showSuccessNote = false; // Hide success note when moving forward
+        }
+    }
+    private void PrevStep() { if (currentStep > 1) currentStep--; }
+    private void GoToStep(int step) { if (step < currentStep) currentStep = step; }
+
     private List<string> availableMechanics = new() { "Any Available" };
     private string selectedMechanic = "Any Available";
 
     public class ServiceOption
     {
         public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        public string Name { get; set; } = "";
         public decimal Price { get; set; }
         public string Category { get; set; } = "General";
-        public int EstimatedMinutes { get; set; } // NEW: Used for blocking out time
+        public int EstimatedMinutes { get; set; }
         public bool IsSelected { get; set; }
     }
 
     private List<ServiceOption> availableServices = new();
-    private List<string> bookedTimeSlots = new(); // Kept up to date by the backend
+    private List<string> bookedTimeSlots = new();
 
-    private IEnumerable<ServiceOption> FilteredServices => selectedCategory == "All" ? availableServices : availableServices.Where(s => s.Category == selectedCategory);
+    private IEnumerable<ServiceOption> FilteredServices =>
+        selectedCategory == "All" ? availableServices : availableServices.Where(s => s.Category == selectedCategory);
+
     private IEnumerable<ServiceOption> SelectedServices => availableServices.Where(s => s.IsSelected);
-
     private decimal TotalPrice => SelectedServices.Sum(s => s.Price);
     private int TotalDurationMinutes => SelectedServices.Sum(s => s.EstimatedMinutes);
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthStateTask { get; set; }
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -354,19 +533,13 @@
             var authState = await AuthStateTask;
             if (authState.User.Identity?.IsAuthenticated == true)
             {
-                // 1. Set email as the default fallback
                 newAppt.CustomerName = authState.User.Identity.Name ?? "User";
-
-                // 2. Try to fetch their actual First and Last name
                 try
                 {
                     var profile = await Http.GetFromJsonAsync<UserProfile>("api/user/profile");
-                    if (profile != null)
-                    {
-                        newAppt.CustomerName = $"{profile.FirstName ?? ""} {profile.LastName ?? ""}".Trim();
-                    }
+                    if (profile != null) newAppt.CustomerName = $"{profile.FirstName} {profile.LastName}".Trim();
                 }
-                catch { /* Silent fallback if profile doesn't exist yet */ }
+                catch { }
             }
         }
     }
@@ -384,9 +557,7 @@
                     Name = s.Name,
                     Price = s.Price,
                     Category = s.Category,
-                    // FALLBACK: If your DB doesn't have EstimatedMinutes yet, we default to 30 mins
-                    // Change `30` to `s.EstimatedMinutes` once you add it to the backend.
-                    EstimatedMinutes = 30,
+                    EstimatedMinutes = s.EstimatedMinutes > 0 ? s.EstimatedMinutes : 30,
                     IsSelected = false
                 }).ToList();
             }
@@ -401,43 +572,43 @@
             var mechs = await Http.GetFromJsonAsync<List<Mechanic>>("api/mechanics");
             if (mechs != null && mechs.Any())
             {
-                // Keep "Any Available" as the first button, then add all the real names from the database
                 availableMechanics = new List<string> { "Any Available" };
                 availableMechanics.AddRange(mechs.Select(m => m.Name));
             }
         }
-        catch
-        {
-            Console.WriteLine("Failed to load mechanics from database.");
-        }
+        catch { }
     }
 
+    // INDEPENDENT TIME SLOTS: Fetches slots explicitly based on the date AND the selected mechanic.
     private async Task FetchBookedSlots()
     {
         try
         {
             var dateStr = newAppt.AppointmentDate.ToString("yyyy-MM-dd");
             var mechanicQuery = Uri.EscapeDataString(selectedMechanic);
-
-            // 👇 Now we ask the server for THIS specific mechanic's blocked times
             var slots = await Http.GetFromJsonAsync<List<string>>($"api/appointments/booked-slots?date={dateStr}&mechanic={mechanicQuery}");
-
             bookedTimeSlots = slots ?? new();
         }
-        catch { Console.WriteLine("Booking fetch failed."); }
+        catch { }
     }
 
-    // --- NEW: DYNAMIC TIME SLOT GENERATION & VALIDATION ---
+    private IEnumerable<DateTime> GetCalendarDays()
+    {
+        var firstDay = new DateTime(calendarMonth.Year, calendarMonth.Month, 1);
+        int offset = ((int)firstDay.DayOfWeek + 6) % 7;
+        var gridStart = firstDay.AddDays(-offset);
+        return Enumerable.Range(0, 42).Select(i => gridStart.AddDays(i));
+    }
+
     private List<string> GenerateAllTimeSlots()
     {
         var slots = new List<string>();
-        var start = new TimeSpan(9, 0, 0);  // Shop opens 9:00 AM
-        var end = new TimeSpan(17, 0, 0);   // Shop closes 5:00 PM
-
-        while (start < end)
+        var current = new TimeSpan(9, 0, 0);
+        var end = new TimeSpan(17, 0, 0);
+        while (current < end)
         {
-            slots.Add(start.ToString(@"hh\:mm"));
-            start = start.Add(TimeSpan.FromMinutes(15));
+            slots.Add(current.ToString(@"hh\:mm"));
+            current = current.Add(TimeSpan.FromMinutes(15));
         }
         return slots;
     }
@@ -445,112 +616,94 @@
     private bool IsTimeSlotAvailable(string timeStr)
     {
         if (!TimeSpan.TryParse(timeStr, out var startTime)) return false;
-
-        // --- THE NEW TIME CHECK ---
-        // If the selected date is today, block any time slots that have already passed.
-        if (newAppt.AppointmentDate.Date == DateTime.Today)
-        {
-            // We add a 1-hour buffer. So if it's 10:00 AM, the earliest they can book is 11:00 AM.
-            // If you want exact time, change it to just: if (startTime < DateTime.Now.TimeOfDay)
-            if (startTime < DateTime.Now.TimeOfDay.Add(TimeSpan.FromHours(1)))
-            {
-                return false;
-            }
-        }
-
-        // How many 15-minute blocks do we need?
+        if (newAppt.AppointmentDate.Date == DateTime.Today && startTime < DateTime.Now.TimeOfDay.Add(TimeSpan.FromHours(1))) return false;
         int slotsNeeded = (int)Math.Ceiling(TotalDurationMinutes / 15.0);
-
         for (int i = 0; i < slotsNeeded; i++)
         {
-            var checkTime = startTime.Add(TimeSpan.FromMinutes(i * 15));
-
-            // 1. If the required time pushes past closing (5:00 PM), slot is invalid
-            if (checkTime >= new TimeSpan(17, 0, 0)) return false;
-
-            // 2. If any 15-min block inside the required duration is already booked, slot is invalid
-            if (bookedTimeSlots.Contains(checkTime.ToString(@"hh\:mm"))) return false;
+            var check = startTime.Add(TimeSpan.FromMinutes(i * 15));
+            if (check >= new TimeSpan(17, 0, 0)) return false;
+            if (bookedTimeSlots.Contains(check.ToString(@"hh\:mm"))) return false;
         }
-
         return true;
     }
 
-    private void SelectMechanic(string mechanic)
+    // INDEPENDENT TIME SLOTS: Awaits FetchBookedSlots when a new mechanic is chosen.
+    private async Task SelectMechanic(string mechanic)
     {
         selectedMechanic = mechanic;
-        newAppt.TimeSlot = ""; // Reset time slot on mechanic change
-        _ = FetchBookedSlots(); // Re-fetch slots for this specific mechanic
+        newAppt.TimeSlot = "";
+        await FetchBookedSlots(); 
     }
 
     private void ToggleService(ServiceOption service)
     {
         service.IsSelected = !service.IsSelected;
-
-        // If the current selected time slot is no longer valid (because duration increased), clear it
         if (!string.IsNullOrEmpty(newAppt.TimeSlot) && !IsTimeSlotAvailable(newAppt.TimeSlot))
-        {
             newAppt.TimeSlot = "";
-        }
-
-        showSuccessMessage = false;
         errorMessage = "";
+        showSuccessNote = false; // Hide success note if user clicks a service
     }
 
     private async Task HandleSubmit()
     {
-        if (string.IsNullOrEmpty(newAppt.TimeSlot)) { errorMessage = "Please select an available time slot."; return; }
-        if (TotalDurationMinutes == 0) { errorMessage = "Please select at least one service."; return; }
+        // DOUBLE SUBMIT FIX: Immediate return if already processing
+        if (isProcessing) return; 
 
+        if (string.IsNullOrEmpty(newAppt.TimeSlot)) { errorMessage = "Select a time slot."; return; }
+        
         isProcessing = true;
+        errorMessage = ""; // Clear any previous errors
+
         newAppt.ServicesRequested = string.Join(", ", SelectedServices.Select(s => s.Name));
         newAppt.TotalAmount = TotalPrice;
         newAppt.Category = SelectedServices.FirstOrDefault()?.Category ?? "General";
-
-        // 👇 ADD THESE TWO LINES:
         newAppt.MechanicName = selectedMechanic;
         newAppt.DurationMinutes = TotalDurationMinutes;
-
         newAppt.Status = "Pending";
 
         try
         {
             var response = await Http.PostAsJsonAsync("api/appointments", newAppt);
-
             if (response.IsSuccessStatusCode)
             {
-                showSuccessMessage = true;
-                errorMessage = "";
-                newAppt = new() { AppointmentDate = DateTime.Now, CustomerName = newAppt.CustomerName };
-                availableServices.ForEach(s => s.IsSelected = false);
-                await FetchBookedSlots();
+                showSuccessModal = true;
             }
-            else { errorMessage = "Booking failed."; }
+            else
+            {
+                errorMessage = "Booking failed. " + await response.Content.ReadAsStringAsync();
+            }
         }
         catch { errorMessage = "Connection error."; }
-        finally { isProcessing = false; }
+        finally { isProcessing = false; } // Reset processing lock
     }
 
-    // --- CALENDAR LOGIC ---
-    private DateTime calendarMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-
-    private IEnumerable<DateTime?> CalendarCells
+    private void CloseSuccessModal()
     {
-        get
+        showSuccessModal = false;
+        showSuccessNote = true; // TRIGGER SUCCESS NOTE ON STEP 1
+        currentStep = 1;
+        
+        string savedName = newAppt.CustomerName;
+        newAppt = new() { AppointmentDate = DateTime.Today, CustomerName = savedName, TimeSlot = "" };
+
+        foreach(var s in availableServices)
         {
-            var cells = new List<DateTime?>();
-            var firstDay = (int)calendarMonth.DayOfWeek;
-            for (int i = 0; i < firstDay; i++) cells.Add(null);
-            var daysInMonth = DateTime.DaysInMonth(calendarMonth.Year, calendarMonth.Month);
-            for (int d = 1; d <= daysInMonth; d++) cells.Add(new DateTime(calendarMonth.Year, calendarMonth.Month, d));
-            return cells;
+            s.IsSelected = false;
         }
+
+        selectedMechanic = "Any Available";
+        _ = FetchBookedSlots();
+        
+        StateHasChanged();
     }
 
+    private DateTime calendarMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
     private void PrevMonth() => calendarMonth = calendarMonth.AddMonths(-1);
     private void NextMonth() => calendarMonth = calendarMonth.AddMonths(1);
 
     private async Task SelectDate(DateTime date)
     {
+        if (date.Date < DateTime.Today || date.Month != calendarMonth.Month) return;
         newAppt.AppointmentDate = date;
         newAppt.TimeSlot = "";
         await FetchBookedSlots();

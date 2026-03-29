@@ -43,10 +43,20 @@ public class AppointmentsController : ControllerBase
 
     // --- 2. GET: Booked Slots (Used by the MudBlazor/HTML DatePicker) ---
     [HttpGet("booked-slots")]
-    public async Task<ActionResult<List<string>>> GetBookedSlots([FromQuery] DateTime date)
+    public async Task<ActionResult<List<string>>> GetBookedSlots([FromQuery] DateTime date, [FromQuery] string mechanic)
     {
-        var bookedSlots = await _db.Appointments
-            .Where(a => a.AppointmentDate.Date == date.Date && a.Status != "Cancelled")
+        // 1. Start the query looking at the specific date and active appointments
+        var query = _db.Appointments
+            .Where(a => a.AppointmentDate.Date == date.Date && a.Status != "Cancelled");
+
+        // 2. Filter by the specific mechanic (unless they left it as "Any Available")
+        if (!string.IsNullOrEmpty(mechanic) && mechanic != "Any Available")
+        {
+            query = query.Where(a => a.MechanicName == mechanic);
+        }
+
+        // 3. Execute the query and grab just the time slots
+        var bookedSlots = await query
             .Select(a => a.TimeSlot)
             .ToListAsync();
 
