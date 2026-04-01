@@ -10,12 +10,12 @@ namespace StockSense.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            //migrationBuilder.AddColumn<string>(
-            //    name: "Role",
-            //    table: "AspNetUsers",
-            //    type: "nvarchar(max)",
-            //    nullable: false,
-            //    defaultValue: "");
+            migrationBuilder.AddColumn<string>(
+                name: "Role",
+                table: "AspNetUsers",
+                type: "nvarchar(max)",
+                nullable: false,
+                defaultValue: "");
         }
 
         /// <inheritdoc />
