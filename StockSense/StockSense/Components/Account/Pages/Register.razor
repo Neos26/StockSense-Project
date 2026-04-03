@@ -1,4 +1,5 @@
 ﻿@page "/Account/Register"
+@layout PublicLayout
 
 @using System.ComponentModel.DataAnnotations
 @using System.Text
@@ -146,9 +147,27 @@
 
         Logger.LogInformation("User created a new account with Customer role.");
 
-        // ... rest of your confirmation and redirect logic
-        RedirectManager.RedirectTo("Account/AwaitingApproval");
+        // --- START OF MISSING EMAIL LOGIC ---
+
+        // 1. Generate the email confirmation token securely
+        var userId = await UserManager.GetUserIdAsync(user);
+        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+
+        // 2. Build the exact URL the user needs to click in their email
+        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+            NavigationManager.ToAbsoluteUri("/Account/ConfirmEmail").AbsoluteUri,
+            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+
+        // 3. ACTUALLY SEND THE EMAIL using your custom MailKit EmailSender
+        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+
+        // --- END OF EMAIL LOGIC ---
+
+        // Now redirect to the confirmation page!
+        RedirectManager.RedirectTo("/Account/RegisterConfirmation", new Dictionary<string, object?> { ["Email"] = Input.Email });
     }
+
     private ApplicationUser CreateUser()
     {
         try

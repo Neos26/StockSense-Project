@@ -50,14 +50,13 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
-// --- 3. DATABASE (UPDATED WITH RETRY LOGIC) ---
+// --- 3. DATABASE ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString, sqlOptions =>
     {
-        // This fixes the "Transient Failure" exception by retrying if the connection blips
         sqlOptions.EnableRetryOnFailure(
             maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(30),
@@ -67,6 +66,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 // --- 4. IDENTITY CONFIGURATION ---
+// RequireConfirmedAccount = true forces Identity to use the Email Confirmation flow
 builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -80,7 +80,13 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Lockout.AllowedForNewUsers = true;
 });
 
-// --- 5. RATE LIMITING CONFIGURATION ---
+// --- 5. EMAIL REGISTRATION (FIXED LOCATION) ---
+// This MUST come directly after Identity is configured so it overrides the defaults.
+builder.Services.AddTransient<IEmailSender<ApplicationUser>, EmailSender>();
+// Keeping this just in case you inject the concrete class elsewhere (like in a Contact page)
+builder.Services.AddTransient<EmailSender>();
+
+// --- 6. RATE LIMITING CONFIGURATION ---
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -103,9 +109,7 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
-// --- 6. ADDITIONAL SERVICES ---
-builder.Services.AddTransient<IEmailSender<ApplicationUser>, EmailSender>();
-builder.Services.AddTransient<EmailSender>();
+// --- 7. ADDITIONAL SERVICES ---
 builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, StockSense.Utility.Security.BCryptPasswordHasher>();
 
 builder.Services.AddAntiforgery(options =>
@@ -127,7 +131,7 @@ builder.Services.AddControllers()
 
 var app = builder.Build();
 
-// --- 7. PIPELINE CONFIGURATION ---
+// --- 8. PIPELINE CONFIGURATION ---
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -139,14 +143,13 @@ else
     app.UseHsts();
 }
 
-// --- 8. AUTOMATIC MIGRATION HELPER (ENHANCED) ---
+// --- 9. AUTOMATIC MIGRATION HELPER ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        // Check if we can actually connect before migrating
         if (context.Database.CanConnect())
         {
             if (context.Database.GetPendingMigrations().Any())
@@ -158,11 +161,11 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        // Log the error but let the app start so you can debug the UI
         Console.WriteLine("STARTUP ERROR (Migration): " + ex.Message);
     }
 }
 
+// --- 10. MIDDLEWARE EXECUTION ---
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 

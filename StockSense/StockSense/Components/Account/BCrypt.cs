@@ -1,33 +1,34 @@
-﻿using BCrypt.Net;
-using Microsoft.AspNetCore.Identity;
-using Org.BouncyCastle.Crypto.Generators;
+﻿using Microsoft.AspNetCore.Identity;
 using StockSense.Data;
-using StockSense.shared; // Updated to point to StockSense's models
+using StockSense.shared;
+using System;
+using System.Security.Cryptography;
+using System.Text;
 
-namespace StockSense.Utility.Security // Updated namespace to StockSense
+namespace StockSense.Utility.Security
 {
-    // We tell this class to specifically handle passwords for your ApplicationUser model
+    // Handles passwords by pre-hashing with SHA-256, then securing with BCrypt
     public class BCryptPasswordHasher : IPasswordHasher<ApplicationUser>
     {
-        // 1. REGISTRATION: Intercepts the plain text password and hashes it before saving to the database
         public string HashPassword(ApplicationUser user, string password)
         {
-            // Set the Work Factor (Iteration Count). 
-            // 11 or 12 is the current industry standard for web applications.
-            // Higher number = exponentially harder to crack, but takes slightly longer to log in.
-            int workFactor = 12;
+            // 1. Convert the plain text password into a fixed-length SHA-256 string
+            string sha256Hash = ComputeSha256(password);
 
-            // BCrypt generates the salt AND applies the work factor automatically
-            return BCrypt.Net.BCrypt.HashPassword(password, workFactor);
+            // 2. Feed that SHA-256 string into BCrypt with your work factor
+            int workFactor = 12;
+            return BCrypt.Net.BCrypt.HashPassword(sha256Hash, workFactor);
         }
 
-        // 2. LOGIN: Intercepts the login attempt and compares it to the database hash
         public PasswordVerificationResult VerifyHashedPassword(ApplicationUser user, string hashedPassword, string providedPassword)
         {
             try
             {
-                // BCrypt.Verify automatically extracts the salt from the hashedPassword and checks for a match
-                bool isValid = BCrypt.Net.BCrypt.Verify(providedPassword, hashedPassword);
+                // 1. Pre-hash the password the user just typed into the login screen
+                string sha256HashOfProvided = ComputeSha256(providedPassword);
+
+                // 2. Verify that SHA-256 hash against the BCrypt hash in the database
+                bool isValid = BCrypt.Net.BCrypt.Verify(sha256HashOfProvided, hashedPassword);
 
                 if (isValid)
                 {
@@ -38,8 +39,19 @@ namespace StockSense.Utility.Security // Updated namespace to StockSense
             }
             catch
             {
-                // If the database hash is corrupted or isn't a valid BCrypt string, fail safely
                 return PasswordVerificationResult.Failed;
+            }
+        }
+
+        // Private helper method to handle the SHA-256 conversion
+        private string ComputeSha256(string input)
+        {
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
+
+                // Using Base64 here is a bit cleaner and more compact than Hex for feeding into BCrypt
+                return Convert.ToBase64String(bytes);
             }
         }
     }
