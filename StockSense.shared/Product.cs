@@ -1,6 +1,7 @@
 ﻿using StockSense.shared;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace StockSense.Shared
 {
@@ -28,6 +29,9 @@ namespace StockSense.Shared
         // This links the product to the Supplier class we just made
         public int SupplierId { get; set; }
         public virtual Supplier Supplier { get; set; } = null!;
+
+        [JsonIgnore]
+        public List<PreBuildPackage> PreBuildPackages { get; set; } = new();
     }
 
     // We also need a model to save the final build

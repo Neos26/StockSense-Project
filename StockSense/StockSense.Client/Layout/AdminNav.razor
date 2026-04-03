@@ -220,6 +220,21 @@
                             <span style="white-space: nowrap;">Order Slips</span>
                         }
                     </a>
+                    <a href="/admin/prebuilds" title="PreBuild" style="@NavLinkStyle(IsActive("/admin/prebuilds"), isCollapsed)">
+                        <LucideIcon Name="clipboard-list" Size="16" />
+                        @if (!isCollapsed)
+                        {
+                            <span style="white-space: nowrap;">PreBuild</span>
+                        }
+                    </a>
+
+                    <a href="/admin/services" title="PreBuild" style="@NavLinkStyle(IsActive("/admin/services"), isCollapsed)">
+                        <LucideIcon Name="clipboard-list" Size="16" />
+                        @if (!isCollapsed)
+                        {
+                            <span style="white-space: nowrap;">Services</span>
+                        }
+                    </a>
                 </Authorized>
             </AuthorizeView>
 

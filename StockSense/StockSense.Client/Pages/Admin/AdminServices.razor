@@ -1,0 +1,238 @@
+﻿@page "/admin/services"
+@layout AdminLayout
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+@using StockSense.Shared
+@using StockSense.shared
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<PageTitle>Manage Services</PageTitle>
+
+<div style="padding: var(--space-6); max-width: 1000px; margin: 0 auto;">
+    <h1 style="font-weight: bold; font-size: var(--text-2xl); margin-bottom: var(--space-6);">Service Management</h1>
+
+    @if (services == null)
+    {
+        <div style="text-align: center; padding: 50px;">
+            <BbSpinner Size="SpinnerSize.Large" />
+            <p style="margin-top: 10px; color: var(--muted-foreground);">Loading services...</p>
+        </div>
+    }
+    else
+    {
+        <div style="display: grid; gap: var(--space-4);">
+            @foreach (var s in services)
+            {
+                <div style="background: var(--card); padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="font-weight: bold; margin: 0;">@s.Name</h3>
+                        <p style="font-size: var(--text-xs); color: var(--muted-foreground); margin: 0;">
+                            Labor: ₱@s.Price.ToString("N0") | Parts linked: @(s.RequiredProducts?.Count ?? 0)
+                        </p>
+                    </div>
+                    <button @onclick="() => OpenPartsModal(s)"
+                            style="padding: 8px 16px; background: var(--primary); color: var(--primary-foreground); border: none; border-radius: 6px; cursor: pointer; font-size: var(--text-sm); font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                        <LucideIcon Name="settings-2" Size="14" />
+                        Manage Parts
+                    </button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@* --- MANAGE PARTS MODAL --- *@
+<BbDialog @bind-Open="showModal">
+    <BbDialogContent Class="max-w-2xl" Style="display: flex; flex-direction: column; max-height: 85vh;">
+        <BbDialogHeader>
+            <BbDialogTitle>Parts for @selectedService?.Name</BbDialogTitle>
+            <BbDialogDescription>Select the inventory items required for this service.</BbDialogDescription>
+        </BbDialogHeader>
+
+        @* --- SEARCH & FILTER SECTION --- *@
+        <div style="display: flex; gap: 10px; padding: 10px; background: var(--muted); border-radius: 8px; margin: 10px 10px 0 10px;">
+            <div style="position: relative; flex: 1;">
+                <LucideIcon Name="search" Size="14" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted-foreground);" />
+                <input type="text" @bind="searchQuery" @bind:event="oninput" placeholder="Search parts..."
+                       style="width: 100%; padding: 8px 8px 8px 32px; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); font-size: var(--text-sm);" />
+            </div>
+            <select @bind="selectedCategory" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); font-size: var(--text-sm); min-width: 130px;">
+                <option value="All">All Categories</option>
+                @foreach (var cat in DistinctCategories)
+                {
+                    <option value="@cat">@cat</option>
+                }
+            </select>
+        </div>
+
+        @* Categorized Product List *@
+        <div style="flex: 1; overflow-y: auto; padding: 10px;">
+            @if (allProducts == null)
+            {
+                <div style="text-align: center; padding: 20px;">
+                    <BbSpinner Size="SpinnerSize.Small" />
+                </div>
+            }
+            else if (!FilteredProducts.Any())
+            {
+                <div style="text-align: center; padding: 40px; color: var(--muted-foreground); font-size: var(--text-sm);">
+                    No products match your search.
+                </div>
+            }
+            else
+            {
+                @foreach (var group in FilteredProducts.GroupBy(p => p.Category))
+                {
+                    <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; color: var(--muted-foreground); margin: 15px 0 5px 0; border-bottom: 1px solid var(--border); padding-bottom: 4px;">
+                        @group.Key
+                    </div>
+                    @foreach (var product in group)
+                    {
+                        bool isChecked = selectedProductIds.Contains(product.Id);
+                        <div @onclick="() => ToggleProduct(product.Id)"
+                             style="display: flex; justify-content: space-between; padding: 10px; cursor: pointer; border-radius: 4px; transition: background 0.2s; background: @(isChecked ? "color-mix(in oklch, var(--primary) 10%, transparent)" : "transparent");">
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="checkbox" checked="@isChecked" @onclick:stopPropagation style="width: 16px; height: 16px; accent-color: var(--primary);" />
+                                <span style="font-size: var(--text-sm); font-weight: @(isChecked ? "bold" : "normal");">@product.Name</span>
+                            </div>
+                            <span style="font-weight: bold; font-size: var(--text-sm);">₱@product.Price.ToString("N0")</span>
+                        </div>
+                    }
+                }
+            }
+        </div>
+
+        <div style="padding: 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--background);">
+            <div style="font-size: var(--text-sm);">Total Parts Cost: <b style="color: var(--primary); font-size: 1.1rem;">₱@CalculateModalTotal().ToString("N0")</b></div>
+            <div style="display: flex; gap: 10px;">
+                <BbButton Variant="ButtonVariant.Ghost" OnClick="CloseModal">Cancel</BbButton>
+                <BbButton Variant="ButtonVariant.Default" OnClick="SaveParts" Disabled="isSaving">
+                    @if (isSaving)
+                    {
+                        <BbSpinner Size="SpinnerSize.Small" />
+                    }
+                    else
+                    {
+
+                        <span>Update Service</span>
+                    }
+                </BbButton>
+            </div>
+        </div>
+    </BbDialogContent>
+</BbDialog>
+
+@code {
+    private List<StoreService>? services;
+    private List<Product>? allProducts;
+    private StoreService? selectedService;
+    private List<int> selectedProductIds = new();
+    private bool showModal = false;
+    private bool isSaving = false;
+
+    // Filter state
+    private string searchQuery = "";
+    private string selectedCategory = "All";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        try
+        {
+            allProducts = await Http.GetFromJsonAsync<List<Product>>("api/services/inventory");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Inventory Load Error: {ex.Message}");
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            services = await Http.GetFromJsonAsync<List<StoreService>>("api/services");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Service Load Error: {ex.Message}");
+        }
+    }
+
+    // --- LOGIC FOR FILTERING ---
+    private IEnumerable<string> DistinctCategories =>
+        allProducts?.Select(p => p.Category).Distinct().OrderBy(c => c) ?? Enumerable.Empty<string>();
+
+    private IEnumerable<Product> FilteredProducts
+    {
+        get
+        {
+            if (allProducts == null) return Enumerable.Empty<Product>();
+
+            var query = allProducts.AsEnumerable();
+
+            if (selectedCategory != "All")
+            {
+                query = query.Where(p => p.Category == selectedCategory);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                query = query.Where(p => p.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                                         p.Brand.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return query;
+        }
+    }
+
+    private void OpenPartsModal(StoreService service)
+    {
+        selectedService = service;
+        selectedProductIds = service.RequiredProducts?.Select(p => p.Id).ToList() ?? new List<int>();
+        searchQuery = ""; // Reset search when opening
+        selectedCategory = "All"; // Reset filter when opening
+        showModal = true;
+    }
+
+    private void CloseModal() => showModal = false;
+
+    private void ToggleProduct(int id)
+    {
+        if (selectedProductIds.Contains(id)) selectedProductIds.Remove(id);
+        else selectedProductIds.Add(id);
+    }
+
+    private decimal CalculateModalTotal() =>
+        allProducts?.Where(p => selectedProductIds.Contains(p.Id)).Sum(p => p.Price) ?? 0;
+
+    private async Task SaveParts()
+    {
+        if (selectedService == null) return;
+        isSaving = true;
+
+        var dto = new UpdateServiceProductsDto
+        {
+            ServiceId = selectedService.Id,
+            ProductIds = selectedProductIds
+        };
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/services/update-products", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadData();
+                showModal = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Update Error: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

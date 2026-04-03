@@ -15,5 +15,6 @@ namespace StockSense.Data
         public DbSet<OrderSlipItem> OrderSlipItems { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<Mechanic> Mechanics { get; set; }
+        public DbSet<PreBuildPackage> PreBuildPackages { get; set; }
     }
 }

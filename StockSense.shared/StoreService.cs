@@ -1,4 +1,5 @@
 ﻿
+using StockSense.Shared;
 using System.ComponentModel.DataAnnotations.Schema;
 
 public class StoreService
@@ -13,4 +14,6 @@ public class StoreService
     public int EstimatedMinutes { get; set; }
 
     public string Status { get; set; } = "Active";
+
+    public List<Product> RequiredProducts { get; set; } = new();
 }

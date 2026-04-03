@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StockSense.Data; // Points to AppDbContext
@@ -20,7 +20,7 @@ namespace StockSense.Server.Controllers
             _context = context;
         }
 
-     
+
         [HttpPost]
         public async Task<IActionResult> CreateBuild([FromBody] BuildRequest request)
         {
@@ -36,7 +36,7 @@ namespace StockSense.Server.Controllers
             return Ok(request);
         }
 
-      
+
         [HttpGet("all")]
         public async Task<ActionResult<List<BuildRequest>>> GetAllBuilds()
         {
@@ -45,13 +45,52 @@ namespace StockSense.Server.Controllers
                                  .ToListAsync();
         }
 
-      
+
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] string newStatus)
         {
             var build = await _context.BuildRequests.FindAsync(id);
             if (build == null) return NotFound();
 
+            // --- INVENTORY DEDUCTION LOGIC ---
+            // Only deduct stock if the status is changing TO "Completed" for the first time
+            if (newStatus == "Completed" && build.Status != "Completed")
+            {
+                if (!string.IsNullOrEmpty(build.SelectedPartsJson))
+                {
+                    try
+                    {
+                        // 1. Read the JSON string back into a list of Products
+                        var usedParts = JsonSerializer.Deserialize<List<Product>>(
+                            build.SelectedPartsJson,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                        );
+
+                        if (usedParts != null)
+                        {
+                            foreach (var part in usedParts)
+                            {
+                                // 2. Find the actual product in the database
+                                var dbProduct = await _context.Products.FindAsync(part.Id);
+
+                                // 3. Deduct the stock (ensuring it doesn't go below 0)
+                                if (dbProduct != null && dbProduct.CurrentStock > 0)
+                                {
+                                    dbProduct.CurrentStock -= 1;
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to deduct inventory: {ex.Message}");
+                        // You can decide if you want to abort the status change here, 
+                        // but usually, it's safe to just log it and proceed.
+                    }
+                }
+            }
+
+            // Update the status and save all changes (both the build status AND the product stock)
             build.Status = newStatus;
             await _context.SaveChangesAsync();
 
@@ -72,6 +111,8 @@ namespace StockSense.Server.Controllers
                                  .OrderByDescending(b => b.CreatedAt)
                                  .ToListAsync();
         }
+
     }
+
 
 }
