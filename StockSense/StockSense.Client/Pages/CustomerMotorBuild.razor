@@ -332,13 +332,34 @@
 
                                             @* INCLUDED PARTS *@
                                             <div style="margin-bottom: var(--space-4); padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px;">
-                                                <p style="font-size: 10px; font-weight: bold; color: var(--muted-foreground); text-transform: uppercase; margin: 0 0 4px 0;">Included Parts:</p>
-                                                <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: var(--foreground); opacity: 0.8;">
-                                                    @foreach (var item in pkg.IncludedProducts)
+                                                <p style="font-size: 10px; font-weight: bold; color: var(--muted-foreground); text-transform: uppercase; margin: 0 0 8px 0;">Included Parts:</p>
+
+                                                @{
+                                                    // Group the included products by Category, defaulting to "Other" if empty
+                                                    var groupedProducts = pkg.IncludedProducts
+                                                    .GroupBy(p => string.IsNullOrWhiteSpace(p.Category) ? "Other" : p.Category)
+                                                    .OrderBy(g => g.Key);
+                                                }
+
+                                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                                    @foreach (var group in groupedProducts)
                                                     {
-                                                        <li>@item.Name</li>
+                                                        <div>
+                                                            @* Category Header *@
+                                                            <div style="font-size: 9px; font-weight: bold; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">
+                                                                @group.Key
+                                                            </div>
+
+                                                            @* Items in this Category *@
+                                                            <ul style="margin: 0; padding-left: 14px; font-size: 11px; color: var(--foreground); opacity: 0.8;">
+                                                                @foreach (var item in group)
+                                                                {
+                                                                    <li>@item.Name</li>
+                                                                }
+                                                            </ul>
+                                                        </div>
                                                     }
-                                                </ul>
+                                                </div>
                                             </div>
 
                                             @* --- PERFORMANCE STATS BAR --- *@
