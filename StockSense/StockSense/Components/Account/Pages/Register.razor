@@ -87,8 +87,15 @@
             </div>
 
             <div style="margin-bottom: var(--space-6);">
-                <button type="submit" style="width: 100%; padding: var(--btn-padding-y) var(--btn-padding-x); border-radius: var(--radius); background-color: var(--primary); color: var(--primary-foreground); font-size: var(--btn-font-size); font-weight: var(--btn-font-weight); border: none; cursor: pointer;">
-                    Register
+                <button type="submit" disabled="@isSubmitting" style="width: 100%; padding: var(--btn-padding-y) var(--btn-padding-x); border-radius: var(--radius); background-color: var(--primary); color: var(--primary-foreground); font-size: var(--btn-font-size); font-weight: var(--btn-font-weight); border: none; cursor: @(isSubmitting ? "not-allowed" : "pointer"); opacity: @(isSubmitting ? "0.7" : "1");">
+                    @if (isSubmitting)
+                    {
+                        <span>Registering...</span>
+                    }
+                    else
+                    {
+                        <span>Register</span>
+                    }
                 </button>
             </div>
 
@@ -104,6 +111,7 @@
 
 @code {
     private IEnumerable<IdentityError>? identityErrors;
+    private bool isSubmitting = false;
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();
@@ -115,57 +123,69 @@
 
     public async Task RegisterUser(EditContext editContext)
     {
-        var user = CreateUser();
+        // 1. Prevent double-click phantom saves
+        if (isSubmitting) return;
+        isSubmitting = true;
 
-        user.FirstName = Input.FirstName;
-        user.LastName = Input.LastName;
-
-        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-        var emailStore = GetEmailStore();
-        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
-
-        var result = await UserManager.CreateAsync(user, Input.Password);
-
-        if (!result.Succeeded)
+        try
         {
-            identityErrors = result.Errors;
-            return;
+            var user = CreateUser();
+
+            user.FirstName = Input.FirstName;
+            user.LastName = Input.LastName;
+
+            await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+            var emailStore = GetEmailStore();
+            await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+
+            var result = await UserManager.CreateAsync(user, Input.Password);
+
+            if (!result.Succeeded)
+            {
+                identityErrors = result.Errors;
+                return;
+            }
+
+            // --- START OF DEFAULT ROLE LOGIC ---
+            const string defaultRole = "Customer";
+
+            if (!await RoleManager.RoleExistsAsync(defaultRole))
+            {
+                await RoleManager.CreateAsync(new IdentityRole(defaultRole));
+            }
+
+            await UserManager.AddToRoleAsync(user, defaultRole);
+            // --- END OF DEFAULT ROLE LOGIC ---
+
+            Logger.LogInformation("User created a new account with Customer role.");
+
+            // --- START OF SAFE EMAIL LOGIC ---
+            try
+            {
+                var userId = await UserManager.GetUserIdAsync(user);
+                var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+                code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+
+                var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+                    NavigationManager.ToAbsoluteUri("/Account/ConfirmEmail").AbsoluteUri,
+                    new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+
+                await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+            }
+            catch (Exception ex)
+            {
+                // If SMTP fails, log it but DO NOT stop the registration flow!
+                Logger.LogError($"Email failed to send. Error: {ex.Message}");
+            }
+            // --- END OF SAFE EMAIL LOGIC ---
+
+            RedirectManager.RedirectTo("/Account/RegisterConfirmation", new Dictionary<string, object?> { ["Email"] = Input.Email });
         }
-
-        // --- START OF DEFAULT ROLE LOGIC ---
-        const string defaultRole = "Customer";
-
-        // 1. Ensure the 'Customer' role exists in the database
-        if (!await RoleManager.RoleExistsAsync(defaultRole))
+        finally
         {
-            await RoleManager.CreateAsync(new IdentityRole(defaultRole));
+            // 2. Unlock the button when everything is done
+            isSubmitting = false;
         }
-
-        // 2. Assign the user to the 'Customer' role
-        await UserManager.AddToRoleAsync(user, defaultRole);
-        // --- END OF DEFAULT ROLE LOGIC ---
-
-        Logger.LogInformation("User created a new account with Customer role.");
-
-        // --- START OF MISSING EMAIL LOGIC ---
-
-        // 1. Generate the email confirmation token securely
-        var userId = await UserManager.GetUserIdAsync(user);
-        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-
-        // 2. Build the exact URL the user needs to click in their email
-        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
-            NavigationManager.ToAbsoluteUri("/Account/ConfirmEmail").AbsoluteUri,
-            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
-
-        // 3. ACTUALLY SEND THE EMAIL using your custom MailKit EmailSender
-        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
-
-        // --- END OF EMAIL LOGIC ---
-
-        // Now redirect to the confirmation page!
-        RedirectManager.RedirectTo("/Account/RegisterConfirmation", new Dictionary<string, object?> { ["Email"] = Input.Email });
     }
 
     private ApplicationUser CreateUser()
