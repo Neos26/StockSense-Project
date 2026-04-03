@@ -81,6 +81,7 @@ namespace StockSense.Controllers
                 CompatibleBrand = dto.CompatibleBrand,
                 CompatibleModel = dto.CompatibleModel,
                 TargetCC = dto.TargetCC,
+                EstimatedAddedCC = dto.EstimatedAddedCC,
                 IncludedProducts = productsToInclude // Attach the fetched products!
             };
 

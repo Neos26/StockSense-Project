@@ -56,6 +56,8 @@
                         <span style="font-size: 10px; background: var(--muted); padding: 2px 6px; border-radius: 4px; color: var(--foreground);">@pkg.CompatibleBrand</span>
                         <span style="font-size: 10px; background: var(--muted); padding: 2px 6px; border-radius: 4px; color: var(--foreground);">@pkg.CompatibleModel</span>
                         <span style="font-size: 10px; background: var(--muted); padding: 2px 6px; border-radius: 4px; color: var(--foreground);">@pkg.TargetCC</span>
+                        @* NEW: Show the Added CC badge *@
+                        <span style="font-size: 10px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 2px 6px; border-radius: 4px; color: #3b82f6; font-weight: bold;">+@pkg.EstimatedAddedCC CC</span>
                     </div>
 
                     <p style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: var(--muted-foreground); margin: 0 0 4px 0;">Includes @pkg.IncludedProducts.Count Parts:</p>
@@ -108,7 +110,7 @@
                         <textarea @bind="newPackage.Description" rows="3" placeholder="Describe who this build is for..." style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); resize: none;"></textarea>
                     </div>
 
-                    @* --- NEW: CASCADING DROPDOWNS --- *@
+                    @* --- CASCADING DROPDOWNS --- *@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                         <div>
                             <label style="font-size: var(--text-xs); font-weight: bold; margin-bottom: 4px; display: block;">Motor Brand</label>
@@ -135,19 +137,27 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label style="font-size: var(--text-xs); font-weight: bold; margin-bottom: 4px; display: block;">Target CC</label>
-                        <select @bind="newPackage.TargetCC" disabled="@string.IsNullOrEmpty(newPackage.CompatibleModel)" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: @(string.IsNullOrEmpty(newPackage.CompatibleModel) ? "var(--muted)" : "var(--background)"); color: var(--foreground);">
-                            <option value="">Select CC...</option>
-                            @if (!string.IsNullOrEmpty(newPackage.CompatibleBrand) && !string.IsNullOrEmpty(newPackage.CompatibleModel) && motorDatabase.ContainsKey(newPackage.CompatibleBrand) && motorDatabase[newPackage.CompatibleBrand].ContainsKey(newPackage.CompatibleModel))
-                            {
-                                @foreach (var cc in motorDatabase[newPackage.CompatibleBrand][newPackage.CompatibleModel])
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <label style="font-size: var(--text-xs); font-weight: bold; margin-bottom: 4px; display: block;">Target CC Range</label>
+                            <select @bind="newPackage.TargetCC" disabled="@string.IsNullOrEmpty(newPackage.CompatibleModel)" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: @(string.IsNullOrEmpty(newPackage.CompatibleModel) ? "var(--muted)" : "var(--background)"); color: var(--foreground);">
+                                <option value="">Select CC...</option>
+                                @if (!string.IsNullOrEmpty(newPackage.CompatibleBrand) && !string.IsNullOrEmpty(newPackage.CompatibleModel) && motorDatabase.ContainsKey(newPackage.CompatibleBrand) && motorDatabase[newPackage.CompatibleBrand].ContainsKey(newPackage.CompatibleModel))
                                 {
-                                    <option value="@cc">@cc</option>
+                                    @foreach (var cc in motorDatabase[newPackage.CompatibleBrand][newPackage.CompatibleModel])
+                                    {
+                                        <option value="@cc">@cc</option>
+                                    }
                                 }
-                            }
-                        </select>
+                            </select>
+                        </div>
+                        @* --- NEW: ESTIMATED ADDED CC INPUT --- *@
+                        <div>
+                            <label style="font-size: var(--text-xs); font-weight: bold; margin-bottom: 4px; display: block;">Estimated Added CC</label>
+                            <input type="number" @bind="newPackage.EstimatedAddedCC" placeholder="e.g., 30" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground);" />
+                        </div>
                     </div>
+                    <p style="font-size: 10px; color: var(--muted-foreground); margin-top: -6px;">Added CC powers the dynamic stats bar (Power/Speed/Reliability) on the build page.</p>
                 </div>
 
                 @* RIGHT SIDE: Product Selection with Filters *@
@@ -250,7 +260,7 @@
     // The DTO we will send to the API
     private CreatePreBuildDto newPackage = new();
 
-    // --- EXACT MATCH DATABASE (Copied from build.razor) ---
+    // --- EXACT MATCH DATABASE ---
     private Dictionary<string, Dictionary<string, List<string>>> motorDatabase = new()
     {
         { "Yamaha", new() {
@@ -281,6 +291,7 @@
         public string CompatibleBrand { get; set; } = "";
         public string CompatibleModel { get; set; } = "";
         public string TargetCC { get; set; } = "";
+        public int EstimatedAddedCC { get; set; } // <--- NEW PROPERTY
         public decimal TotalPrice { get; set; }
         public List<Product> IncludedProducts { get; set; } = new();
     }
@@ -348,7 +359,6 @@
         showCreateModal = true;
     }
 
-    // --- NEW: Cascading Dropdown Handlers ---
     private void OnBrandChanged(ChangeEventArgs e)
     {
         newPackage.CompatibleBrand = e.Value?.ToString() ?? "";
@@ -415,9 +425,4 @@
             isProcessing = false;
         }
     }
-}
-<h3>AdminPreBuild</h3>
-
-@code {
-
 }

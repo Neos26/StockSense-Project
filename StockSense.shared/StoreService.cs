@@ -15,5 +15,6 @@ public class StoreService
 
     public string Status { get; set; } = "Active";
 
-    public List<Product> RequiredProducts { get; set; } = new();
+    public virtual ICollection<Product> RequiredProducts { get; set; } = new List<Product>();
+
 }

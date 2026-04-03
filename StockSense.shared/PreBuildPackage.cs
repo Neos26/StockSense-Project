@@ -14,6 +14,8 @@ namespace StockSense.Shared
         public string CompatibleModel { get; set; } = string.Empty;
         public string TargetCC { get; set; } = string.Empty;
 
+        public int EstimatedAddedCC { get; set; }
+
         // The list of actual products included in this build
         public List<Product> IncludedProducts { get; set; } = new();
 

@@ -27,6 +27,8 @@
         public string CompatibleModel { get; set; } = string.Empty;
         public string TargetCC { get; set; } = string.Empty;
 
+        public int EstimatedAddedCC { get; set; }
+
         // Notice we only send the IDs of the products!
         public List<int> ProductIds { get; set; } = new();
     }

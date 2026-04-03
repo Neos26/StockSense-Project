@@ -12,8 +12,8 @@ using StockSense.Data;
 namespace StockSense.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260403043120_BuildAndAppointmentdb")]
-    partial class BuildAndAppointmentdb
+    [Migration("20260403050948_PreBuildCC")]
+    partial class PreBuildCC
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -353,6 +353,9 @@ namespace StockSense.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EstimatedAddedCC")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
