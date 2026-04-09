@@ -73,8 +73,8 @@
 
                     @if (!SelectedServices.Any())
                     {
-                        <div style="text-align: center; padding: var(--space-6) 0; color: var(--muted-foreground);">
-                            <LucideIcon Name="shopping-cart" Size="28" />
+                        <div style="display:flex; flex-direction: column; text-align: center; padding: var(--space-6) 0; color: var(--muted-foreground);">
+                            <LucideIcon Name="shopping-cart" Size="28" style="align-self: center" />
                             <p style="font-size: var(--text-xs); margin: var(--space-2) 0 0 0; font-style: italic;">No services selected</p>
                         </div>
                     }
@@ -137,7 +137,7 @@
                         </div>
                     }
 
-                    <BbButton Variant="ButtonVariant.Ghost" Class="w-full" OnClick="PrevStep" Disabled="@(currentStep == 1 || isProcessing)">
+                    <BbButton Variant="ButtonVariant.Outline" Class="w-full" OnClick="PrevStep" Disabled="@(currentStep == 1 || isProcessing)">
                         <LucideIcon Name="arrow-left" Size="14" />
                         Back
                     </BbButton>

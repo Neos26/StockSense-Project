@@ -12,7 +12,7 @@
 
 <div>
     <div style="display: flex; align-items: start; margin-bottom: var(--space-6); flex-direction: column;">
-        <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0 0 var(--space-1) 0;">System Management</h1>
+        <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0;">System Management</h1>
         <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Manage users, employee roles, and shop mechanics.</p>
     </div>
 
@@ -48,9 +48,10 @@
         @if (currentTab == "Users")
         {
             <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-4);">
-                <button @onclick="OpenEmployeeModal" style="padding: 8px 16px; background-color: var(--primary); color: white; border: none; border-radius: var(--radius); font-weight: bold; cursor: pointer;">
-                    + Add New Employee
-                </button>
+                <BbButton Variant="ButtonVariant.Default" @onclick="OpenEmployeeModal">
+                    <LucideIcon Name="id-card-lanyard" Size="16" />
+                    Add New Employee
+                </BbButton>
             </div>
 
             @if (users == null)
@@ -64,7 +65,7 @@
                         <tr style="border-bottom: 1px solid var(--border); color: var(--muted-foreground);">
                             <th style="padding: 12px;">Name & Email</th>
                             <th style="padding: 12px;">Role</th>
-                            <th style="padding: 12px;">Status</th>
+                            <th style="padding: 12px; text-align: center; min-width: 100px;">Status</th>
                             <th style="padding: 12px; text-align: right;">Actions</th>
                         </tr>
                     </thead>
@@ -84,7 +85,7 @@
                                         <option value="Admin" selected="@(user.Role == "Admin")">Admin</option>
                                     </select>
                                 </td>
-                                <td style="padding: 12px;">
+                                <td style="padding: 12px; text-align: center; min-width: 100px;">
                                     <button @onclick="() => ToggleBlockUser(user)"
                                             style="padding: 4px 8px; border: 1px solid var(--border); background: transparent; color: @(user.IsBlocked ? "var(--destructive)" : "#4CAF50"); border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">
                                         @(user.IsBlocked ? "Blocked" : "Active")
@@ -104,9 +105,10 @@
         else if (currentTab == "Mechanics")
         {
             <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-4);">
-                <button @onclick="OpenMechanicModal" style="padding: 8px 16px; background-color: var(--primary); color: white; border: none; border-radius: var(--radius); font-weight: bold; cursor: pointer;">
-                    + Add Mechanic
-                </button>
+                <BbButton Variant="ButtonVariant.Default" @onclick="OpenMechanicModal">
+                    <LucideIcon Name="bolt" Size="16" />
+                    Add Mechanic
+                </BbButton>
             </div>
 
             @if (mechanics == null)
@@ -119,7 +121,7 @@
                     <thead>
                         <tr style="border-bottom: 1px solid var(--border); color: var(--muted-foreground);">
                             <th style="padding: 12px;">Mechanic Name</th>
-                            <th style="padding: 12px;">Status</th>
+                            <th style="padding: 12px; text-align: center; min-width: 100px;">Status</th>
                             <th style="padding: 12px; text-align: right;">Action</th>
                         </tr>
                     </thead>
@@ -128,7 +130,7 @@
                         {
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 12px; font-weight: bold; color: var(--foreground);">@mech.Name</td>
-                                <td style="padding: 12px;">
+                                <td style="padding: 12px; text-align: center; min-width: 100px;">
                                     <button @onclick="() => ToggleMechanic(mech)" style="padding: 4px 8px; border: 1px solid var(--border); background: var(--background); color: @(mech.IsActive ? "#4CAF50" : "var(--muted-foreground)"); border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">
                                         @(mech.IsActive ? "ACTIVE" : "INACTIVE")
                                     </button>
@@ -168,27 +170,67 @@
 @* --- ADD EMPLOYEE MODAL --- *@
 @if (showEmployeeModal)
 {
-    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000;">
-        <div style="background: var(--card); width: 450px; padding: 24px; border-radius: 12px; border: 1px solid var(--border);">
-            <h2 style="margin-top: 0; color: var(--foreground);">Add New Staff</h2>
-            <div style="display: flex; flex-direction: column; gap: 15px;">
-                <input @bind="newEmp.FirstName" placeholder="First Name" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground);" />
-                <input @bind="newEmp.LastName" placeholder="Last Name" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground);" />
-                <input @bind="newEmp.Email" placeholder="Email Address" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground);" />
-                <input @bind="newEmp.Password" type="password" placeholder="Temporary Password" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground);" />
-                <select @bind="newEmp.Role" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground);">
-                    <option value="Employee">Employee</option>
-                    <option value="Admin">Admin</option>
-                </select>
+    <div @onclick="() => showEmployeeModal = false" style="position: fixed; inset: 0; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: var(--space-4);">
+        <div @onclick:stopPropagation style="background-color: var(--card); width: 440px; max-width: 100%; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-lg); display: flex; flex-direction: column;">
+
+            <div style="padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--foreground); margin: 0;">Add New Staff</h3>
+                    <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: var(--space-1) 0 0 0;">Create a new employee or admin account.</p>
+                </div>
+                <button @onclick="() => showEmployeeModal = false" style="background: none; border: none; cursor: pointer; color: var(--muted-foreground); padding: var(--space-1); border-radius: var(--radius); display: flex;">
+                    <LucideIcon Name="x" Size="18" />
+                </button>
             </div>
-            @if (!string.IsNullOrEmpty(modalError))
-            {
-                <p style="color: var(--destructive); margin-top: 10px;">@modalError</p>
-            }
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button @onclick="CreateEmployee" style="flex: 1; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Create Account</button>
-                <button @onclick="() => showEmployeeModal = false" style="flex: 1; padding: 10px; background: var(--secondary); color: var(--foreground); border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
+
+            <div style="padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-3);">
+                <div style="display: flex; gap: var(--space-3);">
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: var(--space-2);">
+                        <label style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">First Name</label>
+                        <input @bind="newEmp.FirstName" placeholder="First name"
+                               style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;" />
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: var(--space-2);">
+                        <label style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">Last Name</label>
+                        <input @bind="newEmp.LastName" placeholder="Last name"
+                               style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;" />
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                    <label style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">Email Address</label>
+                    <input @bind="newEmp.Email" type="email" placeholder="email@example.com"
+                           style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;" />
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                    <label style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">Temporary Password</label>
+                    <input @bind="newEmp.Password" type="password" placeholder="Temporary password"
+                           style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;" />
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                    <label style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">Role</label>
+                    <select @bind="newEmp.Role"
+                            style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;">
+                        <option value="Employee">Employee</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+
+                @if (!string.IsNullOrEmpty(modalError))
+                {
+                    <div style="padding: var(--space-3); border-radius: var(--radius); background-color: var(--destructive-muted); border: 1px solid var(--destructive-border); color: var(--destructive-muted-foreground); font-size: var(--text-sm);">
+                        @modalError
+                    </div>
+                }
             </div>
+
+            <div style="padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: var(--space-2);">
+                <BbButton Variant="ButtonVariant.Ghost" OnClick="() => showEmployeeModal = false">Cancel</BbButton>
+                <BbButton Variant="ButtonVariant.Default" OnClick="CreateEmployee">Create Account</BbButton>
+            </div>
+
         </div>
     </div>
 }
@@ -196,14 +238,30 @@
 @* --- ADD MECHANIC MODAL --- *@
 @if (showMechanicModal)
 {
-    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000;">
-        <div style="background: var(--card); width: 400px; padding: 24px; border-radius: 12px; border: 1px solid var(--border);">
-            <h2 style="margin-top: 0; color: var(--foreground);">New Shop Mechanic</h2>
-            <input @bind="newMechanicName" placeholder="Enter Full Name" style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground);" />
-            <div style="display: flex; gap: 10px;">
-                <button @onclick="CreateMechanic" style="flex: 1; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Save Mechanic</button>
-                <button @onclick="() => showMechanicModal = false" style="flex: 1; padding: 10px; background: var(--secondary); color: var(--foreground); border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
+    <div @onclick="() => showMechanicModal = false" style="position: fixed; inset: 0; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: var(--space-4);">
+        <div @onclick:stopPropagation style="background-color: var(--card); width: 400px; max-width: 100%; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-lg); display: flex; flex-direction: column;">
+
+            <div style="padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--foreground); margin: 0;">New Shop Mechanic</h3>
+                    <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: var(--space-1) 0 0 0;">Add a mechanic to the roster.</p>
+                </div>
+                <button @onclick="() => showMechanicModal = false" style="background: none; border: none; cursor: pointer; color: var(--muted-foreground); padding: var(--space-1); border-radius: var(--radius); display: flex;">
+                    <LucideIcon Name="x" Size="18" />
+                </button>
             </div>
+
+            <div style="padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-2);">
+                <label style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">Full Name</label>
+                <input @bind="newMechanicName" placeholder="e.g. Juan dela Cruz"
+                       style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;" />
+            </div>
+
+            <div style="padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: var(--space-2);">
+                <BbButton Variant="ButtonVariant.Ghost" OnClick="() => showMechanicModal = false">Cancel</BbButton>
+                <BbButton Variant="ButtonVariant.Default" OnClick="CreateMechanic">Save Mechanic</BbButton>
+            </div>
+
         </div>
     </div>
 }
