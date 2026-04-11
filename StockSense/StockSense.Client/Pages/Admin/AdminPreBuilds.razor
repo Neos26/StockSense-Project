@@ -18,18 +18,17 @@
             <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0;">Pre-Build Packages</h1>
             <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Create and manage guided motor build packages.</p>
         </div>
-        <BbButton Variant="ButtonVariant.Default" @onclick="OpenCreateModal">
-            <LucideIcon Name="package-plus" Size="16" />
-            Create New Package
-        </BbButton>
+            <BbButton Variant="ButtonVariant.Default" @onclick="OpenCreateModal">
+                <LucideIcon Name="package-plus" Size="16" />
+                Create Package
+            </BbButton>
     </div>
 
     @* --- LIST OF EXISTING PACKAGES --- *@
     @if (isLoading)
     {
-        <div style="text-align: center; padding: var(--space-8); color: var(--muted-foreground);">
-            <BbSpinner Size="SpinnerSize.Large" />
-            <p>Loading packages...</p>
+        <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+            <LightSpinner Description="Loading Packages..."/>
         </div>
     }
     else if (!existingPackages.Any())

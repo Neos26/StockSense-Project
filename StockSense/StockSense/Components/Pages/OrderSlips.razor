@@ -32,7 +32,9 @@
             <BbButton Variant="ButtonVariant.Default" OnClick="GenerateSlips" Disabled="@isLoading">
                 @if (isLoading)
                 {
-                    <BbSpinner Size="SpinnerSize.Small" />
+                    <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+                        <LightSpinner Description="Loading Packages..."/>
+                    </div>
                 }
                 <LucideIcon Name="cpu" Size="16" />
                 Predictive Scan (Scan All)

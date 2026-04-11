@@ -29,34 +29,36 @@
             </button>
         </div>
 
-        @if (currentTab == "Users")
-        {
-            <div style="display: flex; align-items: center; gap: var(--space-3);">
-                <label style="font-size: var(--text-sm); color: var(--muted-foreground);">Role Filter:</label>
-                <select @bind="roleFilter" style="padding: 6px 12px; background: var(--background); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius); font-size: var(--text-sm);">
-                    <option value="All">All Roles</option>
-                    <option value="Admin">Admins</option>
-                    <option value="Employee">Employees</option>
-                    <option value="Customer">Customers</option>
-                </select>
-            </div>
-        }
+
     </div>
+    
 
-    <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4);">
+    <div style="overflow: auto; background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4);">
 
         @if (currentTab == "Users")
         {
-            <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-4);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-4); gap: var(--space-4);">
+                <div style="display: flex; align-items: center; gap: var(--space-3);">
+                    <label style="font-size: var(--text-sm); color: var(--muted-foreground);">Filter:</label>
+                    <select @bind="roleFilter" style="padding: 6px 12px; background: var(--background); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius); font-size: var(--text-sm);">
+                        <option value="All">All Roles</option>
+                        <option value="Admin">Admins</option>
+                        <option value="Employee">Employees</option>
+                        <option value="Customer">Customers</option>
+                        </select>
+                    </div>
+                
                 <BbButton Variant="ButtonVariant.Default" @onclick="OpenEmployeeModal">
-                    <LucideIcon Name="id-card-lanyard" Size="16" />
-                    Add New Employee
+                    <LucideIcon Name="id-card-lanyard" Size="16"/>
+                    Add Employee
                 </BbButton>
             </div>
 
             @if (users == null)
             {
-                <div style="color: var(--muted-foreground); text-align: center; padding: 20px;">Loading users...</div>
+                <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+                    <LightSpinner Description="Loading Personel..."/>
+                </div>
             }
             else
             {

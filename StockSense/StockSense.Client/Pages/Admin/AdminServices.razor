@@ -20,14 +20,13 @@
 
     @if (services == null)
     {
-    <div style="display: flex; align-items: center; gap: var(--space-3); justify-content: center; padding: var(--space-8); color: var(--muted-foreground);">
-        <BbSpinner Size="SpinnerSize.Small" />
-        <span style="font-size: var(--text-sm);">Loading services...</span>
-    </div>
+        <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+            <LightSpinner Description="Loading Services..."/>
+        </div>
     }
     else
     {
-    <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;">
+    <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: auto;">
         <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
             <thead>
             <tr style="border-bottom: 1px solid var(--border);">
