@@ -118,7 +118,7 @@ else
         </div>
         <div style="display: flex; justify-content: flex-end; gap: var(--space-2);">
             <BbButton Variant="ButtonVariant.Ghost" OnClick="() => showDeleteConfirm = false">Cancel</BbButton>
-            <BbButton Variant="ButtonVariant.Default" OnClick="ConfirmDelete" Disabled="isProcessing"
+            <BbButton Variant="ButtonVariant.Default" OnClick="ConfirmDelete" Disabled= "isProcessing"
                       style="background: var(--destructive); color: var(--destructive-foreground);">
                 @if (isProcessing) { <BbSpinner Size="SpinnerSize.Small" /> }
                 else { <LucideIcon Name="trash-2" Size="14" /> }
@@ -133,7 +133,7 @@ else
     <BbDialogContent Style="display: flex; flex-direction: column; max-height: 92dvh; width: min(96vw, 900px); padding: var(--space-4);">
 
         @* Header *@
-        <BbDialogHeader Style="flex-shrink: 0; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border);">
+        <BbDialogHeader>
             <BbDialogTitle>@(isEditMode ? "Edit Package" : "Create Pre-Build Package")</BbDialogTitle>
             <BbDialogDescription>Combine existing inventory products into a single guided package.</BbDialogDescription>
         </BbDialogHeader>
@@ -348,8 +348,11 @@ else
         public bool IsActive { get; set; } = true;
         public List<Product> IncludedProducts { get; set; } = new();
         public List<int> ProductIds { get; set; } = new();
+        
+        
     }
 
+    
     private IEnumerable<string> ModalCategories => (allProducts ?? new List<Product>())
         .Select(p => p.Category).Distinct().OrderBy(c => c);
 
@@ -385,7 +388,7 @@ else
         finally { isLoading = false; }
     }
 
-    private void OpenCreateModal()
+    public void OpenCreateModal()
     {
         isEditMode = false;
         editingPackageId = 0;
@@ -396,7 +399,7 @@ else
         showCreateModal = true;
     }
 
-    private void OpenEditModal(PreBuildPackage pkg)
+    public void OpenEditModal(PreBuildPackage pkg)
     {
         isEditMode = true;
         editingPackageId = pkg.Id;
@@ -416,13 +419,13 @@ else
         showCreateModal = true;
     }
 
-    private void OpenDeleteConfirm(PreBuildPackage pkg)
+    public void OpenDeleteConfirm(PreBuildPackage pkg)
     {
         packageToDelete = pkg;
         showDeleteConfirm = true;
     }
 
-    private async Task ConfirmDelete()
+    public async Task ConfirmDelete()
     {
         if (packageToDelete == null) return;
         isProcessing = true;
@@ -439,7 +442,7 @@ else
         finally { isProcessing = false; }
     }
 
-    private async Task ToggleActive(PreBuildPackage pkg)
+    public async Task ToggleActive(PreBuildPackage pkg)
     {
         pkg.IsActive = !pkg.IsActive;
         try
@@ -453,20 +456,20 @@ else
         }
     }
 
-    private void OnBrandChanged(ChangeEventArgs e)
+    public void OnBrandChanged(ChangeEventArgs e)
     {
         newPackage.CompatibleBrand = e.Value?.ToString() ?? "";
         newPackage.CompatibleModel = "";
         newPackage.TargetCC = "";
     }
 
-    private void OnModelChanged(ChangeEventArgs e)
+    public void OnModelChanged(ChangeEventArgs e)
     {
         newPackage.CompatibleModel = e.Value?.ToString() ?? "";
         newPackage.TargetCC = "";
     }
 
-    private void ToggleProductSelection(int productId)
+    public void ToggleProductSelection(int productId)
     {
         if (newPackage.ProductIds.Contains(productId))
             newPackage.ProductIds.Remove(productId);
@@ -480,7 +483,7 @@ else
         return allProducts.Where(p => newPackage.ProductIds.Contains(p.Id)).Sum(p => p.Price);
     }
 
-    private async Task SubmitPackage()
+    public async Task SubmitPackage()
     {
         errorMessage = "";
         if (string.IsNullOrWhiteSpace(newPackage.Name)) { errorMessage = "Package Name is required."; return; }

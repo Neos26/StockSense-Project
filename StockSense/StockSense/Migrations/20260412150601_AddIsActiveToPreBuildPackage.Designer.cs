@@ -12,8 +12,8 @@ using StockSense.Data;
 namespace StockSense.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260403060331_ReAddStoreServiceIdToProduct")]
-    partial class ReAddStoreServiceIdToProduct
+    [Migration("20260412150601_AddIsActiveToPreBuildPackage")]
+    partial class AddIsActiveToPreBuildPackage
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -356,6 +356,9 @@ namespace StockSense.Migrations
 
                     b.Property<int>("EstimatedAddedCC")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
