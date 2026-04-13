@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace StockSense.Shared
@@ -15,6 +15,7 @@ namespace StockSense.Shared
         public string TargetCC { get; set; } = string.Empty;
 
         public int EstimatedAddedCC { get; set; }
+        public bool IsActive { get; set; } = true;
 
         // The list of actual products included in this build
         public List<Product> IncludedProducts { get; set; } = new();

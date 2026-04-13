@@ -1,4 +1,4 @@
-﻿@page "/admin/orderslips"
+@page "/admin/orderslips"
 @layout AdminLayout
 @using Microsoft.AspNetCore.Authorization
 @using StockSense.shared
@@ -15,7 +15,9 @@
 <PageTitle>Order Slips</PageTitle>
 
 <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); flex-wrap: wrap; gap: var(--space-3);">
+
+    @* ── Page Header ── *@
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-6); flex-wrap: wrap; gap: var(--space-3);">
         <div>
             <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0;">Order Slips</h1>
             <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Manage and generate supplier order slips.</p>
@@ -26,7 +28,7 @@
                 View History
             </BbButton>
             <BbButton Variant="ButtonVariant.Default" OnClick="() => isManualSelecting = true">
-                <LucideIcon Name="plus-circle" Size="16" />
+                <LucideIcon Name="clipboard-plus" Size="16" />
                 Create New Order
             </BbButton>
             <BbButton Variant="ButtonVariant.Default" OnClick="GenerateSlips" Disabled="@isLoading">
@@ -40,6 +42,7 @@
         </div>
     </div>
 
+    @* ── Manual Supplier Selection ── *@
     @if (isManualSelecting)
     {
         <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--card-padding); margin-bottom: var(--space-6);">
@@ -47,9 +50,9 @@
                 <LucideIcon Name="truck" Size="16" />
                 Select Supplier for New Order
             </h3>
-            <div style="display: flex; gap: var(--space-2);">
+            <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
                 <select @bind="selectedSupplierIdForManual"
-                        style="flex: 1; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size);">
+                        style="flex: 1; min-width: 200px; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size);">
                     <option value="0">-- Choose Supplier --</option>
                     @foreach (var s in allSuppliers)
                     {
@@ -62,6 +65,7 @@
         </div>
     }
 
+    @* ── Empty State ── *@
     @if (slips == null || !slips.Any())
     {
         <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-8); text-align: center; color: var(--muted-foreground);">
@@ -77,14 +81,14 @@
         {
             <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: var(--space-6); overflow: hidden;">
 
-                @* Slip Header *@
-                <div style="padding: var(--space-4) var(--card-padding); background-color: var(--primary); color: var(--primary-foreground); display: flex; justify-content: space-between; align-items: center;">
+                @* ── Slip Header ── *@
+                <div style="padding: var(--space-4) var(--card-padding); background-color: var(--primary); color: var(--primary-foreground); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-2);">
                     <div>
                         <h2 style="font-size: var(--text-base); font-weight: var(--font-semibold); margin: 0;">Supplier: @slip.Supplier?.Name</h2>
                         <p style="font-size: var(--text-xs); margin: 0; opacity: 0.75;">Draft: @slip.SlipNumber</p>
                     </div>
                     <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Small" OnClick="() => slips.Remove(slip)"
-                              style="color: var(--primary-foreground); background-color: rgba(255,255,255,0.15);">
+                              style="color: var(--primary-foreground); background-color: rgba(255,255,255,0.15); white-space: nowrap;">
                         <LucideIcon Name="trash" Size="14" />
                         Cancel Slip
                     </BbButton>
@@ -92,14 +96,15 @@
 
                 <div style="padding: var(--card-padding);">
 
-                    @* Add Item Section *@
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-4);">
+                    @* ── Add Item Panels ── *@
+                    <div style="display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-4);">
 
-                        <div style="background-color: var(--background); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4);">
+                        @* Add Existing Item *@
+                        <div style="flex: 1; min-width: 260px; background-color: var(--background); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4);">
                             <label style="display: block; font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--muted-foreground); margin-bottom: var(--space-2);">Add Existing Item</label>
-                            <div style="display: flex; gap: var(--space-2);">
+                            <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
                                 <select @bind="selectedProductId"
-                                        style="flex: 1; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size);">
+                                        style="flex: 1; min-width: 160px; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size);">
                                     <option value="0">-- Select Product --</option>
                                     @foreach (var p in allProducts.Where(x => x.SupplierId == slip.SupplierId))
                                     {
@@ -110,13 +115,14 @@
                             </div>
                         </div>
 
-                        <div style="background-color: var(--background); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4);">
+                        @* Add New Unlisted Item *@
+                        <div style="flex: 1; min-width: 260px; background-color: var(--background); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4);">
                             <label style="display: block; font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--muted-foreground); margin-bottom: var(--space-2);">Order New Arrival / New Version</label>
-                            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: var(--space-2);">
+                            <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
                                 <input type="text" placeholder="Name" @bind="newProductName"
-                                       style="padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;" />
+                                       style="flex: 2; min-width: 120px; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;" />
                                 <select @bind="newProductBrand"
-                                        style="padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size);">
+                                        style="flex: 1; min-width: 100px; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size);">
                                     <option value="">-- Brand --</option>
                                     @foreach (var brand in distinctBrands)
                                     {
@@ -124,7 +130,7 @@
                                     }
                                 </select>
                                 <select @bind="newProductCategory"
-                                        style="padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size);">
+                                        style="flex: 1; min-width: 100px; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size);">
                                     <option value="">-- Category --</option>
                                     @foreach (var cat in distinctCategories)
                                     {
@@ -134,62 +140,65 @@
                                 <BbButton Variant="ButtonVariant.Default" Size="ButtonSize.Small" OnClick="() => AddNewUnlistedItem(slip)">Add</BbButton>
                             </div>
                         </div>
+
                     </div>
 
-                    @* Items Table *@
-                    <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm); margin-bottom: var(--space-4);">
-                        <thead>
-                            <tr style="border-bottom: 1px solid var(--border); background-color: var(--muted);">
-                                <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium);">Product Details</th>
-                                <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium);">Stock</th>
-                                <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium);">Target</th>
-                                <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 150px;">Order Qty</th>
-                                <th style="width: 50px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (!slip.Items.Any())
-                            {
-                                <tr>
-                                    <td colspan="5" style="text-align: center; padding: var(--space-8); color: var(--muted-foreground);">
-                                        No items added to this slip. Add items using the section above.
-                                    </td>
+                    @* ── Items Table (horizontally scrollable on mobile) ── *@
+                    <div style="width: 100%; overflow-x: auto; margin-bottom: var(--space-4);">
+                        <table style="width: 100%; min-width: 520px; border-collapse: collapse; font-size: var(--text-sm);">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border); background-color: var(--muted);">
+                                    <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium);">Product Details</th>
+                                    <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); white-space: nowrap;">Stock</th>
+                                    <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); white-space: nowrap;">Target</th>
+                                    <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-weight: var(--font-medium); width: 130px; white-space: nowrap;">Order Qty</th>
+                                    <th style="width: 44px;"></th>
                                 </tr>
-                            }
-                            @foreach (var item in slip.Items)
-                            {
-                                var isNewItem = !allProducts.Any(p => p.Name == item.ProductName && p.Brand == item.Brand);
-                                <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: var(--space-3) var(--space-4);">
-                                        <div style="display: flex; align-items: center; gap: var(--space-2);">
-                                            <span style="font-weight: var(--font-medium); color: var(--foreground);">@item.ProductName</span>
-                                            @if (isNewItem)
-                                            {
-                                                <BbBadge Variant="BadgeVariant.Default">New Arrival</BbBadge>
-                                            }
-                                        </div>
-                                        <div style="font-size: var(--text-xs); color: var(--muted-foreground); margin-top: var(--space-1);">@item.Brand · @item.Category</div>
-                                    </td>
-                                    <td style="padding: var(--space-3) var(--space-4); text-align: center; color: var(--foreground);">@item.CurrentStock</td>
-                                    <td style="padding: var(--space-3) var(--space-4); text-align: center; color: var(--muted-foreground);">@item.ReorderTarget</td>
-                                    <td style="padding: var(--space-3) var(--space-4); text-align: center;">
-                                        <input type="number" @bind="item.Quantity" min="1"
-                                               style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--primary); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); text-align: center; font-weight: var(--font-bold); box-sizing: border-box;" />
-                                    </td>
-                                    <td style="padding: var(--space-3) var(--space-4); text-align: center;">
-                                        <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon"
-                                                  OnClick="() => slip.Items.Remove(item)"
-                                                  style="color: var(--destructive);">
-                                            <LucideIcon Name="trash" Size="14" />
-                                        </BbButton>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @if (!slip.Items.Any())
+                                {
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; padding: var(--space-8); color: var(--muted-foreground);">
+                                            No items added to this slip. Add items using the section above.
+                                        </td>
+                                    </tr>
+                                }
+                                @foreach (var item in slip.Items)
+                                {
+                                    var isNewItem = !allProducts.Any(p => p.Name == item.ProductName && p.Brand == item.Brand);
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <td style="padding: var(--space-3) var(--space-4);">
+                                            <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
+                                                <span style="font-weight: var(--font-medium); color: var(--foreground);">@item.ProductName</span>
+                                                @if (isNewItem)
+                                                {
+                                                    <BbBadge Variant="BadgeVariant.Default">New Arrival</BbBadge>
+                                                }
+                                            </div>
+                                            <div style="font-size: var(--text-xs); color: var(--muted-foreground); margin-top: var(--space-1);">@item.Brand · @item.Category</div>
+                                        </td>
+                                        <td style="padding: var(--space-3) var(--space-4); text-align: center; color: var(--foreground);">@item.CurrentStock</td>
+                                        <td style="padding: var(--space-3) var(--space-4); text-align: center; color: var(--muted-foreground);">@item.ReorderTarget</td>
+                                        <td style="padding: var(--space-3) var(--space-4); text-align: center;">
+                                            <input type="number" @bind="item.Quantity" min="1"
+                                                   style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--primary); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); text-align: center; font-weight: var(--font-bold); box-sizing: border-box;" />
+                                        </td>
+                                        <td style="padding: var(--space-3) var(--space-4); text-align: center;">
+                                            <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon"
+                                                      OnClick="() => slip.Items.Remove(item)"
+                                                      style="color: var(--destructive);">
+                                                <LucideIcon Name="trash" Size="14" />
+                                            </BbButton>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
 
-                    @* Actions *@
-                    <div style="display: flex; justify-content: flex-end; gap: var(--space-2);">
+                    @* ── Slip Actions ── *@
+                    <div style="display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2);">
                         <BbButton Variant="ButtonVariant.Outline" OnClick="() => DownloadPdf(slip)">
                             <LucideIcon Name="file-text" Size="16" />
                             Preview PDF
@@ -201,7 +210,7 @@
                                 <BbSpinner Size="SpinnerSize.Small" />
                             }
                             <LucideIcon Name="mail-check" Size="16" />
-                            Email Supplier & Move to History
+                            Email Supplier &amp; Move to History
                         </BbButton>
                     </div>
 

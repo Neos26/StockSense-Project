@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using StockSense.Data;
-using StockSense.shared;
-using System;
 using System.Security.Cryptography;
 using System.Text;
 

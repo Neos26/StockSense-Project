@@ -1,4 +1,4 @@
-﻿
+
 using StockSense.Shared;
 using System.ComponentModel.DataAnnotations.Schema;
 

@@ -1,4 +1,4 @@
-﻿@page "/appointment"
+@page "/appointment"
 @layout PublicLayout
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
 @using System.Net.Http.Json
@@ -17,13 +17,7 @@
 
         @if (isLoading)
         {
-            <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--background); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; gap: var(--space-4);">
-                <BbSpinner Size="SpinnerSize.Large" />
-                <div style="display: flex; flex-direction: column; align-items: center; gap: var(--space-1);">
-                    <span style="font-weight: 800; font-style: italic; font-size: 1.5rem; color: var(--primary); letter-spacing: 0.05em;">SAP<br />SHOP</span>
-                    <p style="color: var(--muted-foreground); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Syncing with Server...</p>
-                </div>
-            </div>
+            <Spinner Description="syncing with the server..." />
         }
 
         <div class="appt-layout" style="display: @(isLoading ? "none" : "flex"); height: calc(100vh - 3.5rem); overflow: hidden; animation: fadeIn 0.4s ease-in;">
@@ -47,9 +41,9 @@
                         <div style="display: flex; align-items: center;">
                             <div @onclick="() => GoToStep(step.Number)"
                                  style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: var(--font-bold); cursor: @(isCompleted ? "pointer" : "default"); transition: all 0.2s;
-                                                   background-color: @(isActive || isCompleted ? "var(--primary)" : "var(--muted)");
-                                                   color: @(isActive || isCompleted ? "var(--primary-foreground)" : "var(--muted-foreground)");
-                                                   box-shadow: @(isActive ? "0 0 0 3px color-mix(in oklch, var(--primary) 20%, transparent)" : "none");">
+                                                       background-color: @(isActive || isCompleted ? "var(--primary)" : "var(--muted)");
+                                                       color: @(isActive || isCompleted ? "var(--primary-foreground)" : "var(--muted-foreground)");
+                                                       box-shadow: @(isActive ? "0 0 0 3px color-mix(in oklch, var(--primary) 20%, transparent)" : "none");">
                                 @if (isCompleted)
                                 {
                                     <LucideIcon Name="check" Size="13" />
@@ -73,8 +67,8 @@
 
                     @if (!SelectedServices.Any())
                     {
-                        <div style="text-align: center; padding: var(--space-6) 0; color: var(--muted-foreground);">
-                            <LucideIcon Name="shopping-cart" Size="28" />
+                        <div style="display:flex; flex-direction: column; text-align: center; padding: var(--space-6) 0; color: var(--muted-foreground);">
+                            <LucideIcon Name="shopping-cart" Size="28" style="align-self: center" />
                             <p style="font-size: var(--text-xs); margin: var(--space-2) 0 0 0; font-style: italic;">No services selected</p>
                         </div>
                     }
@@ -137,7 +131,7 @@
                         </div>
                     }
 
-                    <BbButton Variant="ButtonVariant.Ghost" Class="w-full" OnClick="PrevStep" Disabled="@(currentStep == 1 || isProcessing)">
+                    <BbButton Variant="ButtonVariant.Outline" Class="w-full" OnClick="PrevStep" Disabled="@(currentStep == 1 || isProcessing)">
                         <LucideIcon Name="arrow-left" Size="14" />
                         Back
                     </BbButton>
@@ -397,13 +391,12 @@
                                                 var displayTime = $"{displayHour}:{ts.Minutes:D2}";
 
                                                 <button @onclick="@(() => { if (isAvailable) { newAppt.TimeSlot = time; errorMessage = ""; } })"
-                                                        disabled="@(!isAvailable)"
                                                         style="height: 36px; padding: 0 var(--space-3); border-radius: var(--radius); font-size: var(--text-sm); font-weight: var(--font-normal); text-align: center; cursor: @(isAvailable ? "pointer" : "not-allowed"); font-family: var(--font-sans); transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 3px;
-                                                                           border: 1px solid @(isSlotSelected ? "var(--primary)" : "var(--border)");
-                                                                           background-color: @(isSlotSelected ? "var(--primary)" : "var(--muted)");
-                                                                           color: @(isSlotSelected ? "var(--primary-foreground)" : isAvailable ? "var(--foreground)" : "var(--muted-foreground)");
-                                                                           opacity: @(isAvailable ? "1" : "0.35");
-                                                                           text-decoration: @(isAvailable ? "none" : "line-through");">
+                                                                                       border: 1px solid @(isSlotSelected ? "var(--primary)" : "var(--border)");
+                                                                                       background-color: @(isSlotSelected ? "var(--primary)" : "var(--muted)");
+                                                                                       color: @(isSlotSelected ? "var(--primary-foreground)" : isAvailable ? "var(--foreground)" : "var(--muted-foreground)");
+                                                                                       opacity: @(isAvailable ? "1" : "0.35");
+                                                                                       text-decoration: @(isAvailable ? "none" : "line-through");">
                                                     <span style="font-size: var(--text-sm);">@displayTime</span>
                                                     <span style="font-size: var(--text-xs); color: @(isSlotSelected ? "var(--primary-foreground)" : "var(--muted-foreground)");">@ampm</span>
                                                 </button>

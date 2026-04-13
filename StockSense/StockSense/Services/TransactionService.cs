@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using StockSense.Data; // Ensure this matches your namespace for ApplicationDbContext
 using StockSense.shared; // Ensure this matches where your CartItem class is
 

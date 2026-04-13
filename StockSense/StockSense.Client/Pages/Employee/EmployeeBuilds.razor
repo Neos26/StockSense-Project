@@ -1,4 +1,4 @@
-﻿@page "/admin/builds"
+@page "/admin/builds"
 @layout AdminLayout
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
 @using StockSense.shared
@@ -26,8 +26,8 @@
 
     @if (allBuilds == null)
     {
-        <div style="display: flex; justify-content: center; align-items: center; padding: var(--space-8); color: var(--muted-foreground); gap: var(--space-3);">
-            <span>Loading build requests...</span>
+        <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+            <LightSpinner Description="Loading Build Requests..." />
         </div>
     }
     else

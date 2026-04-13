@@ -1,4 +1,4 @@
-﻿namespace StockSense.shared
+namespace StockSense.shared
 {
     public class Class1
     {

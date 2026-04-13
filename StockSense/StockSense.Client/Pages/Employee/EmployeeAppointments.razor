@@ -1,4 +1,4 @@
-﻿@page "/admin/appointments"
+@page "/admin/appointments"
 @layout AdminLayout
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
 @using StockSense.Shared
@@ -23,8 +23,8 @@
 
     @if (allAppointments == null)
     {
-        <div style="display: flex; justify-content: center; align-items: center; padding: var(--space-8); color: var(--muted-foreground); gap: var(--space-3);">
-            <span>Loading appointment requests...</span>
+        <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+            <LightSpinner Description="Loading Appointments..." />
         </div>
     }
     else

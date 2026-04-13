@@ -96,7 +96,7 @@ namespace StockSense.Components.Account
                     {
                         UserId = userId,
                         Email = email,
-                        Role = role
+                        Role = role ?? string.Empty // Fix CS8601: ensure Role is never null
                     });
                 }
             }

@@ -5,25 +5,25 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace StockSense.Migrations
 {
     /// <inheritdoc />
-    public partial class editableSlip : Migration
+    public partial class isActive : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            //migrationBuilder.AddColumn<int>(
-            //    name: "ReceivedQuantity",
-            //    table: "OrderSlipItems",
-            //    type: "int",
-            //    nullable: false,
-            //    defaultValue: 0);
+            migrationBuilder.AddColumn<bool>(
+                name: "IsActive",
+                table: "PreBuildPackages",
+                type: "bit",
+                nullable: false,
+                defaultValue: false);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "ReceivedQuantity",
-                table: "OrderSlipItems");
+                name: "IsActive",
+                table: "PreBuildPackages");
         }
     }
 }

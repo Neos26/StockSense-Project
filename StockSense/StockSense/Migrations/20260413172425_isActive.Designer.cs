@@ -12,8 +12,8 @@ using StockSense.Data;
 namespace StockSense.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260312104233_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260413172425_isActive")]
+    partial class isActive
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -36,7 +36,21 @@ namespace StockSense.Migrations
                     b.Property<DateTime>("AppointmentDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MechanicName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -193,6 +207,21 @@ namespace StockSense.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("PreBuildPackageProduct", b =>
+                {
+                    b.Property<int>("IncludedProductsId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PreBuildPackagesId")
+                        .HasColumnType("int");
+
+                    b.HasKey("IncludedProductsId", "PreBuildPackagesId");
+
+                    b.HasIndex("PreBuildPackagesId");
+
+                    b.ToTable("PreBuildPackageProduct");
+                });
+
             modelBuilder.Entity("StockSense.Data.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -242,6 +271,10 @@ namespace StockSense.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
@@ -301,6 +334,45 @@ namespace StockSense.Migrations
                     b.ToTable("BuildRequests");
                 });
 
+            modelBuilder.Entity("StockSense.Shared.PreBuildPackage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CompatibleBrand")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CompatibleModel")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EstimatedAddedCC")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TargetCC")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PreBuildPackages");
+                });
+
             modelBuilder.Entity("StockSense.Shared.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -334,6 +406,59 @@ namespace StockSense.Migrations
                     b.Property<int>("ReorderTarget")
                         .HasColumnType("int");
 
+                    b.Property<int?>("StoreServiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoreServiceId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("StockSense.shared.Mechanic", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Mechanics");
+                });
+
+            modelBuilder.Entity("StockSense.shared.OrderSlip", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DateGenerated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsReceived")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SlipNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("SupplierId")
                         .HasColumnType("int");
 
@@ -341,7 +466,51 @@ namespace StockSense.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("Products");
+                    b.ToTable("OrderSlips");
+                });
+
+            modelBuilder.Entity("StockSense.shared.OrderSlipItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CurrentStock")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsPredictedHighDemand")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("OrderSlipId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReceivedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReorderTarget")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderSlipId");
+
+                    b.ToTable("OrderSlipItems");
                 });
 
             modelBuilder.Entity("StockSense.shared.Supplier", b =>
@@ -362,7 +531,7 @@ namespace StockSense.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Supplier");
+                    b.ToTable("Suppliers");
                 });
 
             modelBuilder.Entity("StoreService", b =>
@@ -373,12 +542,23 @@ namespace StockSense.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EstimatedMinutes")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -436,7 +616,39 @@ namespace StockSense.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PreBuildPackageProduct", b =>
+                {
+                    b.HasOne("StockSense.Shared.Product", null)
+                        .WithMany()
+                        .HasForeignKey("IncludedProductsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StockSense.Shared.PreBuildPackage", null)
+                        .WithMany()
+                        .HasForeignKey("PreBuildPackagesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("StockSense.Shared.Product", b =>
+                {
+                    b.HasOne("StoreService", "StoreService")
+                        .WithMany("RequiredProducts")
+                        .HasForeignKey("StoreServiceId");
+
+                    b.HasOne("StockSense.shared.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("StoreService");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("StockSense.shared.OrderSlip", b =>
                 {
                     b.HasOne("StockSense.shared.Supplier", "Supplier")
                         .WithMany()
@@ -445,6 +657,25 @@ namespace StockSense.Migrations
                         .IsRequired();
 
                     b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("StockSense.shared.OrderSlipItem", b =>
+                {
+                    b.HasOne("StockSense.shared.OrderSlip", null)
+                        .WithMany("Items")
+                        .HasForeignKey("OrderSlipId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StockSense.shared.OrderSlip", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("StoreService", b =>
+                {
+                    b.Navigation("RequiredProducts");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StockSense.Data; // Adjust this using statement to your actual DbContext namespace
 using StockSense.Shared;
@@ -90,6 +90,49 @@ namespace StockSense.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(newPackage);
+
+        }
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdatePreBuild(int id, [FromBody] CreatePreBuildDto dto)
+        {
+            var pkg = await _context.PreBuildPackages.Include(p => p.IncludedProducts).FirstOrDefaultAsync(p => p.Id == id);
+            if (pkg == null) return NotFound();
+
+            pkg.Name = dto.Name;
+            pkg.Description = dto.Description;
+            pkg.CompatibleBrand = dto.CompatibleBrand;
+            pkg.CompatibleModel = dto.CompatibleModel;
+            pkg.TargetCC = dto.TargetCC;
+            pkg.EstimatedAddedCC = dto.EstimatedAddedCC;
+            pkg.IncludedProducts = await _context.Products.Where(p => dto.ProductIds.Contains(p.Id)).ToListAsync();
+
+            await _context.SaveChangesAsync();
+            return Ok(pkg);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePreBuild(int id)
+        {
+            var pkg = await _context.PreBuildPackages.FindAsync(id);
+            if (pkg == null) return NotFound();
+
+            _context.PreBuildPackages.Remove(pkg);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+        public class ToggleActiveDto
+        {
+            public bool IsActive { get; set; }
+        }
+        [HttpPatch("{id}/toggle-active")]
+        public async Task<IActionResult> ToggleActive(int id, [FromBody] ToggleActiveDto dto)
+        {
+            var pkg = await _context.PreBuildPackages.FindAsync(id);
+            if (pkg == null) return NotFound();
+
+            pkg.IsActive = dto.IsActive;
+            await _context.SaveChangesAsync();
+            return Ok();
         }
     }
 }

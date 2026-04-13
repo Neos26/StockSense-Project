@@ -1,4 +1,4 @@
-﻿using StockSense.shared;
+using StockSense.shared;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;

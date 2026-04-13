@@ -1,4 +1,4 @@
-﻿public class UserProfile
+public class UserProfile
 {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
