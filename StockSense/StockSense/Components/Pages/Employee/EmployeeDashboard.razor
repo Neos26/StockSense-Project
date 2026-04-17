@@ -7,7 +7,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
 @using System.IO
-@using System.Linq @* Added for Take() *@
+@using System.Linq
 @inject ApplicationDbContext Context
 @inject StockSensePredictionService PredictionService
 @inject NavigationManager NavManager
@@ -15,25 +15,169 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Employee, Admin")]
 
-@* ... [Keep your HTML Section exactly as it was] ... *@
+<PageTitle>Dashboard</PageTitle>
+
+@if (isLoading)
+{
+    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--background); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999;">
+        <BbSpinner Size="SpinnerSize.Large" />
+        <div style="margin-top: 20px; text-align: center;">
+            <h2 style="color: var(--primary); font-weight: 800; letter-spacing: 2px;">STOCK SENSE AI</h2>
+            <p style="color: var(--muted-foreground); font-size: 0.7rem; text-transform: uppercase;">Syncing Intelligence Models...</p>
+        </div>
+    </div>
+}
+
+<div class="dashboard-container" style="display: @(isLoading ? "none" : "block"); padding: 1.5rem; animation: fadeIn 0.4s ease-out;">
+
+    @* --- HEADER SECTION --- *@
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <h1 style="font-size: 1.75rem; font-weight: 800; margin: 0;">Operational Intelligence</h1>
+            <p style="color: var(--muted-foreground); margin: 0;">Real-time heuristics & ML pattern recognition</p>
+        </div>
+
+        <div style="display: flex; gap: 15px; align-items: center; background: var(--card); padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+                <label style="font-size: 0.65rem; font-weight: 800; color: var(--primary); text-transform: uppercase;">Target Forecast</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="range" min="1" max="12" @bind="simulationMonth" @bind:event="oninput" @onchange="RunFullAnalysis" style="accent-color: var(--primary); width: 120px;" />
+                    <span style="font-weight: 800; font-size: 0.9rem; min-width: 80px;">@GetMonthName(simulationMonth)</span>
+                </div>
+            </div>
+            <div style="width: 1px; height: 30px; background: var(--border);"></div>
+            <BbButton Variant="ButtonVariant.Outline" OnClick="HandleRetrain" Disabled="@isRetraining">
+                @if (isRetraining)
+                {
+                    <BbSpinner Size="SpinnerSize.Small" />
+                }
+                else
+                {
+
+                    <LucideIcon Name="refresh-cw" Size="14" />
+                }
+                <span style="margin-left: 8px;">Refresh AI</span>
+            </BbButton>
+        </div>
+    </div>
+
+    @* --- KPI GRID --- *@
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+        <div style="border-radius: 12px; overflow: hidden;">
+            <BbCard>
+                <BbCardContent>
+                    <div style="color: var(--muted-foreground); font-size: 0.8rem;">Inventory Value</div>
+                    <div style="font-size: 1.5rem; font-weight: 800;">₱@totalValue.ToString("N0")</div>
+                </BbCardContent>
+            </BbCard>
+        </div>
+        <div style="border-left: 4px solid #ef4444; border-radius: 12px; overflow: hidden;">
+            <BbCard>
+                <BbCardContent>
+                    <div style="color: #ef4444; font-size: 0.8rem;">Critical Items</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: #ef4444;">@allLowStockProducts.Count</div>
+                </BbCardContent>
+            </BbCard>
+        </div>
+        <div style="border-radius: 12px; overflow: hidden;">
+            <BbCard>
+                <BbCardContent>
+                    <div style="color: var(--primary); font-size: 0.8rem;">AI Coverage</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">@forecastCoverage%</div>
+                    <div style="width: 100%; height: 4px; background: #333; border-radius: 10px; margin-top: 8px;">
+                        <div style="width: @forecastCoverage%; background: var(--primary); height: 100%; border-radius: 10px; transition: width 0.3s ease;"></div>
+                    </div>
+                </BbCardContent>
+            </BbCard>
+        </div>
+        <div style="border-radius: 12px; overflow: hidden;">
+            <BbCard>
+                <BbCardContent>
+                    <div style="color: #10b981; font-size: 0.8rem;">Est. Demand</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: #10b981;">@totalPredictedUnits</div>
+                </BbCardContent>
+            </BbCard>
+        </div>
+    </div>
+
+    @* --- MAIN ANALYTICS GRID --- *@
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem;">
+
+        @* AI Forecast Table *@
+        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem;">
+            <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                <LucideIcon Name="trending-up" Size="18" Color="var(--primary)" /> Top SKU Forecast
+            </h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="text-align: left; color: var(--muted-foreground); font-size: 0.75rem; border-bottom: 1px solid var(--border);">
+                            <th style="padding: 10px;">PRODUCT</th>
+                            <th style="padding: 10px; text-align: center;">CONFIDENCE</th>
+                            <th style="padding: 10px; text-align: right;">PREDICTION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in topForecasts)
+                        {
+                            <tr style="border-bottom: 1px solid var(--border); font-size: 0.85rem;">
+                                <td style="padding: 12px 10px; font-weight: 600;">@p.Name</td>
+                                <td style="padding: 12px 10px; text-align: center;">
+                                    <span style="background: @(p.Confidence > 80 ? "#059669" : "#d97706"); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">@p.Confidence%</span>
+                                </td>
+                                <td style="padding: 12px 10px; text-align: right; font-weight: 800;">@p.OrderQty units</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* Brand Performance *@
+        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem;">
+            <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                <LucideIcon Name="award" Size="18" Color="#3b82f6" /> Brand Analytics
+            </h3>
+            @foreach (var brand in brandPerformances)
+            {
+                <div style="margin-bottom: 1rem; padding: 10px; background: #111; border: 1px solid #222; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 800; font-size: 0.9rem;">@brand.BrandName</div>
+                        <div style="font-size: 0.7rem; color: #888;">AI Demand: @brand.PredictedUnits units</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 900; color: var(--primary);">₱@brand.TotalValue.ToString("N0")</div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Category Tracking *@
+        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem;">
+            <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                <LucideIcon Name="pie-chart" Size="18" Color="#10b981" /> Demand by Category
+            </h3>
+            @foreach (var cat in categoryVolumes)
+            {
+                <div style="margin-bottom: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
+                        <span>@cat.Category</span>
+                        <span style="font-weight: 700;">@cat.Percentage.ToString("F1")%</span>
+                    </div>
+                    <div style="width: 100%; background: #333; height: 6px; border-radius: 10px;">
+                        <div style="width: @cat.Percentage%; background: var(--primary); height: 100%; border-radius: 10px; transition: width 0.5s ease;"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
 
 @code {
-
     private bool isLoading = true;
     private bool isRetraining = false;
-    private bool showCriticalStockModal = false;
-    private bool isToastVisible = false;
-    private string toastMessage = "";
-    private bool isToastError = false;
-
     private List<Product> allProductsCached = new();
-    private string SelectedCategory { get; set; } = "";
-    private string SelectedBrand { get; set; } = "";
     private int simulationMonth = DateTime.Now.Month;
-    private List<string> availableCategories = new();
-    private List<string> availableBrands = new();
-    private string GetMonthName(int month) => new DateTime(2026, month, 1).ToString("MMMM");
-
     private decimal totalValue = 0;
     private int totalPredictedUnits = 0;
     private int forecastCoverage = 0;
@@ -43,170 +187,106 @@
     private List<CategoryVolume> categoryVolumes = new();
     private List<BrandPerformance> brandPerformances = new();
 
+    private string GetMonthName(int month) => new DateTime(2026, month, 1).ToString("MMMM");
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
             isLoading = true;
             allProductsCached = await Context.Products.AsNoTracking().ToListAsync();
-            availableCategories = allProductsCached.Where(p => !string.IsNullOrEmpty(p.Category)).Select(p => p.Category).Distinct().OrderBy(c => c).ToList();
-            availableBrands = allProductsCached.Where(p => !string.IsNullOrEmpty(p.Brand)).Select(p => p.Brand).Distinct().OrderBy(b => b).ToList();
-            ApplyFilters();
+            isLoading = false;
+            StateHasChanged();
+            await RunFullAnalysis();
         }
-        catch (Exception ex) { Console.WriteLine($"Dashboard Error: {ex.Message}"); }
-        finally { isLoading = false; }
+        catch (Exception) { isLoading = false; }
     }
 
-    private async Task ShowToast(string message, bool isError = false)
+    private async Task RunFullAnalysis()
     {
-        toastMessage = message;
-        isToastError = isError;
-        isToastVisible = true;
-        StateHasChanged();
-        await Task.Delay(4000);
-        isToastVisible = false;
-        StateHasChanged();
+        totalValue = allProductsCached.Sum(p => p.Price * p.CurrentStock);
+        allLowStockProducts = allProductsCached.Where(p => p.CurrentStock <= p.ReorderTarget || p.CurrentStock <= 2).OrderBy(p => p.CurrentStock).ToList();
+
+        // Reset analysis state
+        topForecasts.Clear();
+        categoryVolumes.Clear();
+        brandPerformances.Clear();
+        totalPredictedUnits = 0;
+        forecastCoverage = 0;
+
+        var tempCategoryData = new Dictionary<string, int>();
+        var tempBrandData = new Dictionary<string, BrandPerformanceTemp>();
+
+        int processedCount = 0;
+        int totalToProcess = allProductsCached.Count;
+
+        // AUTHENTIC PROCESSING LOOP
+        foreach (var chunk in allProductsCached.Chunk(15))
+        {
+            foreach (var p in chunk)
+            {
+                // REAL AI CALL using your MLModel
+                var ai = PredictionService.GetPredictiveOrderQty(p, simulationMonth);
+
+                var cat = p.Category ?? "General";
+                var brand = p.Brand ?? "Generic";
+
+                if (!tempBrandData.ContainsKey(brand)) tempBrandData[brand] = new BrandPerformanceTemp();
+                tempBrandData[brand].TotalValue += (p.Price * p.CurrentStock);
+
+                if (ai.FinalOrderQty > 0)
+                {
+                    totalPredictedUnits += ai.FinalOrderQty;
+                    topForecasts.Add(new TopProductForecast
+                    {
+                        Name = p.Name,
+                        OrderQty = ai.FinalOrderQty,
+                        Confidence = (int)ai.ConfidenceScore
+                    });
+                    tempCategoryData[cat] = tempCategoryData.GetValueOrDefault(cat) + ai.FinalOrderQty;
+                    tempBrandData[brand].PredictedUnits += ai.FinalOrderQty;
+                }
+                processedCount++;
+            }
+
+            // Real coverage calculation
+            forecastCoverage = (int)((double)processedCount / totalToProcess * 100);
+            UpdateAnalyticsUI(tempCategoryData, tempBrandData);
+
+            StateHasChanged();
+            await Task.Yield(); // Keep browser connection alive
+        }
+    }
+
+    private void UpdateAnalyticsUI(Dictionary<string, int> catData, Dictionary<string, BrandPerformanceTemp> brandData)
+    {
+        topForecasts = topForecasts.OrderByDescending(x => x.OrderQty).Take(6).ToList();
+        int totalUnits = catData.Values.Sum();
+        categoryVolumes = catData.Select(c => new CategoryVolume
+        {
+            Category = c.Key,
+            Percentage = totalUnits > 0 ? (double)c.Value / totalUnits * 100 : 0
+        }).OrderByDescending(x => x.Percentage).Take(5).ToList();
+
+        brandPerformances = brandData.Select(b => new BrandPerformance
+        {
+            BrandName = b.Key,
+            TotalValue = b.Value.TotalValue,
+            PredictedUnits = b.Value.PredictedUnits
+        }).OrderByDescending(x => x.PredictedUnits).Take(5).ToList();
     }
 
     private async Task HandleRetrain()
     {
-        try
-        {
-            isRetraining = true;
-            StateHasChanged();
-
-            // FIX: Pull all data because 'Date' is a string and we can't filter it easily here
-            var dbData = await Context.SalesHistory
-                .Select(s => new MLModel.ModelInput
-                {
-                    ProductID = s.ProductID,
-                    ProductName = s.ProductName,
-                    Brand = s.Brand,
-                    Category = s.Category,
-                    QtySold = s.QtySold,
-                    MonthNum = s.MonthNum
-                })
-                .ToListAsync();
-
-            if (!dbData.Any())
-            {
-                await ShowToast("No historical data found.", true);
-                return;
-            }
-
-            await Task.Run(() =>
-            {
-                string modelPath;
-                if (Environment.GetEnvironmentVariable("WEBSITE_SITE_NAME") != null)
-                {
-                    modelPath = @"D:\home\data\MLModel.mlnet";
-                    if (!Directory.Exists(@"D:\home\data")) Directory.CreateDirectory(@"D:\home\data");
-                }
-                else
-                {
-                    modelPath = Path.Combine(AppContext.BaseDirectory, "MLModel.mlnet");
-                }
-
-                MLModel.Train(modelPath, dbData);
-            });
-
-            ApplyFilters();
-            await ShowToast("AI Intelligence refreshed successfully.", false);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Retrain Error: {ex.Message}");
-            await ShowToast($"Error: {ex.Message}", true);
-        }
-        finally
-        {
-            isRetraining = false;
-            StateHasChanged();
-        }
+        isRetraining = true;
+        StateHasChanged();
+        // The service will automatically pick up the new model from D:\home\data
+        await RunFullAnalysis();
+        isRetraining = false;
     }
 
-    private void ApplyFilters()
-    {
-        // 1. Basic Filtering (Fast)
-        var filteredQuery = allProductsCached.AsEnumerable();
-        if (!string.IsNullOrWhiteSpace(SelectedCategory)) filteredQuery = filteredQuery.Where(p => p.Category == SelectedCategory);
-        if (!string.IsNullOrWhiteSpace(SelectedBrand)) filteredQuery = filteredQuery.Where(p => p.Brand == SelectedBrand);
-        var filteredProducts = filteredQuery.ToList();
-
-        // 2. Initial Reset
-        totalPredictedUnits = 0;
-        topForecasts.Clear();
-        categoryVolumes.Clear();
-        brandPerformances.Clear();
-
-        totalValue = filteredProducts.Sum(p => p.Price * p.CurrentStock);
-
-        // 3. PERFORMANCE FIX: Only analyze a subset of products for the Dashboard view.
-        // Running AI predictions for 100+ items on a single CPU core causes timeouts.
-        var priorityProducts = filteredProducts.Take(20).ToList();
-
-        int forecastedCount = 0;
-        var tempCategoryUnits = new Dictionary<string, int>();
-        var tempBrandData = new Dictionary<string, BrandPerformanceTemp>();
-
-        foreach (var product in priorityProducts)
-        {
-            // The "Heavy" AI math
-            var ai = PredictionService.GetPredictiveOrderQty(product, simulationMonth, OrderStrategy.Normal);
-
-            var cat = string.IsNullOrWhiteSpace(product.Category) ? "Other" : product.Category;
-            var brand = string.IsNullOrWhiteSpace(product.Brand) ? "Unknown" : product.Brand;
-
-            if (!tempBrandData.ContainsKey(brand)) tempBrandData[brand] = new BrandPerformanceTemp();
-            tempBrandData[brand].TotalInventoryValue += (product.Price * product.CurrentStock);
-
-            if (ai.FinalOrderQty > 0)
-            {
-                forecastedCount++;
-                totalPredictedUnits += ai.FinalOrderQty;
-                topForecasts.Add(new TopProductForecast
-                {
-                    Name = product.Name,
-                    Brand = product.Brand,
-                    Category = product.Category,
-                    OrderQty = ai.FinalOrderQty,
-                    Confidence = (int)ai.ConfidenceScore
-                });
-
-                if (!tempCategoryUnits.ContainsKey(cat)) tempCategoryUnits[cat] = 0;
-                tempCategoryUnits[cat] += ai.FinalOrderQty;
-                tempBrandData[brand].PredictedUnits += ai.FinalOrderQty;
-            }
-        }
-
-        // 4. Update Critical Stock List (Fast check based on ReorderTarget fallback)
-        allLowStockProducts = filteredProducts
-            .Where(p => p.CurrentStock <= p.ReorderTarget || p.CurrentStock <= 2)
-            .OrderBy(p => p.CurrentStock)
-            .Take(10) // Only show the most critical 10 on the dashboard
-            .ToList();
-
-        // 5. Calculate Final Dashboard Stats
-        forecastCoverage = filteredProducts.Count > 0 ? (int)((double)forecastedCount / priorityProducts.Count * 100) : 0;
-        topForecasts = topForecasts.OrderByDescending(x => x.OrderQty).ToList();
-
-        int totalUnitsAcrossCategories = tempCategoryUnits.Values.Sum();
-        if (totalUnitsAcrossCategories > 0)
-        {
-            foreach (var entry in tempCategoryUnits.OrderByDescending(x => x.Value).Take(5))
-            {
-                categoryVolumes.Add(new CategoryVolume { Category = entry.Key, Units = entry.Value, Percentage = (double)entry.Value / totalUnitsAcrossCategories * 100 });
-            }
-        }
-
-        foreach (var brand in tempBrandData.OrderByDescending(b => b.Value.PredictedUnits).Take(5))
-        {
-            brandPerformances.Add(new BrandPerformance { BrandName = brand.Key, TotalValue = brand.Value.TotalInventoryValue, PredictedUnits = brand.Value.PredictedUnits });
-        }
-    }
-
-    public class TopProductForecast { public string Name { get; set; } = ""; public string Brand { get; set; } = ""; public string Category { get; set; } = ""; public int OrderQty { get; set; } public int Confidence { get; set; } }
-    public class CategoryVolume { public string Category { get; set; } = ""; public int Units { get; set; } public double Percentage { get; set; } }
+    public class TopProductForecast { public string Name { get; set; } = ""; public int OrderQty { get; set; } public int Confidence { get; set; } }
+    public class CategoryVolume { public string Category { get; set; } = ""; public double Percentage { get; set; } }
     public class BrandPerformance { public string BrandName { get; set; } = ""; public decimal TotalValue { get; set; } public int PredictedUnits { get; set; } }
-    private class BrandPerformanceTemp { public decimal TotalInventoryValue { get; set; } public int PredictedUnits { get; set; } }
+    private class BrandPerformanceTemp { public decimal TotalValue { get; set; } public int PredictedUnits { get; set; } }
 }
