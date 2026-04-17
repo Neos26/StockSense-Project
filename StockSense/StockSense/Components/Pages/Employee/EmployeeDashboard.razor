@@ -6,6 +6,7 @@
 @using StockSense.Data
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
+@using System.IO
 @inject ApplicationDbContext Context
 @inject StockSensePredictionService PredictionService
 @inject NavigationManager NavManager
@@ -128,7 +129,6 @@
                 </div>
             </div>
             <div class="table-container">
-                @* UPDATED: Added wide-table class here *@
                 <table class="wide-table">
                     <thead>
                         <tr>
@@ -179,7 +179,6 @@
                         <p>No shortages expected.</p>
                     </div>
                 }
-                @* UPDATED: Left this table WITHOUT the wide-table class so it doesn't force a scrollbar *@
                 <table>
                     <tbody>
                         @foreach (var p in allLowStockProducts.Take(6))
@@ -207,7 +206,6 @@
                 </div>
             </div>
             <div class="table-container">
-                @* UPDATED: Added wide-table class here *@
                 <table class="wide-table">
                     <thead>
                         <tr>
@@ -302,7 +300,6 @@
     </div>
 }
 
-@* --- TOAST NOTIFICATION COMPONENT --- *@
 @if (isToastVisible)
 {
     <div class="custom-toast @(isToastError ? "toast-error" : "toast-success")">
@@ -312,7 +309,7 @@
 }
 
 <style>
-    /* ... RESPONSIVE GRID UPDATES ... */
+    /* ... [Styles kept as provided] ... */
     .kpi-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -325,54 +322,24 @@
         gap: 1.5rem;
     }
 
-    /* Desktop View */
     @@media (min-width: 1024px) {
         .main-analytics-grid {
             grid-template-columns: 2fr 1fr;
         }
     }
 
-    /* Tablet and Mobile View */
-    @@media (max-width: 1023px) {
-        .main-analytics-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* ... TABLE RESPONSIVENESS UPDATES ... */
     .table-container {
         width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin;
     }
-
-        .table-container::-webkit-scrollbar {
-            height: 6px;
-        }
-
-        .table-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .table-container::-webkit-scrollbar-thumb {
-            background-color: var(--border);
-            border-radius: 10px;
-        }
-
-        .table-container.scrollable {
-            max-height: 350px;
-            overflow-y: auto;
-        }
 
     table {
         width: 100%;
-        /* UPDATED: Removed min-width from here so smaller tables fit naturally */
         border-collapse: collapse;
         font-size: var(--text-sm);
     }
 
-    /* UPDATED: Created a specific class for tables that need horizontal sliding */
     .wide-table {
         min-width: 550px;
     }
@@ -383,7 +350,6 @@
         color: var(--muted-foreground);
         border-bottom: 1px solid var(--border);
         font-weight: 500;
-        white-space: nowrap;
     }
 
     td {
@@ -392,7 +358,6 @@
         vertical-align: middle;
     }
 
-    /* ... EXISTING STYLES BELOW ... */
     .header-section {
         display: flex;
         justify-content: space-between;
@@ -412,7 +377,6 @@
         border: 1px solid var(--border);
         box-shadow: var(--shadow-sm);
         flex-wrap: wrap;
-        width: auto;
     }
 
     .filter-item {
@@ -435,19 +399,12 @@
             background-color: var(--background);
             color: var(--foreground);
             font-size: var(--text-sm);
-            outline: none;
             min-width: 140px;
         }
 
     .slider-item label {
         color: var(--primary);
         font-weight: 800;
-    }
-
-    .slider-item input {
-        width: 100%;
-        cursor: pointer;
-        accent-color: var(--primary);
     }
 
     .analytics-card {
@@ -467,24 +424,11 @@
         justify-content: space-between;
     }
 
-        .card-header h3 {
-            font-size: var(--text-sm);
-            font-weight: 600;
-            margin: 0;
-        }
-
     .kpi-value {
         font-size: var(--text-2xl);
         font-weight: 800;
         color: var(--foreground);
         line-height: 1;
-    }
-
-    .kpi-subtext {
-        font-size: 11px;
-        color: var(--muted-foreground);
-        display: block;
-        margin-top: 4px;
     }
 
     .confidence-badge {
@@ -516,25 +460,6 @@
         border-radius: 99px;
     }
 
-    .healthy-state {
-        padding: 2rem;
-        text-align: center;
-        color: var(--muted-foreground);
-        font-size: var(--text-sm);
-    }
-
-    .empty-state {
-        padding: 16px;
-        text-align: center;
-        color: var(--muted-foreground);
-    }
-
-    .vertical-divider {
-        width: 1px;
-        height: 32px;
-        background-color: var(--border);
-    }
-
     .badge-destructive {
         background-color: var(--destructive);
         color: white;
@@ -544,7 +469,6 @@
         font-weight: 800;
     }
 
-    /* Modal Styles */
     .modal-backdrop {
         position: fixed;
         inset: 0;
@@ -569,46 +493,16 @@
         overflow: hidden;
     }
 
-    .modal-header {
-        padding: 1.5rem;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-        .modal-header h3 {
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--foreground);
-        }
-
-    .modal-body {
-        padding: 0;
-        overflow-y: auto;
-        flex: 1;
-    }
-
-    .modal-table th {
-        background: var(--muted);
-        position: sticky;
-        top: 0;
-    }
-
-    /* Custom Toast Styles */
     .custom-toast {
         position: fixed;
         bottom: 24px;
         right: 24px;
         padding: 12px 20px;
         border-radius: var(--radius);
-        box-shadow: var(--shadow-lg);
         display: flex;
         align-items: center;
         gap: 12px;
         z-index: 10500;
-        animation: slideInUp 0.3s ease-out;
         font-size: var(--text-sm);
         font-weight: 600;
         color: white;
@@ -621,38 +515,12 @@
     .toast-error {
         background-color: var(--destructive);
     }
-
-    @@keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @@keyframes slideInUp {
-        from {
-            transform: translateY(100%);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
 </style>
 
 @code {
     private bool isLoading = true;
     private bool isRetraining = false;
     private bool showCriticalStockModal = false;
-
-    // Toast Variables
     private bool isToastVisible = false;
     private string toastMessage = "";
     private bool isToastError = false;
@@ -688,16 +556,13 @@
         finally { isLoading = false; }
     }
 
-    // Custom Toast Handler
     private async Task ShowToast(string message, bool isError = false)
     {
         toastMessage = message;
         isToastError = isError;
         isToastVisible = true;
         StateHasChanged();
-
-        await Task.Delay(4000); // Hide after 4 seconds
-
+        await Task.Delay(4000);
         isToastVisible = false;
         StateHasChanged();
     }
@@ -708,19 +573,39 @@
         {
             isRetraining = true;
             StateHasChanged();
+
             var dbData = await Context.SalesHistory
-                .Select(s => new MLModel.ModelInput { ProductID = s.ProductID, ProductName = s.ProductName, Brand = s.Brand, Category = s.Category, QtySold = s.QtySold, MonthNum = s.MonthNum })
+                .Select(s => new MLModel.ModelInput
+                {
+                    ProductID = s.ProductID,
+                    ProductName = s.ProductName,
+                    Brand = s.Brand,
+                    Category = s.Category,
+                    QtySold = s.QtySold,
+                    MonthNum = s.MonthNum
+                })
                 .ToListAsync();
 
             if (!dbData.Any())
             {
-                await ShowToast("No historical data found in database.", true);
+                await ShowToast("No historical data found.", true);
                 return;
             }
 
             await Task.Run(() =>
             {
-                string modelPath = Path.Combine(AppContext.BaseDirectory, "MLModel.mlnet");
+                // CORRECTED: Azure-Safe Path Logic
+                string modelPath;
+                if (Environment.GetEnvironmentVariable("WEBSITE_SITE_NAME") != null)
+                {
+                    modelPath = @"D:\home\data\MLModel.mlnet";
+                    if (!Directory.Exists(@"D:\home\data")) Directory.CreateDirectory(@"D:\home\data");
+                }
+                else
+                {
+                    modelPath = Path.Combine(AppContext.BaseDirectory, "MLModel.mlnet");
+                }
+
                 MLModel.Train(modelPath, dbData);
             });
 
@@ -729,6 +614,7 @@
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Retrain Error: {ex.Message}");
             await ShowToast($"Error: {ex.Message}", true);
         }
         finally

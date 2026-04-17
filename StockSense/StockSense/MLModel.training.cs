@@ -20,6 +20,13 @@ namespace StockSense
 
         public static void SaveModel(MLContext mlContext, ITransformer model, IDataView data, string modelSavePath)
         {
+            // Ensure the directory exists before saving
+            string directory = Path.GetDirectoryName(modelSavePath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
             DataViewSchema dataViewSchema = data.Schema;
             using (var fs = File.Create(modelSavePath))
             {
