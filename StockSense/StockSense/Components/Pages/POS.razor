@@ -40,7 +40,10 @@
                         <div style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@p.Name</div>
                         <div style="font-size: var(--text-xs); color: var(--muted-foreground); margin: var(--space-1) 0;">@p.Brand</div>
                         <div style="font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--primary);">₱@p.Price.ToString("N2")</div>
-                        <div style="font-size: var(--text-xs); color: var(--muted-foreground); margin-top: var(--space-1);">Stock: @p.CurrentStock</div>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: var(--space-1); margin-top: var(--space-1);">
+                            <span style="width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; background-color: @GetStockColor(p);"></span>
+                            <span style="font-size: var(--text-xs); color: var(--muted-foreground);">Stock: @p.CurrentStock</span>
+                        </div>
                     </div>
                 }
             </div>
@@ -228,6 +231,10 @@
             .ToList();
     }
 
+    private string GetStockColor(Product p) =>
+    p.CurrentStock <= 2       ? "#ef4444" :   // red   — critical / out of stock
+    p.CurrentStock < p.ReorderTarget ? "#eab308" :   // yellow — below reorder target
+                                "#22c55e";           // green  — at or above target
     private IEnumerable<Product> FilteredProducts => allProducts
         .Where(p => (string.IsNullOrEmpty(selectedCategory) || p.Category == selectedCategory) &&
                     (string.IsNullOrWhiteSpace(searchTerm) ||

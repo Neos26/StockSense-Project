@@ -129,7 +129,7 @@
     /* Build layout */
     .build-layout  { flex-direction: column; }
     .build-sidebar { display: none !important; }
-    .build-main    { padding: var(--space-4) !important; }
+    .build-main    { padding: var(--space-1) !important; }
 
     .build-mobile-bar {
         display: flex;
