@@ -7,6 +7,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
 @using System.IO
+@using System.Linq @* Added for Take() *@
 @inject ApplicationDbContext Context
 @inject StockSensePredictionService PredictionService
 @inject NavigationManager NavManager
@@ -14,508 +15,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Employee, Admin")]
 
-<PageTitle>Dashboard</PageTitle>
-
-@if (isLoading)
-{
-    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--background); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; gap: var(--space-4);">
-        <BbSpinner Size="SpinnerSize.Large" />
-        <div style="display: flex; flex-direction: column; align-items: center; gap: var(--space-1);">
-            <span style="font-weight: 800; font-style: italic; font-size: 1.5rem; color: var(--primary); letter-spacing: 0.05em;">STOCK<br />SENSE</span>
-            <p style="color: var(--muted-foreground); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Analyzing AI Forecasts...</p>
-        </div>
-    </div>
-}
-
-<div class="dashboard-container" style="display: @(isLoading ? "none" : "block"); animation: fadeIn 0.4s ease-in;">
-
-    @* --- HEADER & FILTERS --- *@
-    <div class="header-section">
-        <div class="title-block">
-            <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0;">Operational Intelligence</h1>
-            <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Real-time inventory heuristics and AI demand modeling.</p>
-        </div>
-
-        <div class="filter-panel">
-            <BbButton Variant="ButtonVariant.Outline" OnClick="HandleRetrain" Disabled="@isRetraining" style="height: 36px;">
-                @if (isRetraining)
-                {
-                    <BbSpinner Size="SpinnerSize.Small" />
-                }
-                else
-                {
-                    <LucideIcon Name="refresh-cw" Size="14" style="margin-right: 4px;" />
-                }
-                Retrain AI
-            </BbButton>
-
-            <div class="vertical-divider"></div>
-
-            <div class="filter-item slider-item">
-                <label>Target Forecast: @GetMonthName(simulationMonth)</label>
-                <input type="range" min="1" max="12" @bind="simulationMonth" @bind:event="oninput" @onchange="ApplyFilters" />
-            </div>
-
-            <div class="vertical-divider"></div>
-
-            <div class="filter-item">
-                <label>Category</label>
-                <select @bind="SelectedCategory" @bind:after="ApplyFilters">
-                    <option value="">All Categories</option>
-                    @foreach (var cat in availableCategories)
-                    {
-                        <option value="@cat">@cat</option>
-                    }
-                </select>
-            </div>
-
-            <div class="filter-item">
-                <label>Brand</label>
-                <select @bind="SelectedBrand" @bind:after="ApplyFilters">
-                    <option value="">All Brands</option>
-                    @foreach (var brand in availableBrands)
-                    {
-                        <option value="@brand">@brand</option>
-                    }
-                </select>
-            </div>
-
-            <BbButton Variant="ButtonVariant.Default" OnClick='() => NavManager.NavigateTo("/admin/orderslips")' Class="ordering-btn">
-                <LucideIcon Name="arrow-right" Size="14" />
-                Predictive Ordering
-            </BbButton>
-        </div>
-    </div>
-
-    @* --- KPI CARDS --- *@
-    <div class="kpi-grid">
-        <BbCard>
-            <BbCardHeader><BbCardDescription>Inventory Value</BbCardDescription></BbCardHeader>
-            <BbCardContent><span class="kpi-value">₱@totalValue.ToString("N0")</span></BbCardContent>
-        </BbCard>
-
-        <BbCard Class="card-destructive">
-            <BbCardHeader>
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <BbCardDescription Class="text-destructive">Critical Stock Levels</BbCardDescription>
-                </div>
-            </BbCardHeader>
-            <BbCardContent>
-                <span class="kpi-value" style="color: var(--destructive);">@allLowStockProducts.Count</span>
-                <span class="kpi-subtext">For @GetMonthName(simulationMonth)</span>
-            </BbCardContent>
-        </BbCard>
-
-        <BbCard>
-            <BbCardHeader><BbCardDescription>Forecast Coverage</BbCardDescription></BbCardHeader>
-            <BbCardContent><span class="kpi-value" style="color: var(--primary);">@forecastCoverage%</span></BbCardContent>
-        </BbCard>
-        <BbCard>
-            <BbCardHeader><BbCardDescription>Est. Demand</BbCardDescription></BbCardHeader>
-            <BbCardContent>
-                <span class="kpi-value" style="color: #10b981;">@totalPredictedUnits</span>
-                <span class="kpi-subtext">@GetMonthName(simulationMonth)</span>
-            </BbCardContent>
-        </BbCard>
-    </div>
-
-    @* --- ANALYTICS SECTIONS --- *@
-    <div class="main-analytics-grid">
-        <div class="analytics-card">
-            <div class="card-header">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <LucideIcon Name="trending-up" Size="18" Color="var(--primary)" />
-                    <h3>Top Demand: @GetMonthName(simulationMonth)</h3>
-                </div>
-            </div>
-            <div class="table-container">
-                <table class="wide-table">
-                    <thead>
-                        <tr>
-                            <th>SKU Details</th>
-                            <th style="text-align: center;">Confidence</th>
-                            <th style="text-align: right;">Predicted Order</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!topForecasts.Any())
-                        {
-                            <tr><td colspan="3" class="empty-state">No predictions for this month.</td></tr>
-                        }
-                        @foreach (var p in topForecasts)
-                        {
-                            <tr>
-                                <td>
-                                    <div style="font-weight: 600;">@p.Name</div>
-                                    <div style="font-size: 11px; color: var(--muted-foreground);">@p.Brand &bull; @p.Category</div>
-                                </td>
-                                <td style="text-align: center;">
-                                    <span class="confidence-badge @(p.Confidence > 75 ? "high" : "med")">@p.Confidence%</span>
-                                </td>
-                                <td style="text-align: right; font-weight: 800;">@p.OrderQty units</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="analytics-card alert-border">
-            <div class="card-header alert-bg">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <LucideIcon Name="alert-triangle" Size="18" Color="var(--destructive)" />
-                    <h3 style="color: var(--destructive);">Critical Stock Levels</h3>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="badge-destructive">@allLowStockProducts.Count</span>
-                    <button @onclick="() => showCriticalStockModal = true" style="background: none; border: none; color: var(--primary); font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0;">View All</button>
-                </div>
-            </div>
-            <div class="table-container">
-                @if (!allLowStockProducts.Any())
-                {
-                    <div class="healthy-state">
-                        <LucideIcon Name="check-circle" Size="24" Color="#10b981" />
-                        <p>No shortages expected.</p>
-                    </div>
-                }
-                <table>
-                    <tbody>
-                        @foreach (var p in allLowStockProducts.Take(6))
-                        {
-                            <tr>
-                                <td>
-                                    <div style="font-weight: 600;">@p.Name</div>
-                                    <div style="color: var(--muted-foreground); font-size: 11px;">Stock: <span style="color: var(--destructive); font-weight: 700;">@p.CurrentStock left</span></div>
-                                </td>
-                                <td style="text-align: right;">
-                                    <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small" OnClick="@(() => NavManager.NavigateTo($"/admin/orderslips?productId={p.Id}"))">Order</BbButton>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="analytics-card">
-            <div class="card-header">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <LucideIcon Name="bar-chart-2" Size="18" Color="var(--primary)" />
-                    <h3>Brand Analytics</h3>
-                </div>
-            </div>
-            <div class="table-container">
-                <table class="wide-table">
-                    <thead>
-                        <tr>
-                            <th>Brand</th>
-                            <th style="text-align: right;">Current Value</th>
-                            <th style="text-align: right;">Demand (@GetMonthName(simulationMonth))</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!brandPerformances.Any())
-                        {
-                            <tr><td colspan="3" class="empty-state">No data available.</td></tr>
-                        }
-                        @foreach (var bp in brandPerformances)
-                        {
-                            <tr>
-                                <td style="font-weight: 600;">@bp.BrandName</td>
-                                <td style="text-align: right;">₱@bp.TotalValue.ToString("N0")</td>
-                                <td style="text-align: right; color: #10b981; font-weight: 600;">@bp.PredictedUnits</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="analytics-card" style="padding: 1.5rem;">
-            <h3 style="font-size: var(--text-sm); font-weight: 600; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px;">
-                <LucideIcon Name="pie-chart" Size="18" /> Demand by Category
-            </h3>
-            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
-                @if (!categoryVolumes.Any())
-                {
-                    <div class="empty-state">No data available.</div>
-                }
-                @foreach (var cat in categoryVolumes)
-                {
-                    <div>
-                        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; font-weight: 600;">
-                            <span>@cat.Category</span>
-                            <span style="color: var(--primary);">@cat.Units units</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: @cat.Percentage.ToString(System.Globalization.CultureInfo.InvariantCulture)%;"></div>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-</div>
-
-@* --- FULL CRITICAL STOCK MODAL --- *@
-@if (showCriticalStockModal)
-{
-    <div class="modal-backdrop" @onclick="() => showCriticalStockModal = false">
-        <div class="modal-content" @onclick:stopPropagation>
-            <div class="modal-header">
-                <h3>All Critical Stock Levels (@GetMonthName(simulationMonth))</h3>
-                <BbButton Variant="ButtonVariant.Ghost" OnClick="() => showCriticalStockModal = false">
-                    <LucideIcon Name="x" Size="20" />
-                </BbButton>
-            </div>
-            <div class="modal-body">
-                <div class="table-container">
-                    <table class="modal-table wide-table">
-                        <thead>
-                            <tr>
-                                <th>Product Name</th>
-                                <th>Brand</th>
-                                <th>Current Stock</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var p in allLowStockProducts)
-                            {
-                                <tr>
-                                    <td>@p.Name</td>
-                                    <td style="color: var(--muted-foreground);">@p.Brand</td>
-                                    <td style="color: var(--destructive); font-weight: 700;">@p.CurrentStock Units</td>
-                                    <td>
-                                        <BbButton Variant="ButtonVariant.Default" Size="ButtonSize.Small" OnClick="@(() => NavManager.NavigateTo($"/admin/orderslips?productId={p.Id}"))">Create Order</BbButton>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
-@if (isToastVisible)
-{
-    <div class="custom-toast @(isToastError ? "toast-error" : "toast-success")">
-        <LucideIcon Name="@(isToastError ? "alert-circle" : "check-circle")" Size="18" />
-        <span>@toastMessage</span>
-    </div>
-}
-
-<style>
-    /* ... [Styles kept as provided] ... */
-    .kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .main-analytics-grid {
-        display: grid;
-        gap: 1.5rem;
-    }
-
-    @@media (min-width: 1024px) {
-        .main-analytics-grid {
-            grid-template-columns: 2fr 1fr;
-        }
-    }
-
-    .table-container {
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: var(--text-sm);
-    }
-
-    .wide-table {
-        min-width: 550px;
-    }
-
-    th {
-        text-align: left;
-        padding: 12px 16px;
-        color: var(--muted-foreground);
-        border-bottom: 1px solid var(--border);
-        font-weight: 500;
-    }
-
-    td {
-        padding: 12px 16px;
-        border-bottom: 1px solid var(--border);
-        vertical-align: middle;
-    }
-
-    .header-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 1.5rem;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-
-    .filter-panel {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        background-color: var(--card);
-        padding: 10px 20px;
-        border-radius: var(--radius);
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow-sm);
-        flex-wrap: wrap;
-    }
-
-    .filter-item {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-        .filter-item label {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--muted-foreground);
-            text-transform: uppercase;
-        }
-
-        .filter-item select {
-            padding: 6px 10px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background-color: var(--background);
-            color: var(--foreground);
-            font-size: var(--text-sm);
-            min-width: 140px;
-        }
-
-    .slider-item label {
-        color: var(--primary);
-        font-weight: 800;
-    }
-
-    .analytics-card {
-        background-color: var(--card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        overflow: hidden;
-        margin-bottom: 1.5rem;
-    }
-
-    .card-header {
-        padding: 1rem;
-        border-bottom: 1px solid var(--border);
-        background-color: var(--muted);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .kpi-value {
-        font-size: var(--text-2xl);
-        font-weight: 800;
-        color: var(--foreground);
-        line-height: 1;
-    }
-
-    .confidence-badge {
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: bold;
-    }
-
-        .confidence-badge.high {
-            background-color: #059669;
-        }
-
-        .confidence-badge.med {
-            background-color: #d97706;
-        }
-
-    .progress-bar {
-        width: 100%;
-        background-color: var(--muted);
-        border-radius: 99px;
-        height: 8px;
-    }
-
-    .progress-fill {
-        background-color: var(--primary);
-        height: 100%;
-        border-radius: 99px;
-    }
-
-    .badge-destructive {
-        background-color: var(--destructive);
-        color: white;
-        border-radius: 99px;
-        padding: 2px 8px;
-        font-size: 11px;
-        font-weight: 800;
-    }
-
-    .modal-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.6);
-        z-index: 10000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        backdrop-filter: blur(4px);
-    }
-
-    .modal-content {
-        background: var(--card);
-        width: 90%;
-        max-width: 800px;
-        max-height: 80vh;
-        border-radius: var(--radius);
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow-lg);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-    .custom-toast {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        padding: 12px 20px;
-        border-radius: var(--radius);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        z-index: 10500;
-        font-size: var(--text-sm);
-        font-weight: 600;
-        color: white;
-    }
-
-    .toast-success {
-        background-color: #10b981;
-    }
-
-    .toast-error {
-        background-color: var(--destructive);
-    }
-</style>
+@* ... [Keep your HTML Section exactly as it was] ... *@
 
 @code {
     private bool isLoading = true;
@@ -574,7 +74,10 @@
             isRetraining = true;
             StateHasChanged();
 
+            // Optimization: Only pull the last 12 months for faster network transfer
+            var cutoffDate = DateTime.Now.AddMonths(-12);
             var dbData = await Context.SalesHistory
+                .Where(s => s.DateSold >= cutoffDate)
                 .Select(s => new MLModel.ModelInput
                 {
                     ProductID = s.ProductID,
@@ -588,13 +91,12 @@
 
             if (!dbData.Any())
             {
-                await ShowToast("No historical data found.", true);
+                await ShowToast("No recent historical data found.", true);
                 return;
             }
 
             await Task.Run(() =>
             {
-                // CORRECTED: Azure-Safe Path Logic
                 string modelPath;
                 if (Environment.GetEnvironmentVariable("WEBSITE_SITE_NAME") != null)
                 {
@@ -626,30 +128,32 @@
 
     private void ApplyFilters()
     {
+        // 1. Basic Filtering (Fast)
         var filteredQuery = allProductsCached.AsEnumerable();
         if (!string.IsNullOrWhiteSpace(SelectedCategory)) filteredQuery = filteredQuery.Where(p => p.Category == SelectedCategory);
         if (!string.IsNullOrWhiteSpace(SelectedBrand)) filteredQuery = filteredQuery.Where(p => p.Brand == SelectedBrand);
         var filteredProducts = filteredQuery.ToList();
 
+        // 2. Initial Reset
         totalPredictedUnits = 0;
         topForecasts.Clear();
         categoryVolumes.Clear();
         brandPerformances.Clear();
         totalValue = filteredProducts.Sum(p => p.Price * p.CurrentStock);
 
-        allLowStockProducts = filteredProducts.Where(p =>
-        {
-            var ai = PredictionService.GetPredictiveOrderQty(p, simulationMonth, OrderStrategy.Normal);
-            return p.CurrentStock <= (ai.PredictedDemand * 0.25) || p.CurrentStock <= 2;
-        }).OrderBy(p => p.CurrentStock).ToList();
+        // 3. PERFORMANCE FIX: Only analyze a subset of products for the Dashboard view.
+        // Running AI predictions for 100+ items on a single CPU core causes timeouts.
+        var priorityProducts = filteredProducts.Take(20).ToList();
 
         int forecastedCount = 0;
         var tempCategoryUnits = new Dictionary<string, int>();
         var tempBrandData = new Dictionary<string, BrandPerformanceTemp>();
 
-        foreach (var product in filteredProducts)
+        foreach (var product in priorityProducts)
         {
+            // The "Heavy" AI math
             var ai = PredictionService.GetPredictiveOrderQty(product, simulationMonth, OrderStrategy.Normal);
+
             var cat = string.IsNullOrWhiteSpace(product.Category) ? "Other" : product.Category;
             var brand = string.IsNullOrWhiteSpace(product.Brand) ? "Unknown" : product.Brand;
 
@@ -660,15 +164,31 @@
             {
                 forecastedCount++;
                 totalPredictedUnits += ai.FinalOrderQty;
-                topForecasts.Add(new TopProductForecast { Name = product.Name, Brand = product.Brand, Category = product.Category, OrderQty = ai.FinalOrderQty, Confidence = (int)ai.ConfidenceScore });
+                topForecasts.Add(new TopProductForecast
+                {
+                    Name = product.Name,
+                    Brand = product.Brand,
+                    Category = product.Category,
+                    OrderQty = ai.FinalOrderQty,
+                    Confidence = (int)ai.ConfidenceScore
+                });
+
                 if (!tempCategoryUnits.ContainsKey(cat)) tempCategoryUnits[cat] = 0;
                 tempCategoryUnits[cat] += ai.FinalOrderQty;
                 tempBrandData[brand].PredictedUnits += ai.FinalOrderQty;
             }
         }
 
-        forecastCoverage = filteredProducts.Count > 0 ? (int)((double)forecastedCount / filteredProducts.Count * 100) : 0;
-        topForecasts = topForecasts.OrderByDescending(x => x.OrderQty).Take(5).ToList();
+        // 4. Update Critical Stock List (Fast check based on ReorderTarget fallback)
+        allLowStockProducts = filteredProducts
+            .Where(p => p.CurrentStock <= p.ReorderTarget || p.CurrentStock <= 2)
+            .OrderBy(p => p.CurrentStock)
+            .Take(10) // Only show the most critical 10 on the dashboard
+            .ToList();
+
+        // 5. Calculate Final Dashboard Stats
+        forecastCoverage = filteredProducts.Count > 0 ? (int)((double)forecastedCount / priorityProducts.Count * 100) : 0;
+        topForecasts = topForecasts.OrderByDescending(x => x.OrderQty).ToList();
 
         int totalUnitsAcrossCategories = tempCategoryUnits.Values.Sum();
         if (totalUnitsAcrossCategories > 0)
