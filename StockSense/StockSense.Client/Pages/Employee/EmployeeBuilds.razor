@@ -90,7 +90,7 @@
                                 </td>
                                 <td style="padding: 12px 16px;">
                                     <select value="@build.Status"
-                                            @onchange="@(e => UpdateStatus(build, e.Value?.ToString() ?? "Pending"))"
+                                            @onchange="@((ChangeEventArgs e) => UpdateStatus(build, e.Value?.ToString() ?? "Pending"))"
                                             style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); border-left: 4px solid @GetStatusColor(build.Status); background: var(--background); color: var(--foreground); font-size: var(--text-xs); cursor: pointer;">
                                         <option value="Pending">Pending</option>
                                         <option value="Confirmed">Confirmed</option>

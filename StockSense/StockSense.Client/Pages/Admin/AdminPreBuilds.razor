@@ -9,12 +9,12 @@
 
 @attribute [Authorize(Roles = "Employee, Admin")]
 
-<PageTitle>Manage Pre-Build Packages</PageTitle>
+<PageTitle>Manage Pre-Built Packages</PageTitle>
 
 @* ── Page Header ── *@
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); flex-wrap: wrap; gap: var(--space-3);">
     <div>
-        <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0;">Pre-Build Packages</h1>
+        <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0;">Pre-Built Packages</h1>
         <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Create and manage guided motor build packages.</p>
     </div>
     <BbButton Variant="ButtonVariant.Default" @onclick="OpenCreateModal">
@@ -141,7 +141,7 @@ else
 
         @* Header *@
         <BbDialogHeader>
-            <BbDialogTitle>@(isEditMode ? "Edit Package" : "Create Pre-Build Package")</BbDialogTitle>
+            <BbDialogTitle>@(isEditMode ? "Edit Package" : "Create Pre-Built Package")</BbDialogTitle>
             <BbDialogDescription>Combine existing inventory products into a single guided package.</BbDialogDescription>
         </BbDialogHeader>
 
