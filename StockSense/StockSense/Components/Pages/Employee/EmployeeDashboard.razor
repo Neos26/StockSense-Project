@@ -74,10 +74,8 @@
             isRetraining = true;
             StateHasChanged();
 
-            // Optimization: Only pull the last 12 months for faster network transfer
-            var cutoffDate = DateTime.Now.AddMonths(-12);
+            // FIX: Pull all data because 'Date' is a string and we can't filter it easily here
             var dbData = await Context.SalesHistory
-                .Where(s => s.DateSold >= cutoffDate)
                 .Select(s => new MLModel.ModelInput
                 {
                     ProductID = s.ProductID,
@@ -91,7 +89,7 @@
 
             if (!dbData.Any())
             {
-                await ShowToast("No recent historical data found.", true);
+                await ShowToast("No historical data found.", true);
                 return;
             }
 
