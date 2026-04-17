@@ -18,6 +18,7 @@
 @* ... [Keep your HTML Section exactly as it was] ... *@
 
 @code {
+
     private bool isLoading = true;
     private bool isRetraining = false;
     private bool showCriticalStockModal = false;
@@ -137,6 +138,7 @@
         topForecasts.Clear();
         categoryVolumes.Clear();
         brandPerformances.Clear();
+
         totalValue = filteredProducts.Sum(p => p.Price * p.CurrentStock);
 
         // 3. PERFORMANCE FIX: Only analyze a subset of products for the Dashboard view.
