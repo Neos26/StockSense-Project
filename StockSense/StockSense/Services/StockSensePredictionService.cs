@@ -20,7 +20,7 @@ namespace StockSense.Services
     {
         // PERFORMANCE FIX: Reuse the MLContext and PredictionEngine
         private readonly MLContext _mlContext = new MLContext();
-        private PredictionEngine<MLModel.ModelInput, MLModel.ModelOutput> _predictionEngine;
+        private PredictionEngine<MLModel.ModelInput, MLModel.ModelOutput>? _predictionEngine;
         private DateTime _lastModelLoadTime;
 
         private string GetModelPath()
