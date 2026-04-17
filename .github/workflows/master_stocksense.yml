@@ -21,7 +21,7 @@ jobs:
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.x'
+          dotnet-version: '8.0.x' # Using .x ensures it picks the latest stable 8.0 patch
 
       - name: Build with dotnet
         run: dotnet build --configuration Release
