@@ -23,14 +23,14 @@ jobs:
         with:
           dotnet-version: '8.x'
 
-      # 1. Build everything for win-x64 first
+      # FIX: Build the solution WITHOUT the --runtime flag
       - name: Build with dotnet
-        run: dotnet build --configuration Release --runtime win-x64
+        run: dotnet build --configuration Release
 
-      # 2. Publish specifically for the x64 architecture required by ML.NET
-      # The -p flag prevents the "File in Use" error during compression
+      # FIX: Point the publish command specifically to your main Web Project folder
+      # Replace 'StockSense/StockSense.csproj' with the actual path to your server project
       - name: dotnet publish
-        run: dotnet publish -c Release -r win-x64 --self-contained false -p:BuildProjectReferences=false -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish StockSense/StockSense/StockSense.csproj -c Release -r win-x64 --self-contained false -o "${{env.DOTNET_ROOT}}/myapp"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
