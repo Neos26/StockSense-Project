@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using StockSense.Data; // Ensure this matches your namespace for ApplicationDbContext
-using StockSense.shared; // Ensure this matches where your CartItem class is
+using StockSense.Data;
+using StockSense.shared;
+// Add this if your Transaction, TransactionItem, and SalesHistory models are in a different namespace
+// using StockSense.Models; 
 
 namespace StockSense.Services
 {
@@ -8,27 +10,65 @@ namespace StockSense.Services
     {
         private readonly ApplicationDbContext _context;
 
-        // Constructor: This is how we get access to the database (_context)
         public TransactionService(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        public async Task ProcessSaleAsync(List<CartItem> items)
+        // Changed from Task to Task<Transaction> so the POS UI can get the receipt data back
+        public async Task<Transaction> ProcessSaleAsync(List<CartItem> items)
         {
+            // 1. Generate the Receipt Header
+            var receipt = new Transaction
+            {
+                InvoiceNumber = $"INV-{DateTime.Now:yyyyMMdd}-{new Random().Next(1000, 9999)}",
+                TransactionDate = DateTime.Now,
+                TotalAmount = items.Sum(i => i.Price * i.Quantity),
+                Items = new List<TransactionItem>()
+            };
+
             foreach (var item in items)
             {
                 var product = await _context.Products.FindAsync(item.ProductId);
-
                 if (product != null)
                 {
-                    if (product.CurrentStock < item.Quantity)
-                        throw new Exception($"Insufficient stock for {product.Name}");
-
+                    // Deduct Stock
                     product.CurrentStock -= item.Quantity;
+
+                    // 2. Add to your existing SalesHistory (For AI)
+                    _context.SalesHistory.Add(new SalesHistory
+                    {
+                        Date = DateTime.Now.ToString("yyyy-MM-dd"),
+                        ProductID = product.Id.ToString(),
+                        ProductName = product.Name,
+                        Brand = product.Brand,
+                        Category = product.Category,
+                        QtySold = (float)item.Quantity,
+                        UnitPrice = (float)product.Price,
+                        TotalSales = (float)(item.Quantity * product.Price),
+                        MonthNum = (float)DateTime.Now.Month
+                        // ... add your other SalesHistory fields here
+                    });
+
+                    // 3. Add to the Receipt Details (For the PDF/Print)
+                    receipt.Items.Add(new TransactionItem
+                    {
+                        ProductId = product.Id,
+                        ProductName = product.Name,
+                        UnitPrice = product.Price,
+                        Quantity = item.Quantity
+                    });
                 }
             }
+
+            // Save the Receipt
+            _context.Transactions.Add(receipt);
+
+            // Save everything (Stock updates, SalesHistory, and Receipt) at once
             await _context.SaveChangesAsync();
+
+            // Return the receipt so the POS screen can print it
+            return receipt;
         }
     }
 }

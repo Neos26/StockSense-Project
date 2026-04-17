@@ -73,6 +73,39 @@ public class ProductsController : ControllerBase
         }
     }
 
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateProduct(int id, Product product)
+    {
+        // 1. Validation
+        if (id != product.Id)
+        {
+            return BadRequest("Product ID mismatch.");
+        }
+
+        // 2. Mark the entity as modified
+        _context.Entry(product).State = EntityState.Modified;
+
+        try
+        {
+            // 3. Persist to Database
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!_context.Products.Any(e => e.Id == id))
+            {
+                return NotFound();
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        return NoContent(); // Success, standard for PUT
+    }
+
     public class EmailQuoteRequest
     {
         public string UserEmail { get; set; } = "";

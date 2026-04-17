@@ -8,6 +8,7 @@ using StockSense.Components;
 using StockSense.Components.Account;
 using StockSense.Data;
 using StockSense.Services;
+using StockSense.shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,7 @@ builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
 builder.Services.AddLocalization();
+builder.Services.AddScoped<StockSensePredictionService>();
 
 // --- 2. AUTHENTICATION & COOKIES ---
 builder.Services.AddAuthentication(options =>

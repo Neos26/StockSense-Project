@@ -2,20 +2,26 @@
 @layout AdminLayout
 @using StockSense.shared
 @using StockSense.Services
+@using StockSense.Data
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Authorization
-@inject StockSense.Data.ApplicationDbContext Context
+@inject ApplicationDbContext Context
 @inject TransactionService SaleService
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 @attribute [Authorize(Roles = "Admin, Employee")]
 
-<div class="pos-wrapper">
+<PageTitle>Point of Sale</PageTitle>
 
-    @* --- Product Catalog --- *@
+@* Added the 'no-print' class so this entire section hides when generating the PDF/Print *@
+<div class="pos-wrapper no-print">
+
+    @* --- PRODUCT CATALOG --- *@
     <div class="pos-catalog">
         <div style="flex-shrink: 0; padding: var(--space-4) var(--space-4); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--space-3);">
-            <BbInput @bind-Value="searchTerm" Placeholder="Search products..." />
+            <BbInput @bind-Value="searchTerm" @bind-Value:event="oninput" Placeholder="Search products or brands..." />
+
             <div style="display: flex; flex-wrap: nowrap; gap: var(--space-1); overflow-x: auto; padding-bottom: var(--space-1);">
                 <button type="button" @onclick="() => selectedCategory = null"
                         style="padding: var(--space-1) var(--space-3); border-radius: 9999px; font-size: var(--text-xs); font-weight: var(--font-medium); border: 1px solid @(selectedCategory == null ? "var(--primary)" : "var(--border)"); cursor: pointer; background-color: @(selectedCategory == null ? "var(--primary)" : "transparent"); color: @(selectedCategory == null ? "var(--primary-foreground)" : "var(--foreground)"); white-space: nowrap; flex-shrink: 0;">
@@ -37,17 +43,19 @@
                 {
                     <div @onclick="() => AddToCart(p)"
                          style="padding: var(--space-3); border-radius: var(--radius); border: 2px solid @(cart.Any(i => i.ProductId == p.Id) ? "var(--primary)" : "var(--border)"); background-color: @(cart.Any(i => i.ProductId == p.Id) ? "var(--accent)" : "var(--background)"); cursor: @(p.CurrentStock <= 0 ? "not-allowed" : "pointer"); opacity: @(p.CurrentStock <= 0 ? "0.5" : "1"); text-align: center; transition: border-color 0.15s;">
-                        <div style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@p.Name</div>
+                        <div style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="@p.Name">@p.Name</div>
                         <div style="font-size: var(--text-xs); color: var(--muted-foreground); margin: var(--space-1) 0;">@p.Brand</div>
                         <div style="font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--primary);">₱@p.Price.ToString("N2")</div>
-                        <div style="font-size: var(--text-xs); color: var(--muted-foreground); margin-top: var(--space-1);">Stock: @p.CurrentStock</div>
+                        <div style="font-size: var(--text-xs); font-weight: 700; color: @(p.CurrentStock <= 5 ? "var(--destructive)" : "var(--muted-foreground)"); margin-top: var(--space-1);">
+                            Stock: @p.CurrentStock
+                        </div>
                     </div>
                 }
             </div>
         </div>
     </div>
 
-    @* --- Desktop Cart --- *@
+    @* --- DESKTOP CART --- *@
     <div class="pos-cart-desktop">
         <div style="flex-shrink: 0; padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: var(--space-2);">
             <LucideIcon Name="shopping-cart" Size="18" />
@@ -71,7 +79,7 @@
         @CartFooter()
     </div>
 
-    @* --- Mobile Cart Drawer --- *@
+    @* --- MOBILE CART DRAWER --- *@
     @if (cartOpen && cart.Any())
     {
         <div @onclick="() => cartOpen = false"
@@ -81,7 +89,6 @@
     }
 
     <div class="pos-cart-mobile @(cartOpen ? "pos-cart-mobile-open" : "")">
-        @* Drawer handle *@
         <div @onclick="() => cartOpen = !cartOpen"
              style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
             <div style="display: flex; align-items: center; gap: var(--space-2);">
@@ -140,10 +147,80 @@
             </BbButton>
         </div>
     </div>
-
 </div>
 
-@* Cart content as render fragments *@
+@* --- E-RECEIPT MODAL --- *@
+@if (showReceiptModal && completedTransaction != null)
+{
+    <div class="receipt-backdrop no-print"></div>
+    <div class="receipt-modal">
+        <div id="printableReceipt" class="receipt-content">
+
+            <div class="receipt-header">
+                <h2>SAPSHOP MOTORCYCLE PARTS AND ACCESSORIES SHOP</h2>
+                <p>CHIA D. CUNANAN - Prop.</p>
+                <p>NON VAT REG. TIN 483-627-084-00000</p>
+                <p>B1, L70, Model Community, Pio, 2008 Porac, Pampanga</p>
+                <h3 style="margin-top: 15px; text-decoration: underline;">SALES INVOICE</h3>
+            </div>
+
+            <div class="receipt-meta">
+                <div><strong>Date:</strong> @completedTransaction.TransactionDate.ToString("MM/dd/yyyy HH:mm")</div>
+                <div><strong>Invoice No:</strong> @completedTransaction.InvoiceNumber</div>
+            </div>
+
+            <table class="receipt-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Item Description</th>
+                        <th style="text-align: center;">Qty</th>
+                        <th style="text-align: right;">Unit Price</th>
+                        <th style="text-align: right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in completedTransaction.Items)
+                    {
+                        <tr>
+                            <td style="text-align: left;">@item.ProductName</td>
+                            <td style="text-align: center;">@item.Quantity</td>
+                            <td style="text-align: right;">@item.UnitPrice.ToString("N2")</td>
+                            <td style="text-align: right;">@((item.UnitPrice * item.Quantity).ToString("N2"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="receipt-summary">
+                <div class="summary-row">
+                    <span>Total Sales:</span>
+                    <span>@completedTransaction.TotalAmount.ToString("N2")</span>
+                </div>
+                <div class="summary-row">
+                    <span>Less: Discount:</span>
+                    <span>0.00</span>
+                </div>
+                <div class="summary-row" style="font-weight: bold; border-top: 1px dashed #000; padding-top: 5px; margin-top: 5px;">
+                    <span>TOTAL AMOUNT DUE:</span>
+                    <span>₱@completedTransaction.TotalAmount.ToString("N2")</span>
+                </div>
+            </div>
+
+            <div class="receipt-footer">
+                <p>"THIS DOCUMENT IS NOT VALID FOR CLAIM OF INPUT TAX"</p>
+                <p style="margin-top: 10px; font-style: italic;">Generated by StockSense Inventory System</p>
+            </div>
+        </div>
+
+        <div class="receipt-actions no-print">
+            <BbButton Variant="ButtonVariant.Outline" OnClick="CloseReceipt">Close</BbButton>
+            <BbButton Variant="ButtonVariant.Default" OnClick="PrintReceipt">
+                <LucideIcon Name="printer" Size="16" /> Print / Save PDF
+            </BbButton>
+        </div>
+    </div>
+}
+
 @code {
     private RenderFragment CartTable() =>
         @<table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
@@ -161,7 +238,10 @@
         <tr style="border-bottom: 1px solid var(--border);">
             <td style="padding: var(--space-2) var(--space-2); color: var(--foreground);">@item.ProductName</td>
             <td style="padding: var(--space-2) var(--space-2);">
-                <input type="number" @bind="item.Quantity"
+                <input type="number"
+                       value="@item.Quantity"
+                       @onchange="@(e => UpdateCartQuantity(item, e))"
+                       min="1"
                        style="width: 56px; padding: var(--space-1) var(--space-2); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--text-sm); box-sizing: border-box;" />
             </td>
             <td style="padding: var(--space-2) var(--space-2); text-align: right; color: var(--foreground);">₱@((item.Price * item.Quantity).ToString("N2"))</td>
@@ -215,6 +295,10 @@ private bool isProcessing = false;
 private string? statusMessage;
 private bool cartOpen = false;
 
+// --- RECEIPT VARIABLES ---
+private bool showReceiptModal = false;
+private Transaction? completedTransaction;
+
 protected override async Task OnInitializedAsync() => await LoadData();
 
 private async Task LoadData()
@@ -240,10 +324,38 @@ private void AddToCart(Product p)
 {
     if (p.CurrentStock <= 0) return;
     statusMessage = null;
+
     var existing = cart.FirstOrDefault(i => i.ProductId == p.Id);
-    if (existing != null) existing.Quantity++;
-    else cart.Add(new CartItem { ProductId = p.Id, ProductName = p.Name, Price = p.Price, Quantity = 1 });
+
+    if (existing != null)
+    {
+        if (existing.Quantity < p.CurrentStock) existing.Quantity++;
+        else statusMessage = $"Limit reached: Only {p.CurrentStock} of {p.Name} in stock.";
+    }
+    else
+    {
+        cart.Add(new CartItem { ProductId = p.Id, ProductName = p.Name, Price = p.Price, Quantity = 1 });
+    }
+
     cartOpen = true;
+}
+
+private void UpdateCartQuantity(CartItem item, ChangeEventArgs e)
+{
+    if (int.TryParse(e.Value?.ToString(), out int newQty))
+    {
+        var product = allProducts.FirstOrDefault(p => p.Id == item.ProductId);
+        if (product != null)
+        {
+            if (newQty > product.CurrentStock)
+            {
+                item.Quantity = product.CurrentStock;
+                statusMessage = $"Adjusted to max stock ({product.CurrentStock}) for {item.ProductName}.";
+            }
+            else if (newQty <= 0) cart.Remove(item);
+            else item.Quantity = newQty;
+        }
+    }
 }
 
 private async Task Checkout()
@@ -252,18 +364,45 @@ private async Task Checkout()
     isProcessing = true;
     try
     {
-        await SaleService.ProcessSaleAsync(cart);
-        statusMessage = "Stock Deducted!";
+        // Call the updated TransactionService which returns the saved Transaction
+        completedTransaction = await SaleService.ProcessSaleAsync(cart);
+
+        statusMessage = "Sale complete! E-Receipt generated.";
+
+        // Trigger the E-Receipt Modal
+        showReceiptModal = true;
+
         cart.Clear();
         cartOpen = false;
+
         await LoadData();
     }
-    catch (Exception ex) { statusMessage = "Error: " + ex.Message; }
-    finally { isProcessing = false; }
+    catch (Exception ex)
+    {
+        statusMessage = "Error: " + ex.Message;
+    }
+    finally
+    {
+        isProcessing = false;
+    }
+}
+
+// --- RECEIPT METHODS ---
+private async Task PrintReceipt()
+{
+    // Triggers the browser's native print dialog
+    await JS.InvokeVoidAsync("window.print");
+}
+
+private void CloseReceipt()
+{
+    showReceiptModal = false;
+    completedTransaction = null;
 }
 }
 
 <style>
+    /* UI STYLES */
     .pos-wrapper {
         display: flex;
         gap: var(--space-6);
@@ -284,7 +423,7 @@ private async Task Checkout()
     }
 
     .pos-cart-desktop {
-        width: 22rem;
+        width: 24rem;
         flex-shrink: 0;
         display: flex;
         flex-direction: column;
@@ -329,7 +468,7 @@ private async Task Checkout()
         }
 
         .pos-cart-mobile-open {
-            max-height: 40vh;
+            max-height: 50vh;
             overflow: auto;
         }
 
@@ -340,6 +479,124 @@ private async Task Checkout()
         .pos-catalog {
             margin-bottom: 5rem;
             border-radius: var(--radius);
+        }
+    }
+
+    /* E-RECEIPT MODAL STYLES */
+    .receipt-backdrop {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0,0,0,0.6);
+        z-index: 100;
+    }
+
+    .receipt-modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 101;
+        width: 400px;
+        max-width: 90vw;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    .receipt-content {
+        overflow-y: auto;
+        color: #000;
+        font-family: 'Courier New', Courier, monospace;
+        padding-bottom: 20px;
+    }
+
+    .receipt-header {
+        text-align: center;
+        margin-bottom: 15px;
+    }
+
+        .receipt-header h2 {
+            font-size: 16px;
+            margin: 0 0 5px 0;
+            font-weight: bold;
+        }
+
+        .receipt-header p {
+            margin: 2px 0;
+            font-size: 12px;
+        }
+
+    .receipt-meta {
+        font-size: 12px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .receipt-table {
+        width: 100%;
+        font-size: 12px;
+        border-top: 1px dashed #000;
+        border-bottom: 1px dashed #000;
+        margin-bottom: 15px;
+    }
+
+        .receipt-table th, .receipt-table td {
+            padding: 5px 2px;
+        }
+
+    .receipt-summary {
+        font-size: 12px;
+        margin-bottom: 20px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 3px;
+    }
+
+    .receipt-footer {
+        text-align: center;
+        font-size: 10px;
+        border-top: 1px dashed #000;
+        padding-top: 10px;
+    }
+
+    .receipt-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 15px;
+        border-top: 1px solid #ccc;
+        padding-top: 15px;
+    }
+
+    /* PRINT STYLES - Crucial for hiding POS and showing only receipt */
+    @@media print {
+        body * {
+            visibility: hidden;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        #printableReceipt, #printableReceipt * {
+            visibility: visible;
+        }
+
+        #printableReceipt {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
     }
 </style>

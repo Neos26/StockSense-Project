@@ -10,7 +10,7 @@
     <div style="display: flex; align-items: center; justify-content: @(collapsed ? "center" : "space-between"); padding: var(--space-4) var(--space-3); border-bottom: 1px solid var(--sidebar-border); flex-shrink: 0;">
         @if (!collapsed)
         {
-            <a href="/" style="text-decoration: none; font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--sidebar-foreground); white-space: nowrap;">StockSense</a>
+            <a href="/" style="text-decoration: none; font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--sidebar-foreground); white-space: nowrap; color: red">SapShop</a>
         }
         <button @onclick="ToggleCollapse" style="display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--sidebar-foreground); padding: var(--space-1); border-radius: var(--radius); flex-shrink: 0;">
             <LucideIcon Name="@(collapsed ? "panel-left-open" : "panel-left-close")" Size="18" />
@@ -233,6 +233,14 @@
                         @if (!isCollapsed)
                         {
                             <span style="white-space: nowrap;">Services</span>
+                        }
+                    </a>
+
+                    <a href="/admin/safety-stock" title="SafetyStocks" style="@NavLinkStyle(IsActive("/admin/safety-stock"), isCollapsed)">
+                        <LucideIcon Name="shield-check" Size="16" />
+                        @if (!isCollapsed)
+                        {
+                            <span style="white-space: nowrap;">SafetyStocks</span>
                         }
                     </a>
                 </Authorized>
