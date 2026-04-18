@@ -1,28 +1,28 @@
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace StockSense.Migrations
 {
     /// <inheritdoc />
-    public partial class addnewsalesdateField : Migration
+    public partial class AddYearToSalesHistory : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "Date",
+            migrationBuilder.AddColumn<float>(
+                name: "Year",
                 table: "SalesHistory",
-                type: "nvarchar(max)",
+                type: "real",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: 0f);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Date",
+                name: "Year",
                 table: "SalesHistory");
         }
     }

@@ -18,5 +18,6 @@ namespace StockSense.shared
         public float UnitPrice { get; set; }
         public float TotalSales { get; set; }
         public float MonthNum { get; set; }
+        public float Year { get; set; }
     }
 }

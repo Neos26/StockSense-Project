@@ -339,7 +339,7 @@
             {
                 int? month = isSimulating ? simulationMonth : null;
                 var strategy = isSimulating ? selectedStrategy : OrderStrategy.Normal;
-                var ai = PredictionService.GetPredictiveOrderQty(product, month, strategy);
+                var ai = PredictionService.GetPredictiveOrderQty(product, month, null,strategy);
 
                 int calculatedQty = (ai.PredictedDemand + product.ReorderTarget) - product.CurrentStock;
                 int finalQty = Math.Max(calculatedQty, 0);
@@ -402,7 +402,12 @@
     {
         if (selectedProductId == 0) return;
         var p = allProducts.Find(x => x.Id == selectedProductId);
-        var ai = PredictionService.GetPredictiveOrderQty(p, isSimulating ? simulationMonth : null, isSimulating ? selectedStrategy : OrderStrategy.Normal);
+        var ai = PredictionService.GetPredictiveOrderQty(
+    product: p,
+    overrideMonth: isSimulating ? simulationMonth : null,
+    overrideYear: isSimulating ? DateTime.Now.Year : null, // Optional: defaults to current year
+    strategy: isSimulating ? selectedStrategy : OrderStrategy.Normal
+);
 
         int calculatedQty = (ai.PredictedDemand + p.ReorderTarget) - p.CurrentStock;
         int finalQty = Math.Max(calculatedQty, 1);

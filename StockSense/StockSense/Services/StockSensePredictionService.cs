@@ -3,7 +3,7 @@ using System.IO;
 using Microsoft.ML;
 using StockSense.Shared;
 using StockSense;
-using Microsoft.Extensions.DependencyInjection; // Required for IServiceScopeFactory
+using Microsoft.Extensions.DependencyInjection;
 
 namespace StockSense.Services
 {
@@ -23,7 +23,6 @@ namespace StockSense.Services
         private PredictionEngine<MLModel.ModelInput, MLModel.ModelOutput>? _predictionEngine;
         private readonly object _lock = new object();
 
-        // FIX: Inject ScopeFactory instead of DbContext
         public StockSensePredictionService() { }
 
         private string GetModelPath()
@@ -49,12 +48,13 @@ namespace StockSense.Services
 
                 if (!File.Exists(modelPath)) return;
 
+                // Load the model once into memory
                 ITransformer mlModel = _mlContext.Model.Load(modelPath, out var _);
                 _predictionEngine = _mlContext.Model.CreatePredictionEngine<MLModel.ModelInput, MLModel.ModelOutput>(mlModel);
             }
         }
 
-        public AIPredictionResult GetPredictiveOrderQty(Product product, int? overrideMonth = null, OrderStrategy strategy = OrderStrategy.Normal)
+        public AIPredictionResult GetPredictiveOrderQty(Product product, int? overrideMonth = null, int? overrideYear = null, OrderStrategy strategy = OrderStrategy.Normal)
         {
             var resultObject = new AIPredictionResult();
             try
@@ -62,44 +62,56 @@ namespace StockSense.Services
                 if (_predictionEngine == null) InitializeEngine();
                 if (_predictionEngine == null) throw new Exception("AI Model not found.");
 
+                // Timeframe Logic: Default to current date if not specified
                 int targetMonth = overrideMonth ?? DateTime.Now.Month;
+                int targetYear = overrideYear ?? DateTime.Now.Year;
+
                 var input = new MLModel.ModelInput
                 {
-                    MonthNum = (float)targetMonth,
                     ProductID = product.Id.ToString(),
                     ProductName = product.Name,
                     Brand = product.Brand ?? "",
                     Category = product.Category ?? "",
-                    QtySold = 0
+                    MonthNum = (float)targetMonth,
+                    Year = (float)targetYear,
+                    QtySold = 0 // Required placeholder
                 };
 
                 MLModel.ModelOutput result;
+                // Thread-safe prediction call
                 lock (_lock) { result = _predictionEngine.Predict(input); }
 
                 float basePrediction = result.Score;
                 if (float.IsNaN(basePrediction) || basePrediction < 0) basePrediction = 0;
 
+                // Confidence logic based on manual reorder target deviation
                 double deviation = Math.Abs(basePrediction - product.ReorderTarget);
                 double confidence = Math.Max(45.0, Math.Min(98.0, 100.0 - (deviation * 5.0)));
                 resultObject.ConfidenceScore = Math.Round(confidence, 1);
 
+                // Apply Strategy Multipliers
                 if (strategy == OrderStrategy.Conservative) basePrediction *= 0.85f;
                 else if (strategy == OrderStrategy.Aggressive) basePrediction *= 1.25f;
 
                 int finalTarget = (int)Math.Ceiling(basePrediction);
                 resultObject.PredictedDemand = finalTarget;
                 resultObject.FinalOrderQty = Math.Max(0, finalTarget - product.CurrentStock);
-                resultObject.Reasoning = resultObject.FinalOrderQty > 0 ? $"AI predicts {finalTarget} units needed." : "Stock sufficient.";
+
+                // Dynamic reasoning including the timeframe
+                string monthName = new DateTime(2000, targetMonth, 1).ToString("MMMM");
+                resultObject.Reasoning = resultObject.FinalOrderQty > 0
+                    ? $"AI suggests {finalTarget} units for {monthName} {targetYear}."
+                    : $"Stock levels are healthy for {monthName} {targetYear}.";
 
                 return resultObject;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new AIPredictionResult
                 {
                     FinalOrderQty = Math.Max(0, (int)product.ReorderTarget - product.CurrentStock),
                     PredictedDemand = (int)product.ReorderTarget,
-                    Reasoning = "AI Fallback active."
+                    Reasoning = "AI Fallback: Using manual reorder targets."
                 };
             }
         }
