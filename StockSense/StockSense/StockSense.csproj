@@ -36,4 +36,8 @@
   <ItemGroup>
     <Folder Include="Components\Pages\Employee\" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Migrations\20260413172425_isActive.cs" />
+    <Compile Remove="Migrations\20260413172425_isActive.Designer.cs" />
+  </ItemGroup>
 </Project>
