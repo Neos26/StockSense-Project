@@ -31,15 +31,15 @@
 <div class="dashboard-container" style="display: @(isLoading ? "none" : "block"); padding: 1.5rem; animation: fadeIn 0.4s ease-out;">
 
     @* --- HEADER SECTION --- *@
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; gap: 1rem; flex-wrap: wrap;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.5rem; gap: 1rem; flex-wrap: wrap;">
         <div>
-            <h1 style="font-size: 1.75rem; font-weight: 800; margin: 0;">Operational Intelligence</h1>
-            <p style="color: var(--muted-foreground); margin: 0;">Real-time heuristics & ML pattern recognition</p>
+            <h1 style="font-size: 1.75rem; font-weight: 800; margin: 0; letter-spacing: -0.02em;">Operational Intelligence</h1>
+            <p style="color: var(--muted-foreground); margin: 0; font-size: var(--text-sm);">Real-time heuristics & ML pattern recognition</p>
         </div>
 
         <div style="display: flex; gap: 15px; align-items: center; background: var(--card); padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
             <div style="display: flex; flex-direction: column; gap: 2px;">
-                <label style="font-size: 0.65rem; font-weight: 800; color: var(--primary); text-transform: uppercase;">Target Forecast</label>
+                <label style="font-size: 0.65rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">Target Forecast</label>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <input type="range" min="1" max="12" @bind="simulationMonth" @bind:event="oninput" @onchange="RunFullAnalysis" style="accent-color: var(--primary); width: 120px;" />
                     <span style="font-weight: 800; font-size: 0.9rem; min-width: 80px;">@GetMonthName(simulationMonth)</span>
@@ -53,7 +53,6 @@
                 }
                 else
                 {
-
                     <LucideIcon Name="refresh-cw" Size="14" />
                 }
                 <span style="margin-left: 8px;">Refresh AI</span>
@@ -61,60 +60,79 @@
         </div>
     </div>
 
-    @* --- KPI GRID --- *@
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
-        <div style="border-radius: 12px; overflow: hidden;">
-            <BbCard>
-                <BbCardContent>
-                    <div style="color: var(--muted-foreground); font-size: 0.8rem;">Inventory Value</div>
-                    <div style="font-size: 1.5rem; font-weight: 800;">₱@totalValue.ToString("N0")</div>
-                </BbCardContent>
-            </BbCard>
+    @* --- TOP KPI LABELS --- *@
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: center;">
+            <div style="color: var(--muted-foreground); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Inventory Value</div>
+            <div style="font-size: 1.5rem; font-weight: 900; color: var(--foreground);">₱@totalValue.ToString("N0")</div>
         </div>
-        <div style="border-left: 4px solid #ef4444; border-radius: 12px; overflow: hidden;">
-            <BbCard>
-                <BbCardContent>
-                    <div style="color: #ef4444; font-size: 0.8rem;">Critical Items</div>
-                    <div style="font-size: 1.5rem; font-weight: 800; color: #ef4444;">@allLowStockProducts.Count</div>
-                </BbCardContent>
-            </BbCard>
+
+        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: center;">
+            <div style="color: var(--primary); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">AI Coverage</div>
+            <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">@forecastCoverage%</div>
         </div>
-        <div style="border-radius: 12px; overflow: hidden;">
-            <BbCard>
-                <BbCardContent>
-                    <div style="color: var(--primary); font-size: 0.8rem;">AI Coverage</div>
-                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">@forecastCoverage%</div>
-                    <div style="width: 100%; height: 4px; background: #333; border-radius: 10px; margin-top: 8px;">
-                        <div style="width: @forecastCoverage%; background: var(--primary); height: 100%; border-radius: 10px; transition: width 0.3s ease;"></div>
+
+        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: center;">
+            <div style="color: #10b981; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Est. Demand</div>
+            <div style="font-size: 1.5rem; font-weight: 900; color: #10b981;">@totalPredictedUnits</div>
+        </div>
+    </div>
+
+    @* --- CRITICAL INVENTORY BOX --- *@
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 2.5rem; display: flex; flex-direction: column; overflow: hidden;">
+        <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 10px; border-radius: 10px;">
+                </div>
+                <div>
+                    <h3 style="font-size: 1rem; font-weight: 800; margin: 0; color: var(--foreground); text-transform: uppercase; letter-spacing: 0.5px;">Critical Inventory Levels</h3>
+                    <p style="font-size: 0.7rem; color: var(--muted-foreground); margin: 0;">Stock at or below reorder threshold</p>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.5rem; font-weight: 900; color: #ef4444; line-height: 1;">@allLowStockProducts.Count</div>
+                <div style="font-size: 0.6rem; color: var(--muted-foreground); font-weight: 700; text-transform: uppercase;">SKUs Affected</div>
+            </div>
+        </div>
+
+        <div style="padding: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; background: rgba(0,0,0,0.05);">
+            @foreach (var item in allLowStockProducts.Take(5))
+            {
+                <div style="padding: 12px 16px; background: var(--background); border: 1px solid var(--border); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="min-width: 0;">
+                        <div style="font-weight: 700; font-size: 0.85rem; color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@item.Name</div>
+                        <div style="font-size: 0.7rem; color: var(--muted-foreground);">@item.Brand</div>
                     </div>
-                </BbCardContent>
-            </BbCard>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.85rem; font-weight: 800; color: #ef4444;">@item.CurrentStock</div>
+                        <div style="font-size: 0.6rem; color: var(--muted-foreground); text-transform: uppercase;">Qty</div>
+                    </div>
+                </div>
+            }
         </div>
-        <div style="border-radius: 12px; overflow: hidden;">
-            <BbCard>
-                <BbCardContent>
-                    <div style="color: #10b981; font-size: 0.8rem;">Est. Demand</div>
-                    <div style="font-size: 1.5rem; font-weight: 800; color: #10b981;">@totalPredictedUnits</div>
-                </BbCardContent>
-            </BbCard>
+
+        <div style="padding: 1rem 1.5rem; background: rgba(0,0,0,0.2); border-top: 1px solid var(--border); display: flex; justify-content: flex-end;">
+            <BbButton Variant="ButtonVariant.Ghost" OnClick="() => showCriticalModal = true" style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px;">
+                SEE ALL & MANAGE <LucideIcon Name="chevron-right" Size="14" style="margin-left: 5px;" />
+            </BbButton>
         </div>
     </div>
 
     @* --- MAIN ANALYTICS GRID --- *@
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem;">
-
-        @* AI Forecast Table *@
+        @* (Forecast, Brands, and Categories remain the same) *@
+        @* ... (Keeping previous logic for SKU Forecast, Brand Analytics, and Demand Category) *@
         <div style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem;">
-            <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+            <h3 style="font-size: 0.9rem; font-weight: 800; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; text-transform: uppercase; color: var(--muted-foreground);">
                 <LucideIcon Name="trending-up" Size="18" Color="var(--primary)" /> Top SKU Forecast
             </h3>
             <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr style="text-align: left; color: var(--muted-foreground); font-size: 0.75rem; border-bottom: 1px solid var(--border);">
-                            <th style="padding: 10px;">PRODUCT</th>
-                            <th style="padding: 10px; text-align: center;">CONFIDENCE</th>
-                            <th style="padding: 10px; text-align: right;">PREDICTION</th>
+                        <tr style="text-align: left; color: var(--muted-foreground); font-size: 0.7rem; border-bottom: 1px solid var(--border); text-transform: uppercase;">
+                            <th style="padding: 10px;">Product</th>
+                            <th style="padding: 10px; text-align: center;">Confidence</th>
+                            <th style="padding: 10px; text-align: right;">Prediction</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -123,9 +141,9 @@
                             <tr style="border-bottom: 1px solid var(--border); font-size: 0.85rem;">
                                 <td style="padding: 12px 10px; font-weight: 600;">@p.Name</td>
                                 <td style="padding: 12px 10px; text-align: center;">
-                                    <span style="background: @(p.Confidence > 80 ? "#059669" : "#d97706"); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">@p.Confidence%</span>
+                                    <span style="background: @(p.Confidence > 80 ? "#059669" : "#d97706"); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 800;">@p.Confidence%</span>
                                 </td>
-                                <td style="padding: 12px 10px; text-align: right; font-weight: 800;">@p.OrderQty units</td>
+                                <td style="padding: 12px 10px; text-align: right; font-weight: 800;">@p.OrderQty <small style="font-weight: 400; color: var(--muted-foreground);">pcs</small></td>
                             </tr>
                         }
                     </tbody>
@@ -133,17 +151,16 @@
             </div>
         </div>
 
-        @* Brand Performance *@
         <div style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem;">
-            <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+            <h3 style="font-size: 0.9rem; font-weight: 800; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; text-transform: uppercase; color: var(--muted-foreground);">
                 <LucideIcon Name="award" Size="18" Color="#3b82f6" /> Brand Analytics
             </h3>
             @foreach (var brand in brandPerformances)
             {
-                <div style="margin-bottom: 1rem; padding: 10px; background: #111; border: 1px solid #222; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="margin-bottom: 0.75rem; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-weight: 800; font-size: 0.9rem;">@brand.BrandName</div>
-                        <div style="font-size: 0.7rem; color: #888;">AI Demand: @brand.PredictedUnits units</div>
+                        <div style="font-size: 0.7rem; color: var(--muted-foreground);">AI Demand: <strong>@brand.PredictedUnits units</strong></div>
                     </div>
                     <div style="text-align: right;">
                         <div style="font-weight: 900; color: var(--primary);">₱@brand.TotalValue.ToString("N0")</div>
@@ -152,20 +169,19 @@
             }
         </div>
 
-        @* Category Tracking *@
         <div style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem;">
-            <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+            <h3 style="font-size: 0.9rem; font-weight: 800; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; text-transform: uppercase; color: var(--muted-foreground);">
                 <LucideIcon Name="pie-chart" Size="18" Color="#10b981" /> Demand by Category
             </h3>
             @foreach (var cat in categoryVolumes)
             {
                 <div style="margin-bottom: 1.25rem;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
-                        <span>@cat.Category</span>
-                        <span style="font-weight: 700;">@cat.Percentage.ToString("F1")%</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;">
+                        <span style="font-weight: 600;">@cat.Category</span>
+                        <span style="font-weight: 800; color: var(--primary);">@cat.Percentage.ToString("F1")%</span>
                     </div>
-                    <div style="width: 100%; background: #333; height: 6px; border-radius: 10px;">
-                        <div style="width: @cat.Percentage%; background: var(--primary); height: 100%; border-radius: 10px; transition: width 0.5s ease;"></div>
+                    <div style="width: 100%; background: #222; height: 6px; border-radius: 10px;">
+                        <div style="width: @cat.Percentage%; background: var(--primary); height: 100%; border-radius: 10px; transition: width 1s ease-out;"></div>
                     </div>
                 </div>
             }
@@ -173,9 +189,107 @@
     </div>
 </div>
 
+@* --- CRITICAL ITEMS MODAL --- *@
+@if (showCriticalModal)
+{
+    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 10000; padding: 2rem;">
+        <div style="background: var(--card); border: 1px solid var(--border); width: 100%; max-width: 800px; max-height: 90vh; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; animation: modalIn 0.3s ease-out;">
+
+            <div style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #ef4444;">Critical Stock Report</h2>
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--muted-foreground);">Full overview of items requiring immediate restock</p>
+                </div>
+                <button @onclick="() => showCriticalModal = false" style="background: none; border: none; color: var(--muted-foreground); cursor: pointer; font-size: 1.5rem;">&times;</button>
+            </div>
+
+            <div style="padding: 1.5rem; overflow-y: auto; flex: 1; background: rgba(0,0,0,0.1);">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="text-align: left; font-size: 0.7rem; color: var(--muted-foreground); text-transform: uppercase; border-bottom: 1px solid var(--border);">
+                            <th style="padding: 10px;">Product Name</th>
+                            <th style="padding: 10px;">Supplier / Brand</th>
+                            <th style="padding: 10px; text-align: center;">Stock</th>
+                            <th style="padding: 10px; text-align: center;">Target</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in allLowStockProducts)
+                        {
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem;">
+                                <td style="padding: 12px 10px; font-weight: 700;">@item.Name</td>
+                                <td style="padding: 12px 10px; color: var(--muted-foreground);">@item.Brand</td>
+                                <td style="padding: 12px 10px; text-align: center; color: #ef4444; font-weight: 800;">@item.CurrentStock</td>
+                                <td style="padding: 12px 10px; text-align: center;">@item.ReorderTarget</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="padding: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.85rem; color: var(--muted-foreground);">Total: <strong>@allLowStockProducts.Count</strong> items identified</span>
+                <div style="display: flex; gap: 12px;">
+                    <BbButton Variant="ButtonVariant.Ghost" OnClick="() => showCriticalModal = false">Close</BbButton>
+                    <BbButton Variant="ButtonVariant.Default" OnClick="OrderAllCritical"
+                              style="background: #ef4444; color: white; font-weight: 800; padding: 0 25px;">
+                        <LucideIcon Name="shopping-cart" Size="16" style="margin-right: 8px;" />
+                        ORDER ALL CRITICAL
+                    </BbButton>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    @@keyframes modalIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .pulse-border {
+        animation: criticalPulse 2s infinite;
+    }
+
+    @@keyframes criticalPulse {
+        0% {
+            border-left-color: #ef4444;
+        }
+
+        50% {
+            border-left-color: #7f1d1d;
+        }
+
+        100% {
+            border-left-color: #ef4444;
+        }
+    }
+</style>
+
 @code {
     private bool isLoading = true;
     private bool isRetraining = false;
+    private bool showCriticalModal = false;
     private List<Product> allProductsCached = new();
     private int simulationMonth = DateTime.Now.Month;
     private decimal totalValue = 0;
@@ -205,9 +319,8 @@
     private async Task RunFullAnalysis()
     {
         totalValue = allProductsCached.Sum(p => p.Price * p.CurrentStock);
-        allLowStockProducts = allProductsCached.Where(p => p.CurrentStock <= p.ReorderTarget || p.CurrentStock <= 2).OrderBy(p => p.CurrentStock).ToList();
+        allLowStockProducts = allProductsCached.Where(p => p.CurrentStock <= p.ReorderTarget).OrderBy(p => p.CurrentStock).ToList();
 
-        // Reset analysis state
         topForecasts.Clear();
         categoryVolumes.Clear();
         brandPerformances.Clear();
@@ -220,14 +333,11 @@
         int processedCount = 0;
         int totalToProcess = allProductsCached.Count;
 
-        // AUTHENTIC PROCESSING LOOP
         foreach (var chunk in allProductsCached.Chunk(15))
         {
             foreach (var p in chunk)
             {
-                // REAL AI CALL using your MLModel
                 var ai = PredictionService.GetPredictiveOrderQty(p, simulationMonth);
-
                 var cat = p.Category ?? "General";
                 var brand = p.Brand ?? "Generic";
 
@@ -249,12 +359,11 @@
                 processedCount++;
             }
 
-            // Real coverage calculation
             forecastCoverage = (int)((double)processedCount / totalToProcess * 100);
             UpdateAnalyticsUI(tempCategoryData, tempBrandData);
 
             StateHasChanged();
-            await Task.Yield(); // Keep browser connection alive
+            await Task.Yield();
         }
     }
 
@@ -276,11 +385,16 @@
         }).OrderByDescending(x => x.PredictedUnits).Take(5).ToList();
     }
 
+    private void OrderAllCritical()
+    {
+        showCriticalModal = false;
+        NavManager.NavigateTo("/admin/orderslips?orderAll=true");
+    }
+
     private async Task HandleRetrain()
     {
         isRetraining = true;
         StateHasChanged();
-        // The service will automatically pick up the new model from D:\home\data
         await RunFullAnalysis();
         isRetraining = false;
     }
@@ -289,4 +403,5 @@
     public class CategoryVolume { public string Category { get; set; } = ""; public double Percentage { get; set; } }
     public class BrandPerformance { public string BrandName { get; set; } = ""; public decimal TotalValue { get; set; } public int PredictedUnits { get; set; } }
     private class BrandPerformanceTemp { public decimal TotalValue { get; set; } public int PredictedUnits { get; set; } }
+
 }

@@ -39,7 +39,6 @@
     }
     else
     {
-        @* --- ARCHIVE TOGGLE --- *@
         <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-3); align-items: center; gap: 8px;">
             <input type="checkbox" @bind="showAllHistory" id="userBuildArchive" />
             <label for="userBuildArchive" style="font-size: var(--text-xs); color: var(--muted-foreground); cursor: pointer;">Show full history</label>
@@ -50,6 +49,7 @@
                 <thead>
                     <tr style="border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.02);">
                         <th style="text-align: left; padding: 12px 16px; color: var(--muted-foreground); font-weight: var(--font-medium);">Date Submitted</th>
+                        <th style="text-align: left; padding: 12px 16px; color: var(--muted-foreground); font-weight: var(--font-medium);">Type</th>
                         <th style="text-align: left; padding: 12px 16px; color: var(--muted-foreground); font-weight: var(--font-medium);">Items</th>
                         <th style="text-align: left; padding: 12px 16px; color: var(--muted-foreground); font-weight: var(--font-medium);">Total Value</th>
                         <th style="text-align: left; padding: 12px 16px; color: var(--muted-foreground); font-weight: var(--font-medium);">Status</th>
@@ -59,20 +59,47 @@
                 <tbody>
                     @foreach (var build in FilteredBuilds)
                     {
-                        var parts = ParseParts(build.SelectedPartsJson);
+                        var rawParts = ParseParts(build.SelectedPartsJson);
+
+                        // Extract the hidden metadata tag
+                        var metaTag = rawParts.FirstOrDefault(p => p.Category == "SYSTEM_METADATA");
+                        bool isPreBuilt = metaTag?.Name == "TYPE_PREBUILD";
+
+                        // Get the package name from the Brand field, fallback to generic name if old build
+                        string buildName = metaTag?.Brand ?? (isPreBuilt ? "Pre-Built Package" : "Custom Parts Selection");
+
+                        // Filter out the metadata tag so it doesn't mess up your UI counts
+                        var actualParts = rawParts.Where(p => p.Category != "SYSTEM_METADATA").ToList();
+
                         <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;">
                             <td style="padding: 12px 16px; color: var(--muted-foreground); font-size: var(--text-xs);">@build.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
+
                             <td style="padding: 12px 16px;">
-                                <span style="background: var(--muted); padding: 2px 8px; border-radius: 4px; font-size: var(--text-xs);">@parts.Count items</span>
+                                @if (isPreBuilt)
+                                {
+                                    <span style="display: inline-flex; align-items: center; background: color-mix(in oklch, var(--primary) 15%, transparent); color: var(--primary); padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase;">
+                                        <LucideIcon Name="zap" Size="10" style="margin-right: 4px;" /> Pre-Built
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span style="display: inline-flex; align-items: center; background: var(--muted); color: var(--foreground); padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase;">
+                                        <LucideIcon Name="wrench" Size="10" style="margin-right: 4px;" /> Custom
+                                    </span>
+                                }
                             </td>
-                            <td style="padding: 12px 16px; font-weight: bold; color: var(--foreground);">₱@parts.Sum(p => p.Price).ToString("N2")</td>
+
+                            <td style="padding: 12px 16px;">
+                                <span style="background: var(--muted); padding: 2px 8px; border-radius: 4px; font-size: var(--text-xs);">@actualParts.Count items</span>
+                            </td>
+                            <td style="padding: 12px 16px; font-weight: bold; color: var(--foreground);">₱@actualParts.Sum(p => p.Price).ToString("N2")</td>
                             <td style="padding: 12px 16px;">
                                 <span style="padding: 4px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; background: rgba(255,255,255,0.05); color: @GetStatusColor(build.Status);">
                                     @build.Status
                                 </span>
                             </td>
                             <td style="padding: 12px 16px; text-align: center;">
-                                <button @onclick="() => OpenModal(build, parts)" style="background: transparent; border: 1px solid var(--border); color: var(--foreground); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: var(--text-xs);">
+                                <button @onclick="() => OpenModal(build, actualParts, buildName)" style="background: transparent; border: 1px solid var(--border); color: var(--foreground); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: var(--text-xs);">
                                     VIEW
                                 </button>
                             </td>
@@ -84,13 +111,20 @@
     }
 </div>
 
-@* --- MODAL REMAINS THE SAME BUT CLEANER --- *@
 @if (ShowModal && CurrentParts != null)
 {
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;">
-        <div style="background: var(--card); width: 600px; max-height: 85vh; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column;">
-            <div style="padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;">
-                <h3 style="margin: 0; color: var(--foreground);">Build Summary</h3>
+        <div style="background: var(--card); width: 600px; max-height: 85vh; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden;">
+            <div style="padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h3 style="margin: 0 0 6px 0; color: var(--foreground); font-size: 1.25rem;">Build Summary</h3>
+                    @if (!string.IsNullOrEmpty(modalBuildName))
+                    {
+                        <span style="display: inline-block; font-size: 11px; color: #3b82f6; text-transform: uppercase; font-weight: 800; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); padding: 4px 10px; border-radius: 6px;">
+                            @modalBuildName
+                        </span>
+                    }
+                </div>
                 <button @onclick="CloseModal" style="background: none; border: none; color: var(--muted-foreground); cursor: pointer; font-size: 1.5rem;">&times;</button>
             </div>
             <div style="padding: 20px; overflow-y: auto; flex: 1;">
@@ -125,6 +159,7 @@
     private bool ShowModal = false;
     private BuildRequest? CurrentBuild;
     private List<Product> CurrentParts = new();
+    private string modalBuildName = "";
 
     private IEnumerable<BuildRequest> FilteredBuilds
     {
@@ -132,10 +167,7 @@
         {
             if (myBuilds == null) return Enumerable.Empty<BuildRequest>();
 
-            // 1. Always show Pending and Confirmed
             var active = myBuilds.Where(b => b.Status == "Pending" || b.Status == "Confirmed");
-
-            // 2. Filter history based on date if toggle is off
             var history = myBuilds.Where(b => b.Status == "Completed" || b.Status == "Cancelled");
 
             if (!showAllHistory)
@@ -186,10 +218,11 @@
         }
     }
 
-    private void OpenModal(BuildRequest build, List<Product> parts)
+    private void OpenModal(BuildRequest build, List<Product> parts, string buildName)
     {
         CurrentBuild = build;
         CurrentParts = parts;
+        modalBuildName = string.IsNullOrWhiteSpace(buildName) ? "Custom Parts Selection" : buildName;
         ShowModal = true;
     }
 

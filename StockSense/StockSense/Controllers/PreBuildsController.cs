@@ -27,12 +27,12 @@ namespace StockSense.Controllers
             [FromQuery] decimal maxBudget)
         {
             // 1. Get packages that match the specific motor specs
-            // CRITICAL: We use .Include() to eagerly load the actual products attached to the package
             var matchingPackages = await _context.PreBuildPackages
                 .Include(p => p.IncludedProducts)
                 .Where(p => p.CompatibleBrand == brand &&
                             p.CompatibleModel == model &&
-                            p.TargetCC == cc)
+                            p.TargetCC == cc &&
+                            p.IsActive == true) // <--- THIS IS THE MAGIC FIX
                 .ToListAsync();
 
             // 2. Filter out the ones that are outside the user's budget range

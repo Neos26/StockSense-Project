@@ -232,11 +232,31 @@
     }
 </div>
 
+@* --- TOAST NOTIFICATION --- *@
+@if (showToast)
+{
+    <div style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: var(--radius); background-color: @(isToastError ? "var(--destructive-muted, #fef2f2)" : "var(--success-muted, #f0fdf4)"); border: 1px solid @(isToastError ? "var(--destructive-border, #fecaca)" : "var(--success-border, #bbf7d0)"); color: @(isToastError ? "var(--destructive-muted-foreground, #b91c1c)" : "var(--success-muted-foreground, #166534)"); box-shadow: 0 4px 12px rgba(0,0,0,0.1); animation: slideInUp 0.3s ease-out;">
+        <span style="font-size: var(--text-sm); font-weight: 600;">@toastMessage</span>
+    </div>
+}
+
 <style>
     @@keyframes fadeIn {
         from {
             opacity: 0;
             transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
         }
 
         to {
@@ -261,6 +281,12 @@
     private bool isSimulating = false;
     private int simulationMonth = DateTime.Now.Month;
     private OrderStrategy selectedStrategy = OrderStrategy.Normal;
+
+    // Toast State
+    private bool showToast = false;
+    private string toastMessage = "";
+    private bool isToastError = false;
+
     private string GetMonthName(int month) => new DateTime(2026, month, 1).ToString("MMMM");
 
     private string GetStrategyDescription(OrderStrategy strategy) => strategy switch
@@ -286,6 +312,19 @@
         {
             await GenerateSlips();
         }
+    }
+
+    private async Task ShowToast(string message, bool isError = false)
+    {
+        toastMessage = message;
+        isToastError = isError;
+        showToast = true;
+        StateHasChanged();
+
+        await Task.Delay(3000); // Display for 3 seconds
+
+        showToast = false;
+        StateHasChanged();
     }
 
     private async Task GenerateSlips()
@@ -406,9 +445,15 @@
             await OrderService.SendEmailAsync(slip.Supplier.Email, bytes, slip.SlipNumber);
             await OrderService.SaveOrderSlipToDbAsync(slip);
             slips.Remove(slip);
-            await JS.InvokeVoidAsync("alert", "Order successfully sent and recorded.");
+
+            //  Toast
+            _ = ShowToast("Order successfully sent and recorded.");
         }
-        catch (Exception ex) { await JS.InvokeVoidAsync("alert", "Error: " + ex.Message); }
+        catch (Exception ex)
+        {
+            //  Error Toast
+            _ = ShowToast("Error: " + ex.Message, true);
+        }
         finally { isSaving = false; }
     }
 

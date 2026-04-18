@@ -8,6 +8,7 @@ using StockSense.Components;
 using StockSense.Components.Account;
 using StockSense.Data;
 using StockSense.Services;
+using StockSense.Helpers;
 using StockSense.shared;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,7 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
 builder.Services.AddLocalization();
 builder.Services.AddSingleton<StockSensePredictionService>();
+
 
 // --- 2. AUTHENTICATION & COOKIES ---
 builder.Services.AddAuthentication(options =>
@@ -129,6 +131,12 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new PhDateTimeConverter());
     });
 
 var app = builder.Build();

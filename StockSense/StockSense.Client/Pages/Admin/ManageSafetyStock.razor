@@ -102,7 +102,7 @@
                                 <td style="padding: var(--space-5) var(--space-4); width: 280px;">
                                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: var(--text-sm);">
                                         <span style="font-weight: 600; color: @(isLow ? "var(--destructive)" : "var(--foreground)")">
-                                            @(isLow ? "⚠️ " : "")@p.CurrentStock units
+                                            @(isLow ? "" : "")@p.CurrentStock units
                                         </span>
                                         <span style="color: var(--muted-foreground);">Target: @p.ReorderTarget</span>
                                     </div>

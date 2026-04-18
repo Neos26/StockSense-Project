@@ -329,14 +329,44 @@
         if (selectedService == null) return;
         isSaving = true;
 
+        // 1. Update your local storage map (keeps your generic item groups intact for the UI)
         serviceItemsMap[selectedService.Id] = editingItems
-        .Select(i => new GenericItem
-        {
-            Name = i.Name,
-            LinkedProductIds = new List<int>(i.LinkedProductIds)
-        }).ToList();
+            .Select(i => new GenericItem
+            {
+                Name = i.Name,
+                LinkedProductIds = new List<int>(i.LinkedProductIds)
+            }).ToList();
 
         await SaveToLocalStorage();
+
+        // 2. Extract all unique product IDs across all generic items
+        var allLinkedProductIds = editingItems
+            .SelectMany(i => i.LinkedProductIds)
+            .Distinct()
+            .ToList();
+
+        // 3. Create the payload matching your controller's expected DTO
+        var dto = new UpdateServiceProductsDto
+        {
+            ServiceId = selectedService.Id,
+            ProductIds = allLinkedProductIds
+        };
+
+        // 4. Send the update to the database
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/services/update-products", dto);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Failed to save products to the database.");
+                // You could add an errorMessage state here to show in the UI
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"API connection error: {ex.Message}");
+        }
 
         isSaving = false;
         CloseModal();

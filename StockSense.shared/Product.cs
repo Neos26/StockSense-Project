@@ -25,10 +25,8 @@ namespace StockSense.Shared
         // Add these to your REAL Product class if they are missing!
         public int CurrentStock { get; set; }
         public int ReorderTarget { get; set; }
-
-        public int? StoreServiceId { get; set; }
-        [ForeignKey("StoreServiceId")]
-        public virtual StoreService? StoreService { get; set; } // The "Navigation"
+        [JsonIgnore]
+        public virtual ICollection<StoreService> StoreServices { get; set; } = new List<StoreService>();
 
         // This links the product to the Supplier class we just made
         public int SupplierId { get; set; }

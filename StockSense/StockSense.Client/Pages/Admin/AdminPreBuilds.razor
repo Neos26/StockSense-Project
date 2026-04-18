@@ -458,15 +458,22 @@ else
 
     public async Task ToggleActive(PreBuildPackage pkg)
     {
+        // 1. Optimistically update the UI
         pkg.IsActive = !pkg.IsActive;
+
         try
         {
-            await Http.PatchAsJsonAsync($"api/prebuilds/{pkg.Id}/toggle-active", new { IsActive = pkg.IsActive });
+            // 2. Send the update to the controller you just wrote
+            var response = await Http.PatchAsJsonAsync($"api/prebuilds/{pkg.Id}/toggle-active", new { IsActive = pkg.IsActive });
+
+            // 3. THIS IS THE MAGIC LINE: Forces an exception if the server didn't return 200 OK
+            response.EnsureSuccessStatusCode();
         }
         catch (Exception ex)
         {
-            pkg.IsActive = !pkg.IsActive; // revert on failure
-            Console.WriteLine(ex.Message);
+            // 4. Revert the UI if the database save failed
+            pkg.IsActive = !pkg.IsActive;
+            Console.WriteLine($"Failed to toggle active status: {ex.Message}");
         }
     }
 

@@ -47,7 +47,6 @@
                                 }
                                 else
                                 {
-
                                     @stepNum
                                 }
                             </div>
@@ -92,7 +91,6 @@
                             }
                             else
                             {
-
                                 <span>Follow the steps in the main window.</span>
                             }
                         </div>
@@ -208,14 +206,24 @@
                             <BbButton Variant="ButtonVariant.Default" Class="w-full" OnClick="SubmitBuildToAdmin" Disabled="@(isProcessing || !selectedParts.Any())">Submit Build to Shop</BbButton>
                         </div>
                     }
+
+                    @* "View My Builds" button inside the mobile drawer *@
+                    <div style="padding: var(--space-3) var(--space-4); border-top: 1px dashed var(--border);">
+                        <BbButton Variant="ButtonVariant.Outline" Class="w-full" OnClick='@(() => Nav.NavigateTo("/my-builds", forceLoad: true))'>
+                            <LucideIcon Name="blocks" Size="16" style="margin-right: 6px;" />
+                            View My Builds
+                        </BbButton>
+                    </div>
+
                 </div>
             }
 
             @* ── Main Content ── *@
-            <div class="build-main" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; background-color: var(--background); padding-bottom: @(mobileDrawerOpen ? "calc(70vh + var(--space-4))" : "0");">
+            @* Container is now rigid, overflow is hidden *@
+            <div class="build-main" style="flex: 1; display: flex; flex-direction: column; background-color: var(--background); overflow: hidden;">
 
-                @* Scrollable step content *@
-                <div style="flex: 1; padding: @(currentStep == 1 ? "0" : "var(--space-6)");">
+                @* Scrollable inner content area *@
+                <div class="build-scroll-area @(mobileDrawerOpen ? "drawer-open" : "")" style="flex: 1; overflow-y: auto; padding: @(currentStep == 1 ? "0" : "var(--space-6)");">
 
                     @* STEP 1: Choose Route *@
                     @if (currentStep == 1)
@@ -392,19 +400,29 @@
 
                 </div>
 
-                @* ── Navigation Bar — pinned below main content ── *@
-                @if (currentStep < TotalSteps)
+                @* ── Navigation Bar — outside scroll area so it stays pinned ── *@
+                @if (buildRoute != null)
                 {
-                    <div style="flex-shrink: 0; padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border); background-color: var(--card); display: flex; justify-content: space-between; align-items: center; gap: var(--space-3);">
-                        <BbButton Variant="ButtonVariant.Outline" OnClick="PrevStep" Disabled="@(currentStep == 1)">
+                    <div class="build-nav-bar" style="flex-shrink: 0; padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border); background-color: var(--card); display: flex; justify-content: space-between; align-items: center; gap: var(--space-3);">
+
+                        <BbButton Variant="ButtonVariant.Outline" OnClick="PrevStep">
                             <LucideIcon Name="arrow-left" Size="16" />
                             Back
                         </BbButton>
+
                         <span style="font-size: var(--text-xs); color: var(--muted-foreground);">Step @currentStep of @TotalSteps</span>
-                        <BbButton Variant="ButtonVariant.Default" OnClick="NextStep" Disabled="@(!CanProceedToNextStep)">
-                            Next
-                            <LucideIcon Name="arrow-right" Size="16" />
-                        </BbButton>
+
+                        @if (currentStep < TotalSteps)
+                        {
+                            <BbButton Variant="ButtonVariant.Default" OnClick="NextStep" Disabled="@(!CanProceedToNextStep)">
+                                Next
+                                <LucideIcon Name="arrow-right" Size="16" />
+                            </BbButton>
+                        }
+                        else
+                        {
+                            <div style="width: 85px;"></div>
+                        }
                     </div>
                 }
 
@@ -433,9 +451,33 @@
         }
     }
 
+    /* Target mobile specific adjustments */
     @@media (max-width: 767px) {
         .build-mobile-bar {
             display: flex !important;
+        }
+
+        .build-nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 40;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+        }
+
+        .build-scroll-area {
+            /* Force padding on mobile so content doesn't hide behind fixed nav bar */
+            padding-bottom: 80px !important;
+        }
+
+            .build-scroll-area.drawer-open {
+                padding-bottom: calc(70vh + 80px) !important;
+            }
+
+        .build-bottom-drawer {
+            /* Pop the drawer ABOVE the nav bar */
+            z-index: 50 !important;
         }
     }
 </style>
@@ -654,15 +696,49 @@
         try
         {
             var authState = await AuthStateTask!;
-            var userName = authState.User.Identity?.Name ?? "Guest";
+            string userEmail = authState.User.Identity?.Name ?? "Guest"; // <--- MUST USE EMAIL HERE for DB Link
+
+            // --- FETCH ACTUAL NAME FOR DISPLAY ONLY ---
+            string realName = userEmail.Contains("@") ? userEmail.Split('@')[0] : userEmail;
+            try
+            {
+                var profile = await Http.GetFromJsonAsync<UserProfile>("api/user/profile");
+                if (profile != null && !string.IsNullOrWhiteSpace(profile.FirstName))
+                {
+                    realName = $"{profile.FirstName} {profile.LastName}".Trim();
+                }
+            }
+            catch { /* Fallback to email prefix if API fails */ }
+
+            // --- Get the actual name of the selected package ---
+            string pkgName = "Custom Parts Selection";
+            if (buildRoute == "PreBuild")
+            {
+                var selectedPkg = FetchedPackages.FirstOrDefault(p => p.Id == selectedPackageId);
+                pkgName = selectedPkg?.Name ?? "Pre-Built Package";
+            }
+
+            // --- INJECT HIDDEN TAG (Storing real name in ImageUrl) ---
+            var partsToSave = new List<Product>(selectedParts);
+            partsToSave.Add(new Product
+            {
+                Id = -999,
+                Name = buildRoute == "PreBuild" ? "TYPE_PREBUILD" : "TYPE_CUSTOM",
+                Brand = pkgName,
+                ImageUrl = realName, // <--- We hide the Real Name here!
+                Category = "SYSTEM_METADATA",
+                Price = 0
+            });
+
             var buildRequest = new BuildRequest
             {
-                CustomerName = userName,
-                SelectedPartsJson = JsonSerializer.Serialize(selectedParts),
+                CustomerName = userEmail, // <--- CRITICAL: Keep this as Email so MyBuilds can find it!
+                SelectedPartsJson = JsonSerializer.Serialize(partsToSave),
                 TotalPrice = selectedParts.Sum(p => p.Price),
                 Status = "Pending",
                 CreatedAt = DateTime.Now
             };
+
             var response = await Http.PostAsJsonAsync("api/builds", buildRequest);
             if (response.IsSuccessStatusCode)
             {
@@ -676,5 +752,11 @@
         }
         catch { statusMessage = "Connection Error."; isSuccess = false; }
         finally { isProcessing = false; }
+    }
+
+    public class UserProfile
+    {
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
     }
 }

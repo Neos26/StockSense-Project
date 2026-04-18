@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StockSense.Data;
 using Microsoft.AspNetCore.Authorization;
-using StockSense.shared; // Ensure your Appointment and Mechanic models are here
 
 namespace StockSense.Controllers;
 
@@ -13,51 +12,66 @@ public class AppointmentsController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
 
+    // Standard Windows/Azure ID for Philippine Time (UTC+8)
+    private static readonly TimeZoneInfo PhZone = TimeZoneInfo.FindSystemTimeZoneById("Singapore Standard Time");
+
     public AppointmentsController(ApplicationDbContext db) => _db = db;
 
     // --- 1. CREATE: Save Appointment ---
     [HttpPost]
     public async Task<IActionResult> Create(Appointment appt)
     {
-        // Set Default Values for new Azure Columns
-        appt.Status = "Pending";
-        appt.CreatedAt = DateTime.UtcNow;
+        // FIX 1: Explicitly calculate PH time for the creation log
+        DateTime phNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, PhZone);
+        appt.CreatedAt = phNow;
 
-        // Ensure Category isn't null for the DB
+        // FIX 2: "The Nuclear Fix" for the Date Shift
+        // Strips any timezone offset coming from Blazor and treats it as a 'Dumb' local date.
+        // This prevents the server from subtracting 8 hours and moving the date to the previous day.
+        appt.AppointmentDate = DateTime.SpecifyKind(appt.AppointmentDate.Date, DateTimeKind.Unspecified);
+
+        appt.Status = "Pending";
+
         if (string.IsNullOrWhiteSpace(appt.Category))
         {
             appt.Category = "General Service";
         }
 
-        // Default Mechanic to Unassigned until Admin picks one
         if (string.IsNullOrWhiteSpace(appt.MechanicName))
         {
             appt.MechanicName = "Unassigned";
         }
 
-        _db.Appointments.Add(appt);
-        await _db.SaveChangesAsync();
-
-        return Ok(new { message = "Appointment booked successfully!", id = appt.Id });
+        try
+        {
+            _db.Appointments.Add(appt);
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "Appointment booked successfully!", id = appt.Id });
+        }
+        catch (Exception ex)
+        {
+            // Log error for debugging if database save fails
+            return StatusCode(500, new { message = "Database Error", error = ex.Message });
+        }
     }
 
-    // --- 2. GET: Booked Slots (Used by the MudBlazor/HTML DatePicker) ---
+    // --- 2. GET: Booked Slots ---
     [HttpGet("booked-slots")]
-    public async Task<ActionResult<List<string>>> GetBookedSlots([FromQuery] DateTime date, [FromQuery] string mechanic)
+    public async Task<IActionResult> GetBookedSlots([FromQuery] DateTime date, [FromQuery] string mechanic)
     {
-        // 1. Start the query looking at the specific date and active appointments
-        var query = _db.Appointments
-            .Where(a => a.AppointmentDate.Date == date.Date && a.Status != "Cancelled");
+        var searchDate = date.Date;
 
-        // 2. Filter by the specific mechanic (unless they left it as "Any Available")
+        var query = _db.Appointments
+            .Where(a => a.AppointmentDate.Date == searchDate && a.Status != "Cancelled");
+
         if (!string.IsNullOrEmpty(mechanic) && mechanic != "Any Available")
         {
             query = query.Where(a => a.MechanicName == mechanic);
         }
 
-        // 3. Execute the query and grab just the time slots
+        // UPDATED: Now grabbing TimeSlot and EstimatedMinutes
         var bookedSlots = await query
-            .Select(a => a.TimeSlot)
+            .Select(a => new { a.TimeSlot, EstimatedMinutes = a.DurationMinutes })
             .ToListAsync();
 
         return Ok(bookedSlots);
@@ -67,15 +81,13 @@ public class AppointmentsController : ControllerBase
     [HttpGet("all")]
     public async Task<ActionResult<List<Appointment>>> GetAllAppointments()
     {
-        // Returns the full model including the new MechanicName and DurationMinutes
         return await _db.Appointments
             .OrderByDescending(a => a.AppointmentDate)
             .ThenBy(a => a.TimeSlot)
             .ToListAsync();
     }
 
-    // --- 4. UPDATE: Assign Mechanic and Duration ---
-    // This uses the new columns we added to the Appointments table
+    // --- 4. UPDATE: Assign Mechanic ---
     [HttpPut("{id}/assign-mechanic")]
     public async Task<IActionResult> AssignMechanic(int id, [FromBody] MechanicAssignmentDto assignment)
     {
@@ -84,13 +96,13 @@ public class AppointmentsController : ControllerBase
 
         appointment.MechanicName = assignment.MechanicName;
         appointment.DurationMinutes = assignment.DurationMinutes;
-        appointment.Status = "Confirmed"; // Move from Pending to Confirmed
+        appointment.Status = "Confirmed";
 
         await _db.SaveChangesAsync();
         return Ok(new { message = $"Assigned to {assignment.MechanicName}" });
     }
 
-    // --- 5. UPDATE: General Status (Completed, Cancelled, etc.) ---
+    // --- 5. UPDATE: Status ---
     [HttpPut("{id}/status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] string newStatus)
     {
@@ -103,10 +115,11 @@ public class AppointmentsController : ControllerBase
         return Ok(new { message = "Status updated" });
     }
 
-    // --- 6. GET: Specific Customer Bookings ---
+    // --- 6. GET: My Bookings ---
     [HttpGet("my-bookings")]
     public async Task<ActionResult<List<Appointment>>> GetMyBookings([FromQuery] string name)
     {
+        // Sorting by the new PH-based CreatedAt timestamp
         return await _db.Appointments
             .Where(a => a.CustomerName == name)
             .OrderByDescending(a => a.CreatedAt)
@@ -114,8 +127,6 @@ public class AppointmentsController : ControllerBase
     }
 }
 
-// Helper DTO for the assignment endpoint
-// You can put this in your StockSense.shared namespace
 public class MechanicAssignmentDto
 {
     public string MechanicName { get; set; } = string.Empty;
