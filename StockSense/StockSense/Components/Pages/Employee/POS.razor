@@ -20,7 +20,13 @@
     @* --- PRODUCT CATALOG --- *@
     <div class="pos-catalog">
         <div style="flex-shrink: 0; padding: var(--space-4) var(--space-4); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--space-3);">
-            <BbInput @bind-Value="searchTerm" @bind-Value:event="oninput" Placeholder="Search products or brands..." />
+
+            @* FIX: Standard HTML input to prevent ChangeEventArgs crash during real-time typing *@
+            <input type="text"
+                   @bind="searchTerm"
+                   @bind:event="oninput"
+                   placeholder="Search products or brands..."
+                   style="width: 100%; padding: 10px 15px; border-radius: var(--radius); border: 1px solid var(--border); background-color: var(--background); color: var(--foreground); font-size: var(--text-sm); outline: none;" />
 
             <div style="display: flex; flex-wrap: nowrap; gap: var(--space-1); overflow-x: auto; padding-bottom: var(--space-1);">
                 <button type="button" @onclick="() => selectedCategory = null"
@@ -46,8 +52,9 @@
                         <div style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="@p.Name">@p.Name</div>
                         <div style="font-size: var(--text-xs); color: var(--muted-foreground); margin: var(--space-1) 0;">@p.Brand</div>
                         <div style="font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--primary);">₱@p.Price.ToString("N2")</div>
-                        <div style="font-size: var(--text-xs); font-weight: 700; color: @(p.CurrentStock <= 5 ? "var(--destructive)" : "var(--muted-foreground)"); margin-top: var(--space-1);">
-                            Stock: @p.CurrentStock
+                        <div style="display: flex; align-items: center; justify-content: center; gap: var(--space-1); margin-top: var(--space-1);">
+                            <span style="width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; background-color: @GetStockColor(p);"></span>
+                            <span style="font-size: var(--text-xs); color: var(--muted-foreground);">Stock: @p.CurrentStock</span>
                         </div>
                     </div>
                 }
@@ -223,7 +230,7 @@
 
 @code {
     private RenderFragment CartTable() =>
-        @<table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
+    @<table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
     <thead>
         <tr style="border-bottom: 1px solid var(--border);">
             <th style="text-align: left; padding: var(--space-2) var(--space-2); color: var(--muted-foreground); font-weight: var(--font-medium);">Item</th>
@@ -256,7 +263,7 @@
 </table>;
 
     private RenderFragment CartFooter() =>
-        @<div>
+    @<div>
 @if (cart.Any())
     {
     <div style="padding: var(--space-4); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--space-3); flex-shrink: 0;">
@@ -295,6 +302,11 @@ private bool isProcessing = false;
 private string? statusMessage;
 private bool cartOpen = false;
 
+private string GetStockColor(Product p) =>
+    p.CurrentStock <= 2 ? "#ef4444" :   // red   — critical / out of stock
+    p.CurrentStock < p.ReorderTarget ? "#eab308" :   // yellow — below reorder target
+    "#22c55e";
+
 // --- RECEIPT VARIABLES ---
 private bool showReceiptModal = false;
 private Transaction? completedTransaction;
@@ -312,11 +324,12 @@ private async Task LoadData()
         .ToList();
 }
 
+// FIX: Added null safety checks for Name and Brand to prevent NullReferenceExceptions
 private IEnumerable<Product> FilteredProducts => allProducts
     .Where(p => (string.IsNullOrEmpty(selectedCategory) || p.Category == selectedCategory) &&
                 (string.IsNullOrWhiteSpace(searchTerm) ||
-                 p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                 p.Brand.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
+                (p.Name != null && p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                (p.Brand != null && p.Brand.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))));
 
 private decimal TotalAmount => cart.Sum(i => i.Price * i.Quantity);
 

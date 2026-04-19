@@ -80,7 +80,7 @@ public class OrderSlipService
                         // Save the AI tracking data so we can see it on the frontend
                         IsPredictedHighDemand = ai.ConfidenceScore > 75 && ai.PredictedDemand > p.ReorderTarget,
                         ConfidenceScore = ai.ConfidenceScore,
-                        Reasoning = $"AI predicts {ai.PredictedDemand} units of demand. Formula applied: ({ai.PredictedDemand} Demand + {p.ReorderTarget} Safety) - {p.CurrentStock} Current."
+                        Reasoning = $"SS predicts {ai.PredictedDemand} units of demand. Formula applied: ({ai.PredictedDemand} Demand + {p.ReorderTarget} Safety) - {p.CurrentStock} Current."
                     };
                 }).ToList()
             };
@@ -129,7 +129,7 @@ public class OrderSlipService
                     Quantity = finalQty,
                     IsPredictedHighDemand = ai.ConfidenceScore > 75 && ai.PredictedDemand > p.ReorderTarget,
                     ConfidenceScore = ai.ConfidenceScore,
-                    Reasoning = $"AI predicts {ai.PredictedDemand} units of demand. Formula applied: ({ai.PredictedDemand} Demand + {p.ReorderTarget} Safety) - {p.CurrentStock} Current."
+                    Reasoning = $"SS predicts {ai.PredictedDemand} units of demand. Formula applied: ({ai.PredictedDemand} Demand + {p.ReorderTarget} Safety) - {p.CurrentStock} Current."
                 }
             }
         };

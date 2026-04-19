@@ -60,7 +60,7 @@ namespace StockSense.Services
             try
             {
                 if (_predictionEngine == null) InitializeEngine();
-                if (_predictionEngine == null) throw new Exception("AI Model not found.");
+                if (_predictionEngine == null) throw new Exception("Model not found.");
 
                 // Timeframe Logic: Default to current date if not specified
                 int targetMonth = overrideMonth ?? DateTime.Now.Month;
@@ -100,8 +100,8 @@ namespace StockSense.Services
                 // Dynamic reasoning including the timeframe
                 string monthName = new DateTime(2000, targetMonth, 1).ToString("MMMM");
                 resultObject.Reasoning = resultObject.FinalOrderQty > 0
-                    ? $"AI suggests {finalTarget} units for {monthName} {targetYear}."
-                    : $"Stock levels are healthy for {monthName} {targetYear}.";
+                    ? $"Aim for {finalTarget} units for {monthName} {targetYear}."
+                    : $"Healthy for {monthName} {targetYear}.";
 
                 return resultObject;
             }
@@ -111,7 +111,7 @@ namespace StockSense.Services
                 {
                     FinalOrderQty = Math.Max(0, (int)product.ReorderTarget - product.CurrentStock),
                     PredictedDemand = (int)product.ReorderTarget,
-                    Reasoning = "AI Fallback: Using manual reorder targets."
+                    Reasoning = "Fallback: Using manual reorder targets."
                 };
             }
         }

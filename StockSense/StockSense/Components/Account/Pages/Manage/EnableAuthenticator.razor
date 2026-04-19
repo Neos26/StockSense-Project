@@ -23,11 +23,31 @@
 }
 else
 {
-    <StatusMessage Message="@message" />
+
 
     <h1 style="font-size: var(--text-2xl); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-1) 0;">Authenticator App</h1>
     <h2 style="font-size: var(--text-base); font-weight: var(--font-normal); color: var(--muted-foreground); margin: 0 0 var(--space-6) 0;">Configure your two-factor authenticator app.</h2>
     <div style="border-top: 1px solid var(--border); margin-bottom: var(--space-6);"></div>
+    @* --- CUSTOM STATUS MESSAGE --- *@
+    @if (!string.IsNullOrEmpty(message))
+    {
+        var isError = message.StartsWith("Error") || message.StartsWith("Unable");
+
+        <div style="margin-bottom: var(--space-6); padding: var(--space-3); border-radius: var(--radius); border: 1px solid; display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm);
+                            @(isError ? "background-color: var(--destructive-muted); border-color: var(--destructive-border); color: var(--destructive-muted-foreground);"
+                                     : "background-color: var(--success-muted); border-color: var(--success-border); color: var(--success-muted-foreground);")" role="alert">
+
+            @if (isError)
+            {
+                <LucideIcon Name="alert-triangle" Size="18" style="flex-shrink: 0;" />
+            }
+            else
+            {
+                <LucideIcon Name="check" Size="18" style="flex-shrink: 0;" />
+            }
+            <span style="font-weight: var(--font-medium);">@message</span>
+        </div>
+    }
 
     <div style="display: flex; flex-direction: column; gap: var(--space-6);">
 
@@ -44,22 +64,17 @@ else
         </div>
 
         <div style="display: flex; flex-direction: column; gap: var(--space-2);">
-            <p style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); margin: 0;">Step 2 — Scan the QR code or enter the key</p>
+            <p style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); margin: 0;">Step 2 — Enter the key</p>
             <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Spaces and casing do not matter.</p>
             <div style="display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); background-color: var(--muted); border-radius: var(--radius); border: 1px solid var(--border);">
                 <code style="font-size: var(--text-sm); font-family: var(--font-mono); color: var(--foreground); letter-spacing: 0.05em;">@sharedKey</code>
-            </div>
-            <div style="padding: var(--space-3) var(--space-4); background-color: var(--info-muted); border: 1px solid var(--info-border); border-radius: var(--radius);">
-                <p style="font-size: var(--text-sm); color: var(--info-muted-foreground); margin: 0;">
-                    Learn how to <a href="https://go.microsoft.com/fwlink/?Linkid=852423" style="color: var(--info-muted-foreground); text-decoration: underline;">enable QR code generation</a>.
-                </p>
             </div>
             <div data-url="@authenticatorUri"></div>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: var(--space-2);">
             <p style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); margin: 0;">Step 3 — Enter the verification code</p>
-            <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Once you have scanned the QR code, your authenticator app will provide a unique code. Enter it below.</p>
+            <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Once you have input the key, your authenticator app will provide a unique code. Enter it below.</p>
 
             <EditForm Model="Input" FormName="send-code" OnValidSubmit="OnValidSubmitAsync" method="post">
                 <DataAnnotationsValidator />
@@ -103,6 +118,15 @@ else
     {
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
 
+
+        var messageFromCookie = HttpContext.Request.Cookies[IdentityRedirectManager.StatusCookieName];
+        if (messageFromCookie is not null)
+        {
+            message = messageFromCookie;
+            HttpContext.Response.Cookies.Delete(IdentityRedirectManager.StatusCookieName);
+        }
+
+
         await LoadSharedKeyAndQrCodeUriAsync(user);
     }
 
@@ -138,7 +162,7 @@ else
 
     private async ValueTask LoadSharedKeyAndQrCodeUriAsync(ApplicationUser user)
     {
-        // Load the authenticator key & QR code URI to display on the form
+        // Load the authenticator key & URI to display on the form
         var unformattedKey = await UserManager.GetAuthenticatorKeyAsync(user);
         if (string.IsNullOrEmpty(unformattedKey))
         {

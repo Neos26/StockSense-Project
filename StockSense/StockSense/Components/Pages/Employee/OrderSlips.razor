@@ -65,7 +65,7 @@
                 <div>
                     <label style="font-weight: var(--font-bold); color: var(--foreground); display: block; margin-bottom: var(--space-2);">Ordering Strategy</label>
                     <select @bind="selectedStrategy" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--input); background: var(--background); color: var(--foreground); margin-bottom: 4px;">
-                        <option value="@OrderStrategy.Normal">Normal (AI Baseline)</option>
+                        <option value="@OrderStrategy.Normal">Normal (Predictive Baseline)</option>
                         <option value="@OrderStrategy.Conservative">Conservative (Minimize Cost)</option>
                         <option value="@OrderStrategy.Aggressive">Aggressive (Prevent Stockouts)</option>
                     </select>
@@ -145,11 +145,27 @@
                             </div>
                         </div>
 
-                        <div style="flex: 1; min-width: 260px; background-color: var(--background); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4);">
+                        <div style="flex: 1; min-width: 380px; background-color: var(--background); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4);">
                             <label style="display: block; font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--muted-foreground); margin-bottom: var(--space-2);">Order Unlisted Item</label>
                             <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
                                 <input type="text" placeholder="Name" @bind="newProductName" style="flex: 2; min-width: 120px; padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); outline: none;" />
-                                <input type="text" placeholder="Brand" @bind="newProductBrand" style="flex: 1; min-width: 80px; padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); outline: none;" />
+
+                                <select @bind="newProductBrand" style="flex: 1; min-width: 90px; padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); outline: none;">
+                                    <option value="">- Brand -</option>
+                                    @foreach (var brand in allProducts.Select(p => p.Brand).Where(b => !string.IsNullOrWhiteSpace(b)).Distinct().OrderBy(b => b))
+                                    {
+                                        <option value="@brand">@brand</option>
+                                    }
+                                </select>
+
+                                <select @bind="newProductCategory" style="flex: 1; min-width: 100px; padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); outline: none;">
+                                    <option value="">- Category -</option>
+                                    @foreach (var category in allProducts.Select(p => p.Category).Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().OrderBy(c => c))
+                                    {
+                                        <option value="@category">@category</option>
+                                    }
+                                </select>
+
                                 <BbButton Variant="ButtonVariant.Default" Size="ButtonSize.Small" OnClick="() => AddNewUnlistedItem(slip)">Add</BbButton>
                             </div>
                         </div>
@@ -163,7 +179,7 @@
                                     <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground);">Stock</th>
                                     <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground);">Target</th>
                                     <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); width: 100px;">Order Qty</th>
-                                    <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); width: 180px;">AI Logic Explanation</th>
+                                    <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); width: 180px;">Reliability</th>
                                     <th style="width: 44px;"></th>
                                 </tr>
                             </thead>
@@ -191,7 +207,7 @@
                                             {
                                                 <div style="font-size: 11px; line-height: 1.4;">
                                                     <div style="font-weight: bold; color: @(item.ConfidenceScore >= 80 ? "#22c55e" : "#f59e0b");">
-                                                        AI Reliability: @item.ConfidenceScore%
+                                                         @item.ConfidenceScore%
                                                     </div>
                                                     <div style="color: var(--muted-foreground); font-size: 10px; margin-top: 2px;">
                                                         @item.Reasoning
@@ -200,7 +216,7 @@
                                             }
                                             else
                                             {
-                                                <span style="font-size: 11px; color: var(--muted-foreground); font-style: italic;">Manual stock adjustment. AI forecasting logic is not active for this item.</span>
+                                                <span style="font-size: 11px; color: var(--muted-foreground); font-style: italic;">Manual stock adjustment. Forecasting logic is not active for this item.</span>
                                             }
                                         </td>
                                         <td style="padding: var(--space-3) var(--space-4); text-align: center;">
@@ -293,7 +309,7 @@
     {
         OrderStrategy.Conservative => "Order only what is strictly necessary to meet the safety buffer.",
         OrderStrategy.Aggressive => "Order extra units to buffer against potential stockouts and high demand.",
-        _ => "Standard AI forecasting based on historical demand trends."
+        _ => "Standard forecasting based on historical demand trends."
     };
 
     protected override async Task OnInitializedAsync()
@@ -339,7 +355,7 @@
             {
                 int? month = isSimulating ? simulationMonth : null;
                 var strategy = isSimulating ? selectedStrategy : OrderStrategy.Normal;
-                var ai = PredictionService.GetPredictiveOrderQty(product, month, null,strategy);
+                var ai = PredictionService.GetPredictiveOrderQty(product, month, null, strategy);
 
                 int calculatedQty = (ai.PredictedDemand + product.ReorderTarget) - product.CurrentStock;
                 int finalQty = Math.Max(calculatedQty, 0);
@@ -355,7 +371,7 @@
                     {
                         supplierOrders[product.SupplierId] = new OrderSlip
                         {
-                            SlipNumber = $"AI-ORD-{DateTime.Now:yyyyMMdd}-{product.SupplierId}",
+                            SlipNumber = $"SS-ORD-{DateTime.Now:yyyyMMdd}-{product.SupplierId}",
                             SupplierId = product.SupplierId,
                             Supplier = product.Supplier,
                             DateGenerated = DateTime.Now,
@@ -403,11 +419,11 @@
         if (selectedProductId == 0) return;
         var p = allProducts.Find(x => x.Id == selectedProductId);
         var ai = PredictionService.GetPredictiveOrderQty(
-    product: p,
-    overrideMonth: isSimulating ? simulationMonth : null,
-    overrideYear: isSimulating ? DateTime.Now.Year : null, // Optional: defaults to current year
-    strategy: isSimulating ? selectedStrategy : OrderStrategy.Normal
-);
+            product: p,
+            overrideMonth: isSimulating ? simulationMonth : null,
+            overrideYear: isSimulating ? DateTime.Now.Year : null, // Optional: defaults to current year
+            strategy: isSimulating ? selectedStrategy : OrderStrategy.Normal
+        );
 
         int calculatedQty = (ai.PredictedDemand + p.ReorderTarget) - p.CurrentStock;
         int finalQty = Math.Max(calculatedQty, 1);
@@ -429,16 +445,21 @@
     private void AddNewUnlistedItem(OrderSlip slip)
     {
         if (string.IsNullOrWhiteSpace(newProductName)) return;
+
         slip.Items.Add(new OrderSlipItem
         {
             ProductName = newProductName,
-            Brand = newProductBrand,
-            Category = "Manual Entry",
+            Brand = string.IsNullOrWhiteSpace(newProductBrand) ? "Unknown" : newProductBrand,
+            Category = string.IsNullOrWhiteSpace(newProductCategory) ? "Uncategorized" : newProductCategory,
             Quantity = 1,
             CurrentStock = 0,
             ReorderTarget = 0
         });
-        newProductName = ""; newProductBrand = "";
+
+        // Clear out the form fields
+        newProductName = "";
+        newProductBrand = "";
+        newProductCategory = "";
     }
 
     private async Task SendEmailAndSave(OrderSlip slip)

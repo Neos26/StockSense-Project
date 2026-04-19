@@ -75,35 +75,28 @@ public class ProductsController : ControllerBase
 
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProduct(int id, Product product)
+    public async Task<IActionResult> UpdateProduct(int id, Product updatedProduct)
     {
-        // 1. Validation
-        if (id != product.Id)
-        {
-            return BadRequest("Product ID mismatch.");
-        }
+        if (id != updatedProduct.Id) return BadRequest();
 
-        // 2. Mark the entity as modified
-        _context.Entry(product).State = EntityState.Modified;
+        // 1. Get the existing record from the DB
+        var dbProduct = await _context.Products.FindAsync(id);
+        if (dbProduct == null) return NotFound();
 
+        // 2. ONLY update the two fields from your modal
+        dbProduct.Price = updatedProduct.Price;
+        dbProduct.ReorderTarget = updatedProduct.ReorderTarget;
+
+        // 3. Save only these changes
         try
         {
-            // 3. Persist to Database
             await _context.SaveChangesAsync();
+            return NoContent();
         }
-        catch (DbUpdateConcurrencyException)
+        catch (Exception ex)
         {
-            if (!_context.Products.Any(e => e.Id == id))
-            {
-                return NotFound();
-            }
-            else
-            {
-                throw;
-            }
+            return StatusCode(500, ex.Message);
         }
-
-        return NoContent(); // Success, standard for PUT
     }
 
     public class EmailQuoteRequest
