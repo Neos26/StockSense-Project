@@ -15,61 +15,66 @@
 
 <PageTitle>Log in</PageTitle>
 
-<div style="display: flex; padding: 2vh; justify-content: center; align-items: center; min-height: 100%; background-color: var(--background); font-family: var(--font-sans);">
-    <div style="background-color: var(--card); color: var(--card-foreground); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: var(--card-padding); max-width: var(--card-max-width-sm); width: 100%;">
-        <h1 style="text-align: center; font-size: var(--text-3xl); font-weight: var(--font-semibold); color: var(--foreground);">Log in</h1>
+<div class="flex flex-col h-[calc(100vh-64px)] justify-center items-center bg-background font-sans overflow-hidden px-4">
+    <div class="bg-card text-card-foreground border border-border rounded-lg shadow-lg p-8 max-w-sm w-full transition-all">
+        <h1 class="text-center text-3xl font-semibold text-foreground mb-2">Log in</h1>
 
         <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
             <DataAnnotationsValidator />
-            <h2 style="text-align: center; font-size: var(--text-xl); font-weight: var(--font-medium); margin-bottom: var(--space-4); color: var(--muted-foreground);">Use a local account to log in.</h2>
-            <div style="border-top: 1px solid var(--border); margin: var(--space-6) 0;"></div>
-            <StatusMessage Message="@errorMessage" />
-            <ValidationSummary style="margin-bottom: var(--space-6); color: var(--destructive); background-color: var(--destructive-muted); padding: var(--space-2); border: 1px solid var(--destructive-border); border-radius: var(--radius);" role="alert" />
+            <h2 class="text-center text-base font-medium mb-4 text-muted-foreground">Use a local account to log in.</h2>
+            
+            <div class="border-t border-border my-6"></div>
+            
+            @* --- CUSTOM ERROR MESSAGE (Replaces StatusMessage) --- *@
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="mb-6 text-sm text-destructive bg-destructive-muted p-3 border border-destructive-border rounded-lg" role="alert">
+                    @errorMessage
+                </div>
+            }
 
-            <div style="margin-bottom: var(--space-6);">
-                <label style="display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-2); color: var(--foreground);">Email</label>
-                <InputText @bind-Value="Input.Email" style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;" placeholder="name@example.com" autocomplete="username" aria-required="true" />
-                <div style="font-size: var(--text-xs); color: var(--destructive); margin-top: var(--space-1);">
+            @* --- VALIDATION SUMMARY --- *@
+            <ValidationSummary class="mb-6 text-sm text-destructive bg-destructive-muted p-3 border border-destructive-border rounded-lg list-inside" role="alert" />
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2 text-foreground">Email</label>
+                <InputText @bind-Value="Input.Email" class="w-full py-2 px-3 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="name@example.com" autocomplete="username" aria-required="true" />
+                <div class="text-xs text-destructive mt-1">
                     <ValidationMessage For="() => Input.Email" />
                 </div>
             </div>
 
-            <div>
-                <div style="display: flex; justify-content: space-between;">
-                    <label style="display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-2); color: var(--foreground);">Password</label>
-                    <p style="font-size: var(--text-sm);">
-                        <a href="Account/ForgotPassword" style="color: var(--primary); text-decoration: none;">Forgot your password?</a>
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-sm font-medium text-foreground m-0">Password</label>
+                    <p class="text-xs m-0">
+                        <a href="Account/ForgotPassword" class="text-primary hover:underline">Forgot password?</a>
                     </p>
                 </div>
-                <InputText type="password" @bind-Value="Input.Password" style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;" placeholder="password" autocomplete="current-password" aria-required="true" />
-                <div style="font-size: var(--text-xs); color: var(--destructive); margin-top: var(--space-1);">
+                <InputText type="password" @bind-Value="Input.Password" class="w-full py-2 px-3 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="password" autocomplete="current-password" aria-required="true" />
+                <div class="text-xs text-destructive mt-1">
                     <ValidationMessage For="() => Input.Password" />
                 </div>
             </div>
 
-            <div style="margin-bottom: var(--space-6); display: flex; align-items: center; gap: var(--space-2);">
-                <InputCheckbox @bind-Value="Input.RememberMe" id="remember-me" style="width: 1rem; height: 1rem; border-radius: calc(var(--radius) * 0.5); border: 1px solid var(--input); cursor: pointer;" />
-                <label for="remember-me" style="font-size: var(--text-sm); color: var(--foreground); margin: 0; cursor: pointer;">Remember me</label>
+            <div class="mb-6 flex items-center gap-2">
+                <InputCheckbox @bind-Value="Input.RememberMe" id="remember-me" class="w-4 h-4 rounded-sm border border-input accent-primary cursor-pointer" />
+                <label for="remember-me" class="text-sm text-foreground m-0 cursor-pointer">Remember me</label>
             </div>
 
-            <div style="margin-bottom: var(--space-6);">
-                <button type="submit" style="width: 100%; padding: var(--btn-padding-y) var(--btn-padding-x); border-radius: var(--radius); background-color: var(--primary); color: var(--primary-foreground); font-size: var(--btn-font-size); font-weight: var(--btn-font-weight); border: none; cursor: pointer;">Log in</button>
+            <div class="mb-6">
+                <button type="submit" class="w-full py-2.5 px-4 rounded-lg bg-primary hover:opacity-90 text-primary-foreground text-sm font-medium border-none cursor-pointer transition-opacity">
+                    Log in
+                </button>
             </div>
 
-            <div style="text-align: center;">
-                <p style="font-size: var(--text-sm); margin: var(--space-2) 0;">
-                    <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))" style="color: var(--primary); text-decoration: none;">Register as a new user</a>
+            <div class="text-center flex flex-col gap-3 mt-4">
+                <p class="text-sm m-0">
+                    <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))" class="text-primary hover:underline">Register as a new user</a>
                 </p>
-                <p style="font-size: var(--text-sm); margin: var(--space-2) 0;">
-                    <a href="Account/ResendEmailConfirmation" style="color: var(--primary); text-decoration: none;">Resend email confirmation</a>
+                <p class="text-sm m-0">
+                    <a href="Account/ResendEmailConfirmation" class="text-primary hover:underline">Resend email confirmation</a>
                 </p>
-            </div>
-
-            <div style="border-top: 1px solid var(--border); margin: var(--space-6) 0;"></div>
-
-            <div style="text-align: center;">
-                <h3 style="font-size: var(--text-lg); font-weight: var(--font-medium); margin-bottom: var(--space-4); color: var(--foreground);">Use another service to log in.</h3>
-                <ExternalLoginPicker />
             </div>
         </EditForm>
     </div>
@@ -97,7 +102,6 @@
 
     public async Task LoginUser()
     {
-        // CHANGE 1: Set lockoutOnFailure to true
         var result = await SignInManager.PasswordSignInAsync(
             Input.Email,
             Input.Password,
@@ -122,11 +126,9 @@
             }
             else
             {
-                // Customers (or users with no role yet) go here
                 RedirectManager.RedirectTo(ReturnUrl ?? "/");
             }
         }
-        // CHANGE 2: Add a check for result.IsLockedOut
         else if (result.IsLockedOut)
         {
             Logger.LogWarning("User account locked out.");
@@ -138,7 +140,7 @@
         }
         else
         {
-            errorMessage = "Error: Invalid login attempt.";
+            errorMessage = "Invalid login attempt. Please check your credentials and try again.";
         }
     }
 

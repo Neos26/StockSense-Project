@@ -29,10 +29,10 @@
                 </button>
                 @foreach (var cat in categories)
                 {
-                    <button type="button" @onclick="() => selectedCategory = cat"
-                            style="padding: var(--space-1) var(--space-3); border-radius: 9999px; font-size: var(--text-xs); font-weight: var(--font-medium); border: 1px solid @(selectedCategory == cat ? "var(--primary)" : "var(--border)"); cursor: pointer; background-color: @(selectedCategory == cat ? "var(--primary)" : "transparent"); color: @(selectedCategory == cat ? "var(--primary-foreground)" : "var(--foreground)"); white-space: nowrap; flex-shrink: 0;">
-                        @cat
-                    </button>
+                <button type="button" @onclick="() => selectedCategory = cat"
+                        style="padding: var(--space-1) var(--space-3); border-radius: 9999px; font-size: var(--text-xs); font-weight: var(--font-medium); border: 1px solid @(selectedCategory == cat ? "var(--primary)" : "var(--border)"); cursor: pointer; background-color: @(selectedCategory == cat ? "var(--primary)" : "transparent"); color: @(selectedCategory == cat ? "var(--primary-foreground)" : "var(--foreground)"); white-space: nowrap; flex-shrink: 0;">
+                    @cat
+                </button>
                 }
             </div>
         </div>
@@ -41,16 +41,16 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: var(--space-3);">
                 @foreach (var p in FilteredProducts)
                 {
-                    <div @onclick="() => AddToCart(p)"
-                         style="padding: var(--space-3); border-radius: var(--radius); border: 2px solid @(cart.Any(i => i.ProductId == p.Id) ? "var(--primary)" : "var(--border)"); background-color: @(cart.Any(i => i.ProductId == p.Id) ? "var(--accent)" : "var(--background)"); cursor: @(p.CurrentStock <= 0 ? "not-allowed" : "pointer"); opacity: @(p.CurrentStock <= 0 ? "0.5" : "1"); text-align: center; transition: border-color 0.15s;">
-                        <div style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="@p.Name">@p.Name</div>
-                        <div style="font-size: var(--text-xs); color: var(--muted-foreground); margin: var(--space-1) 0;">@p.Brand</div>
-                        <div style="font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--primary);">₱@p.Price.ToString("N2")</div>
-                        <div style="display: flex; align-items: center; justify-content: center; gap: var(--space-1); margin-top: var(--space-1);">
-                            <span style="width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; background-color: @GetStockColor(p);"></span>
-                            <span style="font-size: var(--text-xs); color: var(--muted-foreground);">Stock: @p.CurrentStock</span>
-                        </div>
+                <div @onclick="() => AddToCart(p)"
+                     style="padding: var(--space-3); border-radius: var(--radius); border: 2px solid @(cart.Any(i => i.ProductId == p.Id) ? "var(--primary)" : "var(--border)"); background-color: @(cart.Any(i => i.ProductId == p.Id) ? "var(--accent)" : "var(--background)"); cursor: @(p.CurrentStock <= 0 ? "not-allowed" : "pointer"); opacity: @(p.CurrentStock <= 0 ? "0.5" : "1"); text-align: center; transition: border-color 0.15s;">
+                    <div style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="@p.Name">@p.Name</div>
+                    <div style="font-size: var(--text-xs); color: var(--muted-foreground); margin: var(--space-1) 0;">@p.Brand</div>
+                    <div style="font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--primary);">₱@p.Price.ToString("N2")</div>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: var(--space-1); margin-top: var(--space-1);">
+                        <span style="width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; background-color: @GetStockColor(p);"></span>
+                        <span style="font-size: var(--text-xs); color: var(--muted-foreground);">Stock: @p.CurrentStock</span>
                     </div>
+                </div>
                 }
             </div>
         </div>
@@ -66,14 +66,14 @@
         <div style="flex: 1; overflow-x: hidden; overflow-y: auto; padding: var(--space-4);">
             @if (!cart.Any())
             {
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: var(--space-3); color: var(--muted-foreground);">
-                    <LucideIcon Name="shopping-cart" Size="40" />
-                    <p style="font-size: var(--text-sm); margin: 0;">Cart is empty</p>
-                </div>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: var(--space-3); color: var(--muted-foreground);">
+                <LucideIcon Name="shopping-cart" Size="40" />
+                <p style="font-size: var(--text-sm); margin: 0;">Cart is empty</p>
+            </div>
             }
             else
             {
-                @CartTable()
+            @CartTable()
             }
         </div>
 
@@ -83,10 +83,10 @@
     @* --- MOBILE CART DRAWER --- *@
     @if (cartOpen && cart.Any())
     {
-        <div @onclick="() => cartOpen = false"
-             style="position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 40; display: none;"
-             class="pos-mobile-backdrop">
-        </div>
+    <div @onclick="() => cartOpen = false"
+         style="position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 40; display: none;"
+         class="pos-mobile-backdrop">
+    </div>
     }
 
     <div class="pos-cart-mobile @(cartOpen ? "pos-cart-mobile-open" : "")">
@@ -99,7 +99,7 @@
                 </span>
                 @if (cart.Any())
                 {
-                    <span style="background-color: var(--primary); color: var(--primary-foreground); border-radius: 9999px; padding: 0 var(--space-2); font-size: var(--text-xs); font-weight: var(--font-bold);">
+                <span style="background-color: var(--primary); color: var(--primary-foreground); border-radius: 9999px; padding: 0 var(--space-2); font-size: var(--text-xs); font-weight: var(--font-bold);">
                         @cart.Sum(i => i.Quantity)
                     </span>
                 }
@@ -112,38 +112,38 @@
 
         @if (cartOpen)
         {
-            <div style="flex: 1; overflow-y: auto; padding: var(--space-4);">
-                @if (!cart.Any())
-                {
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--space-8); gap: var(--space-3); color: var(--muted-foreground);">
-                        <LucideIcon Name="shopping-cart" Size="32" />
-                        <p style="font-size: var(--text-sm); margin: 0;">Cart is empty</p>
-                    </div>
-                }
-                else
-                {
-                    @CartTable()
-                }
+        <div style="flex: 1; overflow-y: auto; padding: var(--space-4);">
+            @if (!cart.Any())
+            {
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--space-8); gap: var(--space-3); color: var(--muted-foreground);">
+                <LucideIcon Name="shopping-cart" Size="32" />
+                <p style="font-size: var(--text-sm); margin: 0;">Cart is empty</p>
             </div>
+            }
+            else
+            {
+            @CartTable()
+            }
+        </div>
         }
 
         <div style="padding: var(--space-4); border-top: 1px solid var(--border); flex-shrink: 0;">
             @if (!string.IsNullOrEmpty(statusMessage))
             {
-                <div style="margin-bottom: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius); background-color: var(--success-muted); border: 1px solid var(--success-border); font-size: var(--text-sm); color: var(--success-muted-foreground);">
-                    @statusMessage
-                </div>
+            <div style="margin-bottom: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius); background-color: var(--success-muted); border: 1px solid var(--success-border); font-size: var(--text-sm); color: var(--success-muted-foreground);">
+                @statusMessage
+            </div>
             }
             <BbButton Variant="ButtonVariant.Default" Class="w-full" OnClick="Checkout" Disabled="@(isProcessing || !cart.Any())">
                 @if (isProcessing)
                 {
-                    <BbSpinner Size="SpinnerSize.Small" />
-                    <span>Processing...</span>
+                <BbSpinner Size="SpinnerSize.Small" />
+                <span>Processing...</span>
                 }
                 else
                 {
-                    <LucideIcon Name="check" Size="16" />
-                    <span>Confirm Sale — ₱@TotalAmount.ToString("N2")</span>
+                <LucideIcon Name="check" Size="16" />
+                <span>Confirm Sale — ₱@TotalAmount.ToString("N2")</span>
                 }
             </BbButton>
         </div>
@@ -153,141 +153,141 @@
 @* --- E-RECEIPT MODAL --- *@
 @if (showReceiptModal && completedTransaction != null)
 {
-    <div class="receipt-backdrop no-print"></div>
-    <div class="receipt-modal">
-        <div id="printableReceipt" class="receipt-content">
+<div class="receipt-backdrop no-print"></div>
+<div class="receipt-modal">
+    <div id="printableReceipt" class="receipt-content">
 
-            <div class="receipt-header">
-                <h2>SAPSHOP MOTORCYCLE PARTS AND ACCESSORIES SHOP</h2>
-                <p>CHIA D. CUNANAN - Prop.</p>
-                <p>NON VAT REG. TIN 483-627-084-00000</p>
-                <p>B1, L70, Model Community, Pio, 2008 Porac, Pampanga</p>
-                <h3 style="margin-top: 15px; text-decoration: underline;">SALES INVOICE</h3>
+        <div class="receipt-header">
+            <h2>SAPSHOP MOTORCYCLE PARTS AND ACCESSORIES SHOP</h2>
+            <p>CHIA D. CUNANAN - Prop.</p>
+            <p>NON VAT REG. TIN 483-627-084-00000</p>
+            <p>B1, L70, Model Community, Pio, 2008 Porac, Pampanga</p>
+            <h3 style="margin-top: 15px; text-decoration: underline;">SALES INVOICE</h3>
+        </div>
+
+        <div class="receipt-meta">
+            <div><strong>Date:</strong> @completedTransaction.TransactionDate.ToString("MM/dd/yyyy HH:mm")</div>
+            <div><strong>Invoice No:</strong> @completedTransaction.InvoiceNumber</div>
+        </div>
+
+        <table class="receipt-table">
+            <thead>
+            <tr>
+                <th style="text-align: left;">Item Description</th>
+                <th style="text-align: center;">Qty</th>
+                <th style="text-align: right;">Unit Price</th>
+                <th style="text-align: right;">Amount</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in completedTransaction.Items)
+            {
+            <tr>
+                <td style="text-align: left;">@item.ProductName</td>
+                <td style="text-align: center;">@item.Quantity</td>
+                <td style="text-align: right;">@item.UnitPrice.ToString("N2")</td>
+                <td style="text-align: right;">@((item.UnitPrice * item.Quantity).ToString("N2"))</td>
+            </tr>
+            }
+            </tbody>
+        </table>
+
+        <div class="receipt-summary">
+            <div class="summary-row">
+                <span>Total Sales:</span>
+                <span>@completedTransaction.TotalAmount.ToString("N2")</span>
             </div>
-
-            <div class="receipt-meta">
-                <div><strong>Date:</strong> @completedTransaction.TransactionDate.ToString("MM/dd/yyyy HH:mm")</div>
-                <div><strong>Invoice No:</strong> @completedTransaction.InvoiceNumber</div>
+            <div class="summary-row">
+                <span>Less: Discount:</span>
+                <span>0.00</span>
             </div>
-
-            <table class="receipt-table">
-                <thead>
-                    <tr>
-                        <th style="text-align: left;">Item Description</th>
-                        <th style="text-align: center;">Qty</th>
-                        <th style="text-align: right;">Unit Price</th>
-                        <th style="text-align: right;">Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in completedTransaction.Items)
-                    {
-                        <tr>
-                            <td style="text-align: left;">@item.ProductName</td>
-                            <td style="text-align: center;">@item.Quantity</td>
-                            <td style="text-align: right;">@item.UnitPrice.ToString("N2")</td>
-                            <td style="text-align: right;">@((item.UnitPrice * item.Quantity).ToString("N2"))</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-
-            <div class="receipt-summary">
-                <div class="summary-row">
-                    <span>Total Sales:</span>
-                    <span>@completedTransaction.TotalAmount.ToString("N2")</span>
-                </div>
-                <div class="summary-row">
-                    <span>Less: Discount:</span>
-                    <span>0.00</span>
-                </div>
-                <div class="summary-row" style="font-weight: bold; border-top: 1px dashed #000; padding-top: 5px; margin-top: 5px;">
-                    <span>TOTAL AMOUNT DUE:</span>
-                    <span>₱@completedTransaction.TotalAmount.ToString("N2")</span>
-                </div>
-            </div>
-
-            <div class="receipt-footer">
-                <p>"THIS DOCUMENT IS NOT VALID FOR CLAIM OF INPUT TAX"</p>
-                <p style="margin-top: 10px; font-style: italic;">Generated by StockSense Inventory System</p>
+            <div class="summary-row" style="font-weight: bold; border-top: 1px dashed #000; padding-top: 5px; margin-top: 5px;">
+                <span>TOTAL AMOUNT DUE:</span>
+                <span>₱@completedTransaction.TotalAmount.ToString("N2")</span>
             </div>
         </div>
 
-        <div class="receipt-actions no-print">
-            <BbButton Variant="ButtonVariant.Outline" OnClick="CloseReceipt">Close</BbButton>
-            <BbButton Variant="ButtonVariant.Default" OnClick="PrintReceipt">
-                <LucideIcon Name="printer" Size="16" /> Print / Save PDF
-            </BbButton>
+        <div class="receipt-footer">
+            <p>"THIS DOCUMENT IS NOT VALID FOR CLAIM OF INPUT TAX"</p>
+            <p style="margin-top: 10px; font-style: italic;">Generated by StockSense Inventory System</p>
         </div>
     </div>
+
+    <div class="receipt-actions no-print">
+        <BbButton Variant="ButtonVariant.Outline" OnClick="CloseReceipt">Close</BbButton>
+        <BbButton Variant="ButtonVariant.Default" OnClick="PrintReceipt">
+            <LucideIcon Name="printer" Size="16" /> Print / Save PDF
+        </BbButton>
+    </div>
+</div>
 }
 
 @code {
-    private RenderFragment CartTable() =>
-        @<table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
+private RenderFragment CartTable() =>
+@<table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
     <thead>
-        <tr style="border-bottom: 1px solid var(--border);">
-            <th style="text-align: left; padding: var(--space-2) var(--space-2); color: var(--muted-foreground); font-weight: var(--font-medium);">Item</th>
-            <th style="text-align: left; padding: var(--space-2) var(--space-2); color: var(--muted-foreground); font-weight: var(--font-medium);">Qty</th>
-            <th style="text-align: right; padding: var(--space-2) var(--space-2); color: var(--muted-foreground); font-weight: var(--font-medium);">Total</th>
-            <th style="padding: var(--space-2) var(--space-2);"></th>
-        </tr>
+    <tr style="border-bottom: 1px solid var(--border);">
+        <th style="text-align: left; padding: var(--space-2) var(--space-2); color: var(--muted-foreground); font-weight: var(--font-medium);">Item</th>
+        <th style="text-align: left; padding: var(--space-2) var(--space-2); color: var(--muted-foreground); font-weight: var(--font-medium);">Qty</th>
+        <th style="text-align: right; padding: var(--space-2) var(--space-2); color: var(--muted-foreground); font-weight: var(--font-medium);">Total</th>
+        <th style="padding: var(--space-2) var(--space-2);"></th>
+    </tr>
     </thead>
     <tbody>
-        @foreach (var item in cart)
-                {
-        <tr style="border-bottom: 1px solid var(--border);">
-            <td style="padding: var(--space-2) var(--space-2); color: var(--foreground);">@item.ProductName</td>
-            <td style="padding: var(--space-2) var(--space-2);">
-                <input type="number"
-                       value="@item.Quantity"
-                       @onchange="@(e => UpdateCartQuantity(item, e))"
-                       min="1"
-                       style="width: 56px; padding: var(--space-1) var(--space-2); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--text-sm); box-sizing: border-box;" />
-            </td>
-            <td style="padding: var(--space-2) var(--space-2); text-align: right; color: var(--foreground);">₱@((item.Price * item.Quantity).ToString("N2"))</td>
-            <td style="padding: var(--space-2) var(--space-2);">
-                <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" OnClick="() => cart.Remove(item)">
-                    <LucideIcon Name="x" Size="14" />
-                </BbButton>
-            </td>
-        </tr>
-                }
+    @foreach (var item in cart)
+    {
+    <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: var(--space-2) var(--space-2); color: var(--foreground);">@item.ProductName</td>
+        <td style="padding: var(--space-2) var(--space-2);">
+            <input type="number"
+                   value="@item.Quantity"
+                   @onchange="@(e => UpdateCartQuantity(item, e))"
+                   min="1"
+                   style="width: 56px; padding: var(--space-1) var(--space-2); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--text-sm); box-sizing: border-box;" />
+        </td>
+        <td style="padding: var(--space-2) var(--space-2); text-align: right; color: var(--foreground);">₱@((item.Price * item.Quantity).ToString("N2"))</td>
+        <td style="padding: var(--space-2) var(--space-2);">
+            <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" OnClick="() => cart.Remove(item)">
+                <LucideIcon Name="x" Size="14" />
+            </BbButton>
+        </td>
+    </tr>
+    }
     </tbody>
 </table>;
 
-    private RenderFragment CartFooter() =>
-        @<div>
-@if (cart.Any())
+private RenderFragment CartFooter() =>
+@<div>
+    @if (cart.Any())
     {
     <div style="padding: var(--space-4); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--space-3); flex-shrink: 0;">
         @if (!string.IsNullOrEmpty(statusMessage))
-                {
+        {
         <div style="padding: var(--space-2) var(--space-3); border-radius: var(--radius); background-color: var(--success-muted); border: 1px solid var(--success-border); font-size: var(--text-sm); color: var(--success-muted-foreground);">
             @statusMessage
         </div>
-                }
+        }
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--foreground);">Total</span>
             <span style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--primary);">₱@TotalAmount.ToString("N2")</span>
         </div>
         <BbButton Variant="ButtonVariant.Default" Class="w-full" OnClick="Checkout" Disabled="@isProcessing">
             @if (isProcessing)
-                        {
+            {
             <BbSpinner Size="SpinnerSize.Small" />
             <span>Processing...</span>
-                        }
-                        else
+            }
+            else
             {
-                <LucideIcon Name="check" Size="16" />
-                <span>Confirm Sale</span>
+            <LucideIcon Name="check" Size="16" />
+            <span>Confirm Sale</span>
             }
         </BbButton>
     </div>
     }
 </div>;
 
-    private List<Product> allProducts = new();
+private List<Product> allProducts = new();
 private List<string> categories = new();
 private List<CartItem> cart = new();
 private string? selectedCategory;
@@ -310,101 +310,101 @@ protected override async Task OnInitializedAsync() => await LoadData();
 
 private async Task LoadData()
 {
-    allProducts = await Context.Products.AsNoTracking().ToListAsync();
-    categories = allProducts
-        .Select(p => p.Category)
-        .Where(c => !string.IsNullOrEmpty(c))
-        .Distinct()
-        .OrderBy(c => c)
-        .ToList();
+allProducts = await Context.Products.AsNoTracking().ToListAsync();
+categories = allProducts
+.Select(p => p.Category)
+.Where(c => !string.IsNullOrEmpty(c))
+.Distinct()
+.OrderBy(c => c)
+.ToList();
 }
 
 private IEnumerable<Product> FilteredProducts => allProducts
-    .Where(p => (string.IsNullOrEmpty(selectedCategory) || p.Category == selectedCategory) &&
-                (string.IsNullOrWhiteSpace(searchTerm) ||
-                 p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                 p.Brand.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
+.Where(p => (string.IsNullOrEmpty(selectedCategory) || p.Category == selectedCategory) &&
+(string.IsNullOrWhiteSpace(searchTerm) ||
+p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+p.Brand.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
 
 private decimal TotalAmount => cart.Sum(i => i.Price * i.Quantity);
 
 private void AddToCart(Product p)
 {
-    if (p.CurrentStock <= 0) return;
-    statusMessage = null;
+if (p.CurrentStock <= 0) return;
+statusMessage = null;
 
-    var existing = cart.FirstOrDefault(i => i.ProductId == p.Id);
+var existing = cart.FirstOrDefault(i => i.ProductId == p.Id);
 
-    if (existing != null)
-    {
-        if (existing.Quantity < p.CurrentStock) existing.Quantity++;
-        else statusMessage = $"Limit reached: Only {p.CurrentStock} of {p.Name} in stock.";
-    }
-    else
-    {
-        cart.Add(new CartItem { ProductId = p.Id, ProductName = p.Name, Price = p.Price, Quantity = 1 });
-    }
+if (existing != null)
+{
+if (existing.Quantity < p.CurrentStock) existing.Quantity++;
+else statusMessage = $"Limit reached: Only {p.CurrentStock} of {p.Name} in stock.";
+}
+else
+{
+cart.Add(new CartItem { ProductId = p.Id, ProductName = p.Name, Price = p.Price, Quantity = 1 });
+}
 
-    cartOpen = true;
+cartOpen = true;
 }
 
 private void UpdateCartQuantity(CartItem item, ChangeEventArgs e)
 {
-    if (int.TryParse(e.Value?.ToString(), out int newQty))
-    {
-        var product = allProducts.FirstOrDefault(p => p.Id == item.ProductId);
-        if (product != null)
-        {
-            if (newQty > product.CurrentStock)
-            {
-                item.Quantity = product.CurrentStock;
-                statusMessage = $"Adjusted to max stock ({product.CurrentStock}) for {item.ProductName}.";
-            }
-            else if (newQty <= 0) cart.Remove(item);
-            else item.Quantity = newQty;
-        }
-    }
+if (int.TryParse(e.Value?.ToString(), out int newQty))
+{
+var product = allProducts.FirstOrDefault(p => p.Id == item.ProductId);
+if (product != null)
+{
+if (newQty > product.CurrentStock)
+{
+item.Quantity = product.CurrentStock;
+statusMessage = $"Adjusted to max stock ({product.CurrentStock}) for {item.ProductName}.";
+}
+else if (newQty <= 0) cart.Remove(item);
+else item.Quantity = newQty;
+}
+}
 }
 
 private async Task Checkout()
 {
-    if (!cart.Any()) return;
-    isProcessing = true;
-    try
-    {
-        // Call the updated TransactionService which returns the saved Transaction
-        completedTransaction = await SaleService.ProcessSaleAsync(cart);
+if (!cart.Any()) return;
+isProcessing = true;
+try
+{
+// Call the updated TransactionService which returns the saved Transaction
+completedTransaction = await SaleService.ProcessSaleAsync(cart);
 
-        statusMessage = "Sale complete! E-Receipt generated.";
+statusMessage = "Sale complete! E-Receipt generated.";
 
-        // Trigger the E-Receipt Modal
-        showReceiptModal = true;
+// Trigger the E-Receipt Modal
+showReceiptModal = true;
 
-        cart.Clear();
-        cartOpen = false;
+cart.Clear();
+cartOpen = false;
 
-        await LoadData();
-    }
-    catch (Exception ex)
-    {
-        statusMessage = "Error: " + ex.Message;
-    }
-    finally
-    {
-        isProcessing = false;
-    }
+await LoadData();
+}
+catch (Exception ex)
+{
+statusMessage = "Error: " + ex.Message;
+}
+finally
+{
+isProcessing = false;
+}
 }
 
 // --- RECEIPT METHODS ---
 private async Task PrintReceipt()
 {
-    // Triggers the browser's native print dialog
-    await JS.InvokeVoidAsync("window.print");
+// Triggers the browser's native print dialog
+await JS.InvokeVoidAsync("window.print");
 }
 
 private void CloseReceipt()
 {
-    showReceiptModal = false;
-    completedTransaction = null;
+showReceiptModal = false;
+completedTransaction = null;
 }
 }
 
@@ -526,16 +526,16 @@ private void CloseReceipt()
         margin-bottom: 15px;
     }
 
-        .receipt-header h2 {
-            font-size: 16px;
-            margin: 0 0 5px 0;
-            font-weight: bold;
-        }
+    .receipt-header h2 {
+        font-size: 16px;
+        margin: 0 0 5px 0;
+        font-weight: bold;
+    }
 
-        .receipt-header p {
-            margin: 2px 0;
-            font-size: 12px;
-        }
+    .receipt-header p {
+        margin: 2px 0;
+        font-size: 12px;
+    }
 
     .receipt-meta {
         font-size: 12px;
@@ -552,9 +552,9 @@ private void CloseReceipt()
         margin-bottom: 15px;
     }
 
-        .receipt-table th, .receipt-table td {
-            padding: 5px 2px;
-        }
+    .receipt-table th, .receipt-table td {
+        padding: 5px 2px;
+    }
 
     .receipt-summary {
         font-size: 12px;

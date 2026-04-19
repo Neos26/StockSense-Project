@@ -30,7 +30,8 @@ namespace StockSense.Shared
 
         // This links the product to the Supplier class we just made
         public int SupplierId { get; set; }
-        public virtual Supplier Supplier { get; set; } = null!;
+        [JsonIgnore]
+        public virtual Supplier? Supplier { get; set; }
 
         [JsonIgnore]
         public List<PreBuildPackage> PreBuildPackages { get; set; } = new();

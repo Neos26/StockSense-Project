@@ -16,11 +16,26 @@
 
 <PageTitle>Manage email</PageTitle>
 
-<h1 style="font-size: var(--text-2xl); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-1) 0;">Email</h1>
-<h2 style="font-size: var(--text-base); font-weight: var(--font-normal); color: var(--muted-foreground); margin: 0 0 var(--space-6) 0;">Manage your email address.</h2>
-<div style="border-top: 1px solid var(--border); margin-bottom: var(--space-6);"></div>
+<h1 class="text-2xl font-semibold text-foreground m-0">Email</h1>
+<h2 class="text-base font-normal text-muted-foreground m-0">Manage your email address.</h2>
+<div class="border-t border-border my-3"></div>
 
-<StatusMessage Message="@message" />
+@* --- CUSTOM STATUS MESSAGE (Replaces StatusMessage component) --- *@
+@if (!string.IsNullOrEmpty(message))
+{
+    var isSuccess = message.Contains("sent") || message.Contains("unchanged");
+    
+    <div class="mb-6 p-4 rounded-r-lg border border-l-4 shadow-sm flex items-center gap-3 animate-[fadeIn_0.3s_ease-in]
+                @(isSuccess ? "bg-success-muted border-success border-l-success text-success-muted-foreground" 
+                            : "bg-info-muted border-info border-l-info text-info-muted-foreground")" role="alert">
+        
+        @if (isSuccess)
+        {
+            <svg class="w-5 h-5 text-success flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        }
+        <span class="font-medium text-sm">@message</span>
+    </div>
+}
 
 <form @onsubmit="OnSendEmailVerificationAsync" @formname="send-verification" id="send-verification-form" method="post">
     <AntiforgeryToken />
@@ -28,42 +43,48 @@
 
 <EditForm Model="Input" FormName="change-email" OnValidSubmit="OnValidSubmitAsync" method="post">
     <DataAnnotationsValidator />
-    <ValidationSummary style="margin-bottom: var(--space-6); color: var(--destructive); background-color: var(--destructive-muted); padding: var(--space-2); border: 1px solid var(--destructive-border); border-radius: var(--radius); font-size: var(--text-sm);" role="alert" />
+    
+    @* --- VALIDATION SUMMARY --- *@
+    <ValidationSummary class="mb-6 text-sm text-destructive bg-destructive-muted p-3 border border-destructive-border rounded-lg list-inside" role="alert" />
 
-    <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+    <div class="flex flex-col gap-4">
 
-        <div style="display: flex; flex-direction: column; gap: var(--space-2);">
-            <label style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">
+        <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-foreground flex items-center">
                 Current email
                 @if (isEmailConfirmed)
                 {
-                    <span style="margin-left: var(--space-2); font-size: var(--text-xs); color: var(--success); font-weight: var(--font-normal);">✓ Verified</span>
+                    <span class="ml-2 text-xs text-success font-normal flex items-center gap-1">
+                        ✓ Verified
+                    </span>
                 }
                 else
                 {
-                    <span style="margin-left: var(--space-2); font-size: var(--text-xs); color: var(--warning); font-weight: var(--font-normal);">⚠ Unverified</span>
+                    <span class="ml-2 text-xs text-warning font-normal flex items-center gap-1">
+                        ⚠ Unverified
+                    </span>
                 }
             </label>
             <input type="text" value="@email" disabled
-                   style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--muted); color: var(--muted-foreground); font-size: var(--input-font-size); box-sizing: border-box; cursor: not-allowed;" />
+                   class="w-full py-2 px-3 rounded-lg border border-input bg-muted text-muted-foreground text-sm cursor-not-allowed focus:outline-none" />
             @if (!isEmailConfirmed)
             {
                 <button type="submit" form="send-verification-form"
-                        style="align-self: flex-start; padding: var(--space-1) var(--space-3); border-radius: var(--radius); background-color: transparent; color: var(--primary); font-size: var(--text-sm); font-weight: var(--font-medium); border: 1px solid var(--primary); cursor: pointer;">
+                        class="self-start py-1 px-3 mt-1 rounded-lg bg-transparent text-primary text-sm font-medium border border-primary hover:bg-primary/10 cursor-pointer transition-colors">
                     Resend verification email
                 </button>
             }
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: var(--space-2);">
-            <label style="font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--foreground);">New email</label>
+        <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-foreground">New email</label>
             <InputText @bind-Value="Input.NewEmail" autocomplete="email" aria-required="true"
-                       style="width: 100%; padding: var(--input-padding-y) var(--input-padding-x); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--input-font-size); box-sizing: border-box;" />
-            <ValidationMessage For="() => Input.NewEmail" style="font-size: var(--text-sm); color: var(--destructive);" />
+                       class="w-full py-2 px-3 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-shadow" />
+            <ValidationMessage For="() => Input.NewEmail" class="text-sm text-destructive" />
         </div>
 
         <button type="submit"
-                style="width: 100%; padding: var(--btn-padding-y) var(--btn-padding-x); border-radius: var(--radius); background-color: var(--primary); color: var(--primary-foreground); font-size: var(--btn-font-size); font-weight: var(--btn-font-weight); border: none; cursor: pointer;">
+                class="w-full mt-2 py-2.5 px-4 rounded-lg bg-primary hover:opacity-90 text-primary-foreground text-sm font-medium border-none cursor-pointer transition-opacity">
             Change email
         </button>
 

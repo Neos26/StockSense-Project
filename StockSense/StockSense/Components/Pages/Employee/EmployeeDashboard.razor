@@ -19,11 +19,11 @@
 
 @if (isLoading)
 {
-    <div class="loading-overlay">
+    <div class="fixed inset-0 bg-background flex flex-col justify-center items-center z-[9999]">
         <BbSpinner Size="SpinnerSize.Large" />
-        <div style="margin-top: 20px; text-align: center;">
-            <h2 class="brand-title">STOCK SENSE AI</h2>
-            <p class="loading-sub">Syncing Intelligence Models...</p>
+        <div class="mt-5 text-center">
+            <h2 class="text-primary font-extrabold tracking-[2px] m-0">STOCK SENSE AI</h2>
+            <p class="text-muted-foreground text-[0.7rem] uppercase m-0 mt-1">Syncing Intelligence Models...</p>
         </div>
     </div>
 }
@@ -31,36 +31,39 @@
 @* --- BLAZOR ONLY TOAST --- *@
 @if (!string.IsNullOrEmpty(toastMessage))
 {
-    <div class="custom-toast toast-@toastType">
-        @toastMessage
+    <div class="fixed bottom-6 right-6 z-[10001] flex items-center gap-2 px-4 py-3 rounded-lg border shadow-md animate-[slideInUp_0.3s_ease-out]
+                @(toastType == "error" ? "bg-destructive-muted border-destructive-border text-destructive-muted-foreground" : 
+                  toastType == "success" ? "bg-success-muted border-success-border text-success-muted-foreground" : 
+                  "bg-info-muted border-info-border text-info-muted-foreground")">
+        <span class="text-sm font-semibold uppercase">@toastMessage</span>
     </div>
 }
 
-<div class="dashboard-container" style="display: @(isLoading ? "none" : "block");">
+<div class="animate-[fadeIn_0.4s_ease-in] p-4 md:p-6" style="display: @(isLoading ? "none" : "block");">
 
-    @* --- HEADER SECTION --- *@
-    <div class="header-section">
-        <div class="title-group">
-            <h1 class="main-title">Operational Intelligence</h1>
-            <p class="subtitle">Real-time heuristics & ML pattern recognition</p>
+    @* --- TOP HEADER --- *@
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-foreground m-0">Operational Intelligence</h1>
+            <p class="text-sm text-muted-foreground m-0">Real-time heuristics & ML pattern recognition</p>
         </div>
 
-        <div class="control-card">
-            <div class="forecast-controls">
-                <label class="control-label">Target Forecast</label>
-                <div class="control-inputs">
-                    <input type="range" min="1" max="12" @bind="simulationMonth" @bind:event="oninput" @onchange="RunFullAnalysis" class="month-slider" />
-                    <span class="month-display">@GetMonthName(simulationMonth)</span>
+        <div class="flex flex-col sm:flex-row w-full md:w-auto gap-4 bg-card border border-border rounded-lg px-4 py-3 items-start sm:items-center">
+            <div class="flex flex-col gap-1 w-full sm:w-auto">
+                <label class="text-[0.65rem] font-bold text-primary uppercase tracking-wide">Target Forecast</label>
+                <div class="flex items-center gap-2 w-full">
+                    <input type="range" min="1" max="12" @bind="simulationMonth" @bind:event="oninput" @onchange="RunFullAnalysis" class="accent-primary w-[100px] flex-1" />
+                    <span class="font-bold text-sm min-w-[70px] text-foreground">@GetMonthName(simulationMonth)</span>
 
-                    <select value="@currentSimYear" @onchange="HandleYearChange" class="year-select">
+                    <select value="@currentSimYear" @onchange="HandleYearChange" class="bg-background text-foreground border border-border rounded-lg py-1 px-2 font-bold text-sm cursor-pointer ml-auto">
                         <option value="2025">2025</option>
                         <option value="2026">2026</option>
                         <option value="2027">2027</option>
                     </select>
                 </div>
             </div>
-            <div class="divider"></div>
-            <BbButton Variant="ButtonVariant.Outline" OnClick="HandleRetrain" Disabled="@isRetraining" class="retrain-btn">
+            <div class="hidden sm:block w-[1px] h-[30px] bg-border"></div>
+            <BbButton Variant="ButtonVariant.Outline" OnClick="HandleRetrain" Disabled="@isRetraining" Class="w-full sm:w-auto justify-center">
                 @if (isRetraining)
                 {
                     <BbSpinner Size="SpinnerSize.Small" />
@@ -69,133 +72,165 @@
                 {
                     <LucideIcon Name="refresh-cw" Size="14" />
                 }
-                <span style="margin-left: 8px;">Refresh AI</span>
+                <span class="ml-2">Refresh AI</span>
             </BbButton>
         </div>
     </div>
 
     @* --- TOP KPI LABELS --- *@
-    <div class="kpi-grid">
-        <div class="kpi-card">
-            <div class="kpi-label">Inventory Value</div>
-            <div class="kpi-value">₱@totalValue.ToString("N0")</div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div class="bg-card border border-border rounded-lg p-4">
+            <div class="text-muted-foreground text-xs font-bold uppercase tracking-wide mb-1">Inventory Value</div>
+            <div class="text-2xl font-black text-foreground">₱@totalValue.ToString("N0")</div>
         </div>
 
-        <div class="kpi-card">
-            <div class="kpi-label highlight">AI Coverage</div>
-            <div class="kpi-value highlight">@forecastCoverage%</div>
+        <div class="bg-card border border-border rounded-lg p-4">
+            <div class="text-primary text-xs font-bold uppercase tracking-wide mb-1">AI Coverage</div>
+            <div class="text-2xl font-black text-primary">@forecastCoverage%</div>
         </div>
 
-        <div class="kpi-card">
-            <div class="kpi-label success">Est. Demand</div>
-            <div class="kpi-value success">@totalPredictedUnits</div>
+        <div class="bg-card border border-border rounded-lg p-4">
+            <div class="text-success text-xs font-bold uppercase tracking-wide mb-1">Est. Demand</div>
+            <div class="text-2xl font-black text-success">@totalPredictedUnits</div>
         </div>
     </div>
 
     @* --- CRITICAL INVENTORY (SINGLE ROW) --- *@
-    <div class="critical-section">
-        <div class="critical-header">
-            <div class="critical-title-group">
-                <div class="icon-container-danger">
+    <div class="bg-card border border-border rounded-lg mb-6 overflow-hidden">
+        <div class="p-4 border-b border-border flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-destructive-muted text-destructive p-2.5 rounded-lg">
+                    <LucideIcon Name="triangle-alert" Size="20" />
                 </div>
                 <div>
-                    <h3 class="section-title">Critical Inventory Levels</h3>
-                    <p class="section-subtitle">Stock at or below reorder threshold</p>
+                    <h3 class="text-base font-semibold m-0 text-foreground">Critical Inventory Levels</h3>
+                    <p class="text-sm text-muted-foreground m-0 hidden sm:block">Stock at or below reorder threshold</p>
                 </div>
             </div>
-            <div class="critical-stats">
-                <div class="stat-number">@allLowStockProducts.Count</div>
-                <div class="stat-label">SKUs Affected</div>
+            <div class="text-right">
+                <div class="text-2xl font-black text-destructive">@allLowStockProducts.Count</div>
+                <div class="text-[0.65rem] text-muted-foreground font-bold uppercase">SKUs Affected</div>
             </div>
         </div>
 
-        <div class="critical-row-scroller">
+        <div class="p-4 flex gap-4 overflow-x-auto bg-muted/50 custom-scrollbar">
             @foreach (var item in allLowStockProducts.Take(5))
             {
-                <div class="critical-item-card-row">
-                    <div class="item-info">
-                        <div class="item-name">@item.Name</div>
-                        <div class="item-brand">@item.Brand</div>
+                <div class="flex-none w-[260px] sm:w-[280px] px-4 py-3 bg-background border border-border rounded-lg flex justify-between items-center">
+                    <div class="min-w-0 flex-1 pr-3">
+                        <div class="font-bold text-sm text-foreground whitespace-nowrap overflow-hidden text-ellipsis">@item.Name</div>
+                        <div class="text-xs text-muted-foreground">@item.Brand</div>
                     </div>
-                    <div class="item-qty">
-                        <div class="qty-num">@item.CurrentStock</div>
-                        <div class="qty-label">Qty</div>
+                    <div class="text-right">
+                        <div class="text-sm font-bold text-destructive">@item.CurrentStock</div>
+                        <div class="text-[0.6rem] text-muted-foreground uppercase">Qty</div>
                     </div>
                 </div>
             }
         </div>
 
-        <div class="critical-footer">
-            <BbButton Variant="ButtonVariant.Ghost" OnClick="() => showCriticalModal = true" class="footer-btn">
-                SEE ALL & MANAGE <LucideIcon Name="chevron-right" Size="14" style="margin-left: 5px;" />
+        <div class="p-3 px-4 bg-muted border-t border-border flex justify-end">
+            <BbButton Variant="ButtonVariant.Ghost" OnClick="() => showCriticalModal = true" Class="text-xs font-bold">
+                SEE ALL & MANAGE <LucideIcon Name="chevron-right" Size="14" Class="ml-1" />
             </BbButton>
         </div>
     </div>
 
     @* --- MAIN ANALYTICS GRID --- *@
-    <div class="analytics-main-grid">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <div class="analytics-card">
-            <h3 class="analytics-title">
-                <LucideIcon Name="trending-up" Size="18" Color="var(--primary)" /> Top SKU Forecast (@currentSimYear)
+        <div class="bg-card border border-border rounded-lg p-5 flex flex-col">
+            <h3 class="text-sm font-bold mb-4 flex items-center gap-2 uppercase text-muted-foreground">
+                <LucideIcon Name="trending-up" Size="18" Class="text-primary" /> Top SKU Forecast (@currentSimYear)
             </h3>
-            <div class="table-scroll">
-                <table class="forecast-table">
+            <div class="overflow-x-auto flex-1">
+                <table class="w-full border-collapse min-w-[300px]">
                     <thead>
                         <tr>
-                            <th>Product</th>
-                            <th class="center">Confidence</th>
-                            <th class="right">Prediction</th>
+                            <th class="text-left text-muted-foreground text-xs border-b border-border uppercase p-2.5">Product</th>
+                            <th class="text-center text-muted-foreground text-xs border-b border-border uppercase p-2.5">Confidence</th>
+                            <th class="text-right text-muted-foreground text-xs border-b border-border uppercase p-2.5">Prediction</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var p in topForecasts)
+                        @if (topForecasts == null || !topForecasts.Any())
                         {
                             <tr>
-                                <td class="bold">@p.Name</td>
-                                <td class="center">
-                                    <span class="badge @(p.Confidence > 80 ? "badge-success" : "badge-warn")">@p.Confidence%</span>
-                                </td>
-                                <td class="right bold">@p.OrderQty <small class="muted">pcs</small></td>
+                                <td colspan="3" class="p-4 text-center text-sm text-muted-foreground">No forecast data available.</td>
                             </tr>
+                        }
+                        else
+                        {
+                            @foreach (var p in topForecasts)
+                            {
+                                <tr>
+                                    <td class="p-2.5 border-b border-border text-sm text-foreground font-bold">@p.Name</td>
+                                    <td class="p-2.5 border-b border-border text-sm text-center">
+                                        <span class="px-2 py-0.5 rounded text-[0.65rem] font-bold text-white @(p.Confidence > 80 ? "bg-success" : "bg-warning text-warning-foreground")">
+                                            @p.Confidence%
+                                        </span>
+                                    </td>
+                                    <td class="p-2.5 border-b border-border text-sm text-foreground text-right font-bold">
+                                        @p.OrderQty <small class="text-muted-foreground font-normal">pcs</small>
+                                    </td>
+                                </tr>
+                            }
                         }
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <div class="analytics-card">
-            <h3 class="analytics-title">
-                <LucideIcon Name="award" Size="18" Color="#3b82f6" /> Brand Analytics
+        <div class="bg-card border border-border rounded-lg p-5 flex flex-col">
+            <h3 class="text-sm font-bold mb-4 flex items-center gap-2 uppercase text-muted-foreground">
+                <LucideIcon Name="award" Size="18" Class="text-info" /> Brand Analytics
             </h3>
-            @foreach (var brand in brandPerformances)
-            {
-                <div class="brand-item">
-                    <div>
-                        <div class="brand-name">@brand.BrandName</div>
-                        <div class="brand-sub">AI Demand: <strong>@brand.PredictedUnits units</strong></div>
-                    </div>
-                    <div class="brand-val">₱@brand.TotalValue.ToString("N0")</div>
-                </div>
-            }
+            <div class="flex-1 overflow-y-auto">
+                @if (brandPerformances == null || !brandPerformances.Any())
+                {
+                    <div class="p-4 text-center text-sm text-muted-foreground">No brand data available.</div>
+                }
+                else
+                {
+                    @foreach (var brand in brandPerformances)
+                    {
+                        <div class="mb-3 p-3 bg-muted/50 border border-border rounded-lg flex justify-between items-center">
+                            <div>
+                                <div class="font-bold text-sm text-foreground">@brand.BrandName</div>
+                                <div class="text-xs text-muted-foreground">AI Demand: <strong class="text-foreground">@brand.PredictedUnits units</strong></div>
+                            </div>
+                            <div class="font-black text-primary">₱@brand.TotalValue.ToString("N0")</div>
+                        </div>
+                    }
+                }
+            </div>
         </div>
 
-        <div class="analytics-card">
-            <h3 class="analytics-title">
-                <LucideIcon Name="pie-chart" Size="18" Color="#10b981" /> Demand by Category
+        <div class="bg-card border border-border rounded-lg p-5 flex flex-col">
+            <h3 class="text-sm font-bold mb-4 flex items-center gap-2 uppercase text-muted-foreground">
+                <LucideIcon Name="pie-chart" Size="18" Class="text-success" /> Demand by Category
             </h3>
-            @foreach (var cat in categoryVolumes)
-            {
-                <div class="cat-item">
-                    <div class="cat-label-row">
-                        <span class="cat-name">@cat.Category</span>
-                        <span class="cat-pct">@cat.Percentage.ToString("F1")%</span>
-                    </div>
-                    <div class="progress-bg">
-                        <div class="progress-fill" style="width: @cat.Percentage%;"></div>
-                    </div>
-                </div>
-            }
+            <div class="flex-1 overflow-y-auto">
+                @if (categoryVolumes == null || !categoryVolumes.Any())
+                {
+                    <div class="p-4 text-center text-sm text-muted-foreground">No category data available.</div>
+                }
+                else
+                {
+                    @foreach (var cat in categoryVolumes)
+                    {
+                        <div class="mb-4">
+                            <div class="flex justify-between text-xs mb-1.5 color-foreground">
+                                <span class="text-foreground font-medium">@cat.Category</span>
+                                <span class="text-muted-foreground font-bold">@cat.Percentage.ToString("F1")%</span>
+                            </div>
+                            <div class="bg-border h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-primary h-full rounded-full transition-all duration-1000 ease-out" style="width: @cat.Percentage%;"></div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
         </div>
     </div>
 </div>
@@ -203,584 +238,76 @@
 @* --- MODAL --- *@
 @if (showCriticalModal)
 {
-    <div class="modal-backdrop">
-        <div class="modal-content">
-            <div class="modal-header">
+    <div class="fixed inset-0 bg-background/80 backdrop-blur-sm flex justify-center items-center z-[10000] p-4">
+        <div class="bg-card border border-border w-full max-w-3xl max-h-[90vh] rounded-lg flex flex-col overflow-hidden animate-[modalIn_0.3s_ease-out] shadow-xl">
+            <div class="p-4 md:p-6 border-b border-border flex justify-between items-center bg-card">
                 <div>
-                    <h2 class="modal-title">Critical Stock Report</h2>
-                    <p class="modal-subtitle">Full overview of items requiring immediate restock</p>
+                    <h2 class="text-xl font-bold text-foreground m-0">Critical Stock Report</h2>
+                    <p class="text-sm text-muted-foreground m-0 mt-1">Full overview of items requiring immediate restock</p>
                 </div>
-                <button @onclick="() => showCriticalModal = false" class="close-btn">&times;</button>
+                <button @onclick="() => showCriticalModal = false" class="bg-transparent border-none text-muted-foreground hover:text-foreground text-2xl cursor-pointer transition-colors">&times;</button>
             </div>
-            <div class="modal-body">
-                <table class="modal-table">
-                    <thead>
-                        <tr>
-                            <th>Product Name</th>
-                            <th>Brand</th>
-                            <th class="center">Stock</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in allLowStockProducts)
-                        {
+            
+            <div class="p-4 md:p-6 overflow-y-auto flex-1 bg-muted/30">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse min-w-[400px]">
+                        <thead>
                             <tr>
-                                <td class="bold">@item.Name</td>
-                                <td class="muted">@item.Brand</td>
-                                <td class="center danger bold">@item.CurrentStock</td>
+                                <th class="text-left text-muted-foreground text-xs border-b border-border uppercase p-2.5">Product Name</th>
+                                <th class="text-left text-muted-foreground text-xs border-b border-border uppercase p-2.5">Brand</th>
+                                <th class="text-center text-muted-foreground text-xs border-b border-border uppercase p-2.5">Stock</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in allLowStockProducts)
+                            {
+                                <tr class="hover:bg-muted/50 transition-colors">
+                                    <td class="p-3 border-b border-border text-sm text-foreground font-bold">@item.Name</td>
+                                    <td class="p-3 border-b border-border text-sm text-muted-foreground">@item.Brand</td>
+                                    <td class="p-3 border-b border-border text-sm text-center text-destructive font-bold">@item.CurrentStock</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div class="modal-footer">
-                <BbButton Variant="ButtonVariant.Default" OnClick="OrderAllCritical" class="action-btn">ORDER ALL CRITICAL</BbButton>
+            <div class="p-4 md:p-6 border-t border-border flex justify-end bg-card">
+                <BbButton Variant="ButtonVariant.Default" OnClick="OrderAllCritical" Class="w-full sm:w-auto">ORDER ALL CRITICAL</BbButton>
             </div>
         </div>
     </div>
 }
 
 <style>
-    :root {
-        --primary: #f82b2b;
-        --background: #09090b;
-        --card: #18181b;
-        --border: #27272a;
-        --muted-foreground: #a1a1aa;
-        --foreground: #fafafa;
-    }
-
-    /* TOAST STYLE */
-    .custom-toast {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        padding: 12px 24px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 800;
-        font-size: 0.8rem;
-        z-index: 10001;
-        text-transform: uppercase;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        animation: slideIn 0.3s ease-out;
-    }
-
-    .toast-success {
-        background: #10b981;
-        border-left: 4px solid #059669;
-    }
-
-    .toast-error {
-        background: #ef4444;
-        border-left: 4px solid #b91c1c;
-    }
-
-    .toast-info {
-        background: #3b82f6;
-        border-left: 4px solid #1d4ed8;
-    }
-
-    @@keyframes slideIn {
-        from {
-            transform: translateX(100%);
-        }
-
-        to {
-            transform: translateX(0);
-        }
-    }
-
-    /* Base Layout */
-    .dashboard-container {
-        padding: 1rem;
-        animation: fadeIn 0.4s ease-out;
-    }
-
-    .loading-overlay {
-        position: fixed;
-        inset: 0;
-        background: var(--background);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    }
-
-    .brand-title {
-        color: var(--primary);
-        font-weight: 800;
-        letter-spacing: 2px;
-    }
-
-    .loading-sub {
-        color: var(--muted-foreground);
-        font-size: 0.7rem;
-        text-transform: uppercase;
-    }
-
-    /* Header */
-    .header-section {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        margin-bottom: 2.5rem;
-    }
-
-    @@media (min-width: 768px) {
-        .header-section {
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: flex-end;
-        }
-    }
-
-    .main-title {
-        font-size: 1.75rem;
-        font-weight: 800;
-        margin: 0;
-        letter-spacing: -0.02em;
-        color: var(--foreground);
-    }
-
-    .subtitle {
-        color: var(--muted-foreground);
-        margin: 0;
-        font-size: 0.85rem;
-    }
-
-    /* Controls */
-    .control-card {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        background: var(--card);
-        padding: 15px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-    }
-
-    @@media (min-width: 480px) {
-        .control-card {
-            flex-direction: row;
-            align-items: center;
-            padding: 10px 20px;
-        }
-    }
-
-    .divider {
-        width: 1px;
-        height: 30px;
-        background: var(--border);
-        display: none;
-    }
-
-    @@media (min-width: 480px) {
-        .divider {
-            display: block;
-        }
-    }
-
-    .control-label {
-        font-size: 0.65rem;
-        font-weight: 800;
-        color: var(--primary);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: block;
-        margin-bottom: 4px;
-    }
-
-    .control-inputs {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .month-slider {
-        accent-color: var(--primary);
-        width: 100px;
-    }
-
-    .month-display {
-        font-weight: 800;
-        font-size: 0.9rem;
-        min-width: 70px;
-        color: var(--foreground);
-    }
-
-    .year-select {
-        background: var(--background);
-        color: var(--foreground);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        padding: 4px 8px;
-        font-weight: 800;
-        font-size: 0.8rem;
-        cursor: pointer;
-    }
-
-    /* KPI Grid */
-    .kpi-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    @@media (min-width: 640px) {
-        .kpi-grid {
-            grid-template-columns: repeat(3, 1fr);
-        }
-    }
-
-    .kpi-card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 1.25rem;
-    }
-
-    .kpi-label {
-        color: var(--muted-foreground);
-        font-size: 0.7rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 4px;
-    }
-
-    .kpi-value {
-        font-size: 1.5rem;
-        font-weight: 900;
-        color: var(--foreground);
-    }
-
-    /* Critical Scroller */
-    .critical-section {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        margin-bottom: 2.5rem;
-        overflow: hidden;
-    }
-
-    .critical-header {
-        padding: 1.25rem 1.5rem;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .critical-title-group {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .icon-container-danger {
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        padding: 10px;
-        border-radius: 10px;
-    }
-
-    .stat-number {
-        font-size: 1.5rem;
-        font-weight: 900;
-        color: #ef4444;
-    }
-
-    .stat-label {
-        font-size: 0.6rem;
-        color: var(--muted-foreground);
-        font-weight: 700;
-        text-transform: uppercase;
-    }
-
-    .critical-row-scroller {
-        padding: 1.5rem;
-        display: flex;
-        gap: 1rem;
-        overflow-x: auto;
-        background: rgba(0,0,0,0.1);
-        scrollbar-width: thin;
-        scrollbar-color: var(--border) transparent;
-    }
-
-        .critical-row-scroller::-webkit-scrollbar {
-            height: 4px;
-        }
-
-        .critical-row-scroller::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 10px;
-        }
-
-    .critical-item-card-row {
-        flex: 0 0 280px;
-        padding: 12px 16px;
-        background: var(--background);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .item-info {
-        min-width: 0;
-        flex: 1;
-        padding-right: 10px;
-    }
-
-    .item-name {
-        font-weight: 700;
-        font-size: 0.85rem;
-        color: var(--foreground);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .item-brand {
-        font-size: 0.7rem;
-        color: var(--muted-foreground);
-    }
-
-    .qty-num {
-        font-size: 0.85rem;
-        font-weight: 800;
-        color: #ef4444;
-    }
-
-    .qty-label {
-        font-size: 0.6rem;
-        color: var(--muted-foreground);
-        text-transform: uppercase;
-    }
-
-    .critical-footer {
-        padding: 1rem 1.5rem;
-        background: rgba(0,0,0,0.2);
-        border-top: 1px solid var(--border);
-        display: flex;
-        justify-content: flex-end;
-    }
-
-    /* Analytics Main Grid */
-    .analytics-main-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-
-    @@media (min-width: 1024px) {
-        .analytics-main-grid {
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-        }
-    }
-
-    .analytics-card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1.25rem;
-    }
-
-    .analytics-title {
-        font-size: 0.85rem;
-        font-weight: 800;
-        margin-bottom: 1.25rem;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        text-transform: uppercase;
-        color: var(--muted-foreground);
-    }
-
-    .table-scroll {
-        overflow-x: auto;
-    }
-
-    .forecast-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-        .forecast-table th {
-            text-align: left;
-            color: var(--muted-foreground);
-            font-size: 0.7rem;
-            border-bottom: 1px solid var(--border);
-            text-transform: uppercase;
-            padding: 10px;
-        }
-
-        .forecast-table td {
-            padding: 12px 10px;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.85rem;
-            color: var(--foreground);
-        }
-
-    .brand-item {
-        margin-bottom: 0.75rem;
-        padding: 12px;
-        background: rgba(0,0,0,0.2);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .brand-name {
-        font-weight: 800;
-        font-size: 0.9rem;
-        color: var(--foreground);
-    }
-
-    .brand-val {
-        font-weight: 900;
-        color: var(--primary);
-    }
-
-    .cat-item {
-        margin-bottom: 1.25rem;
-    }
-
-    .cat-label-row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.8rem;
-        margin-bottom: 6px;
-    }
-
-    .progress-bg {
-        background: #222;
+    /* Custom scrollbar retained because Tailwind v4 doesn't support it natively without plugins */
+    .custom-scrollbar::-webkit-scrollbar {
         height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: var(--border);
         border-radius: 10px;
     }
-
-    .progress-fill {
-        background: var(--primary);
-        height: 100%;
-        border-radius: 10px;
-        transition: width 1s ease-out;
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: var(--muted-foreground);
     }
 
-    /* Modal */
-    .modal-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.85);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-        padding: 1rem;
-    }
-
-    .modal-content {
-        background: var(--card);
-        border: 1px solid var(--border);
-        width: 100%;
-        max-width: 800px;
-        max-height: 90vh;
-        border-radius: 20px;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        animation: modalIn 0.3s ease-out;
-    }
-
-    .modal-header {
-        padding: 1.5rem;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .modal-body {
-        padding: 1.5rem;
-        overflow-y: auto;
-        flex: 1;
-        background: rgba(0,0,0,0.1);
-    }
-
-    .modal-footer {
-        padding: 1.5rem;
-        border-top: 1px solid var(--border);
-        display: flex;
-        justify-content: flex-end;
-    }
-
-    .highlight {
-        color: var(--primary) !important;
-    }
-
-    .success {
-        color: #10b981 !important;
-    }
-
-    .danger {
-        color: #ef4444 !important;
-    }
-
-    .bold {
-        font-weight: 700;
-    }
-
-    .center {
-        text-align: center;
-    }
-
-    .right {
-        text-align: right;
-    }
-
-    .badge {
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.65rem;
-        font-weight: 800;
-        color: white;
-    }
-
-    .badge-success {
-        background: #059669;
-    }
-
-    .badge-warn {
-        background: #d97706;
-    }
-
+    /* Keyframes for animations */
     @@keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    @@keyframes slideInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     @@keyframes modalIn {
-        from {
-            opacity: 0;
-            transform: scale(0.95);
-        }
-
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
     }
 </style>
 
@@ -910,7 +437,6 @@
             isRetraining = false;
             StateHasChanged();
 
-            // Auto-hide after 3 seconds
             await Task.Delay(3000);
             toastMessage = "";
             StateHasChanged();

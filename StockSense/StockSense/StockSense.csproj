@@ -40,4 +40,8 @@
     <Compile Remove="Migrations\20260413172425_isActive.cs" />
     <Compile Remove="Migrations\20260413172425_isActive.Designer.cs" />
   </ItemGroup>
+<!--    <Target Name="BuildTailwind" BeforeTargets="Compile">
+        <Exec Command="npx @tailwindcss/cli -i wwwroot/styles/theme.css -o wwwroot/app.css" />
+    </Target>-->
+    
 </Project>
