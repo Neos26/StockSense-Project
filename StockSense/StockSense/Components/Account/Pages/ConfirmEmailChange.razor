@@ -1,5 +1,5 @@
 @page "/Account/ConfirmEmailChange"
-
+@layout PublicLayout
 @using System.Text
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
@@ -10,17 +10,43 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityRedirectManager RedirectManager
 
-<div style="display: flex; padding: 2vh; justify-content: center; align-items: center; min-height: 100%; background-color: var(--background); font-family: var(--font-sans);">
-    <div style="background-color: var(--card); color: var(--card-foreground); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: var(--card-padding); max-width: var(--card-max-width-sm); width: 100%;">
+<PageTitle>Confirm Email Change</PageTitle>
 
-        <h1 style="text-align: center; font-size: var(--text-3xl); font-weight: var(--font-semibold); color: var(--foreground); margin: 0;">Email Change</h1>
-        <h2 style="text-align: center; font-size: var(--text-xl); font-weight: var(--font-medium); min-height: 100%; margin-bottom: var(--space-4); color: var(--muted-foreground);"><StatusMessage Message="@message" /></h2>
+<div style="display: flex; padding: 2vh; justify-content: center; align-items: center; min-height: calc(100vh - 64px); background-color: var(--background); font-family: var(--font-sans);">
+    <div style="background-color: var(--card); color: var(--card-foreground); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 2rem; max-width: 24rem; width: 100%;">
 
-        <div style="border-top: 1px solid var(--border); margin: var(--space-6) 0;"></div>
+        <h1 style="text-align: center; font-size: var(--text-2xl); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-6) 0;">Email Change</h1>
 
-        <p style="text-align: center; font-size: var(--text-sm); color: var(--muted-foreground); margin: 0 0 var(--space-6) 0;">
-            You can now log in with your new email.
-        </p>
+        @* --- CUSTOM STATUS MESSAGE --- *@
+        @if (!string.IsNullOrEmpty(message))
+        {
+            var isError = message.StartsWith("Error") || message.StartsWith("Unable");
+
+            <div style="margin-bottom: var(--space-6); padding: var(--space-3); border-radius: var(--radius); border: 1px solid; display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm);
+                        @(isError ? "background-color: var(--destructive-muted); border-color: var(--destructive-border); color: var(--destructive-muted-foreground);" 
+                                  : "background-color: var(--success-muted); border-color: var(--success-border); color: var(--success-muted-foreground);")" role="alert">
+                
+                @if (isError)
+                {
+                    <LucideIcon Name="triangle-alert" Size="18" style="flex-shrink: 0;" />
+                }
+                else
+                {
+                    <LucideIcon Name="check-circle" Size="18" style="flex-shrink: 0;" />
+                }
+                <span style="font-weight: var(--font-medium);">@message</span>
+            </div>
+
+            @* Only show success instructions if it actually succeeded *@
+            @if (!isError)
+            {
+                <p style="text-align: center; font-size: var(--text-sm); color: var(--muted-foreground); margin: 0 0 var(--space-6) 0;">
+                    You can now log in with your new email.
+                </p>
+            }
+        }
+
+        <div style="border-top: 1px solid var(--border); margin: 0 0 var(--space-6) 0;"></div>
 
         <a href="/Account/Login" style="display: block; text-align: center; width: 100%; padding: var(--btn-padding-y) var(--btn-padding-x); border-radius: var(--radius); background-color: var(--primary); color: var(--primary-foreground); font-size: var(--btn-font-size); font-weight: var(--btn-font-weight); text-decoration: none; box-sizing: border-box;">
             Back to login
@@ -29,6 +55,7 @@
     </div>
 </div>
 
+@* Keep your existing @code { ... } block right here! *@
 
 @code {
     private string? message;

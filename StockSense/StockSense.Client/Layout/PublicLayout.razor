@@ -2,11 +2,13 @@
 @inherits LayoutComponentBase
 
 <div style="display: flex; flex-direction: column; height: 100vh;">
-    <PublicNav @rendermode="InteractiveWebAssembly" />
+    @* Force the Navbar to be an Interactive Server component so the @onclick button works! *@
+    <PublicNav @rendermode="InteractiveServer" />
+
     <main style="flex: 1; overflow: auto; display: flex; flex-direction: column;">
         @Body
     </main>
 </div>
 
-@* Add the render mode here so it matches the interactivity of your appointment page! *@
-<BbPortalHost @rendermode="InteractiveWebAssembly" />
+@* Force the portals/toasts to be interactive as well so they can pop up dynamically *@
+<BbPortalHost @rendermode="InteractiveServer" />

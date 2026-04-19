@@ -1,5 +1,4 @@
 @page "/Account/Manage/Disable2fa"
-
 @layout SettingsLayout
 
 @using Microsoft.AspNetCore.Identity
@@ -17,13 +16,11 @@
 <h2 style="font-size: var(--text-base); font-weight: var(--font-normal); color: var(--muted-foreground); margin: 0 0 var(--space-6) 0;">Turn off two-factor authentication for your account.</h2>
 <div style="border-top: 1px solid var(--border); margin-bottom: var(--space-6);"></div>
 
-<StatusMessage />
-
-<div style="padding: var(--space-4); border-radius: var(--radius); background-color: var(--warning-muted); border: 1px solid var(--warning-border); margin-bottom: var(--space-6);">
-    <p style="font-size: var(--text-sm); color: var(--warning-foreground); margin: 0 0 var(--space-2) 0;"><strong>This action only disables 2FA.</strong></p>
-    <p style="font-size: var(--text-sm); color: var(--warning-foreground); margin: 0;">
+<div style="padding: var(--space-4); border-radius: var(--radius); background-color: var(--muted); border-left: 4px solid var(--warning); margin-bottom: var(--space-6);">
+    <p style="font-size: var(--text-sm); color: var(--foreground); margin: 0 0 var(--space-2) 0;"><strong>This action only disables 2FA.</strong></p>
+    <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">
         Disabling 2FA does not change the keys used in authenticator apps. If you wish to change the key
-        used in an authenticator app you should <a href="Account/Manage/ResetAuthenticator" style="color: var(--warning-foreground); text-decoration: underline;">reset your authenticator keys.</a>
+        used in an authenticator app you should <a href="Account/Manage/ResetAuthenticator" style="color: var(--primary); text-decoration: underline;">reset your authenticator keys.</a>
     </p>
 </div>
 
