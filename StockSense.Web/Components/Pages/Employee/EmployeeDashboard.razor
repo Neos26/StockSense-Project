@@ -1,0 +1,498 @@
+@page "/Dashboard"
+@layout AdminLayout
+@using StockSense.Domain.Entities
+@using StockSense.Application.DTOs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using System.IO
+@using System.Linq
+@inject ApplicationDbContext Context
+@inject StockSensePredictionService PredictionService
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Employee, Admin")]
+
+<PageTitle>Dashboard</PageTitle>
+
+@if (isLoading)
+{
+    <div style="position: fixed; inset: 0; background-color: var(--background); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999;">
+        <BbSpinner Size="SpinnerSize.Large" />
+        <div style="margin-top: 1.25rem; text-align: center;">
+            <h2 style="color: var(--primary); font-weight: 800; letter-spacing: 2px; margin: 0;">STOCKSENSE</h2>
+            <p style="color: var(--muted-foreground); font-size: 0.7rem; text-transform: uppercase; margin: 0; margin-top: 0.25rem;">Syncing Intelligence Models...</p>
+        </div>
+    </div>
+}
+
+@* --- BLAZOR ONLY TOAST --- *@
+@if (!string.IsNullOrEmpty(toastMessage))
+{
+    <div style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 10001; display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border-radius: var(--radius); box-shadow: var(--shadow-md); animation: slideInUp 0.3s ease-out; background-color: @(toastType == "error" ? "var(--destructive-muted)" : toastType == "success" ? "var(--success-muted)" : "var(--info-muted)"); border: 1px solid @(toastType == "error" ? "var(--destructive-border)" : toastType == "success" ? "var(--success-border)" : "var(--info-border)"); color: @(toastType == "error" ? "var(--destructive-muted-foreground)" : toastType == "success" ? "var(--success-muted-foreground)" : "var(--info-muted-foreground)");">
+        <span style="font-size: var(--text-sm); font-weight: 600; text-transform: uppercase;">@toastMessage</span>
+    </div>
+}
+
+<div style="animation: fadeIn 0.4s ease-in; padding: 1.5rem; display: @(isLoading ? "none" : "block");">
+    <div class="w-fit rounded-lg bg-cyan-500 px-5 py-4 text-6xl text-[#aa22ff]">
+        Hello Blazor and Tailwind
+    </div>
+    <div class = "bg-body"> </div>    @* --- TOP HEADER --- *@
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <h1 style="font-size: var(--text-2xl); font-weight: bold; color: var(--foreground); margin: 0;">Operational Intelligence</h1>
+            <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Real-time heuristics & ML pattern recognition</p>
+        </div>
+
+        <div style="display: flex; gap: 1rem; background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem 1rem; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                <label style="font-size: 0.65rem; font-weight: bold; color: var(--primary); text-transform: uppercase; letter-spacing: 0.025em;">Target Forecast</label>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="range" min="1" max="12" @bind="simulationMonth" @bind:event="oninput" @onchange="RunFullAnalysis" style="accent-color: var(--primary); width: 100px; flex: 1;" />
+                    <span style="font-weight: bold; font-size: var(--text-sm); min-width: 70px; color: var(--foreground);">@GetMonthName(simulationMonth)</span>
+
+                    <select value="@currentSimYear" @onchange="HandleYearChange" style="background-color: var(--background); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.25rem 0.5rem; font-weight: bold; font-size: var(--text-sm); cursor: pointer; margin-left: auto;">
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                </div>
+            </div>
+            <div style="width: 1px; height: 30px; background-color: var(--border);"></div>
+            <BbButton Variant="ButtonVariant.Outline" OnClick="HandleRetrain" Disabled="@isRetraining" style="justify-content: center;">
+                @if (isRetraining)
+                {
+                    <BbSpinner Size="SpinnerSize.Small" />
+                }
+                else
+                {
+                    <LucideIcon Name="refresh-cw" Size="14" />
+                }
+                <span style="margin-left: 0.5rem;">Refresh Predictive</span>    
+            </BbButton>
+        </div>
+    </div>
+
+    @* --- TOP KPI LABELS --- *@
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem;">
+            <div style="color: var(--muted-foreground); font-size: var(--text-xs); font-weight: bold; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 0.25rem;">Inventory Value</div>
+            <div style="font-size: var(--text-2xl); font-weight: 900; color: var(--foreground);">₱@totalValue.ToString("N0")</div>
+        </div>
+
+        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem;">
+            <div style="color: var(--primary); font-size: var(--text-xs); font-weight: bold; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 0.25rem;">Predictive Coverage</div>
+            <div style="font-size: var(--text-2xl); font-weight: 900; color: var(--primary);">@forecastCoverage%</div>
+        </div>
+
+        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem;">
+            <div style="color: var(--success); font-size: var(--text-xs); font-weight: bold; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 0.25rem;">Est. Demand</div>
+            <div style="font-size: var(--text-2xl); font-weight: 900; color: var(--success);">@totalPredictedUnits</div>
+        </div>
+    </div>
+
+    @* --- CRITICAL INVENTORY (SINGLE ROW) --- *@
+    <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1.5rem; overflow: hidden;">
+        <div style="padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div style="background-color: var(--destructive-muted); color: var(--destructive); padding: 0.625rem; border-radius: var(--radius);">
+                    <LucideIcon Name="triangle-alert" Size="20" />
+                </div>
+                <div>
+                    <h3 style="font-size: var(--text-base); font-weight: 600; margin: 0; color: var(--foreground);">Critical Inventory Levels</h3>
+                    <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Stock at or below reorder threshold</p>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: var(--text-2xl); font-weight: 900; color: var(--destructive);">@allLowStockProducts.Count</div>
+                <div style="font-size: 0.65rem; color: var(--muted-foreground); font-weight: bold; text-transform: uppercase;">SKUs Affected</div>
+            </div>
+        </div>
+
+        <div style="padding: 1rem; display: flex; gap: 1rem; overflow-x: auto; background-color: rgba(0, 0, 0, 0.05);" class="custom-scrollbar">
+            @foreach (var item in allLowStockProducts.Take(5))
+            {
+                <div style="flex: none; width: 280px; padding: 0.75rem 1rem; background-color: var(--background); border: 1px solid var(--border); border-radius: var(--radius); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="min-width: 0; flex: 1; padding-right: 0.75rem;">
+                        <div style="font-weight: bold; font-size: var(--text-sm); color: var(--foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">@item.Name</div>
+                        <div style="font-size: var(--text-xs); color: var(--muted-foreground);">@item.Brand</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: var(--text-sm); font-weight: bold; color: var(--destructive);">@item.CurrentStock</div>
+                        <div style="font-size: 0.6rem; color: var(--muted-foreground); text-transform: uppercase;">Qty</div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div style="padding: 0.75rem 1rem; background-color: var(--muted); border-top: 1px solid var(--border); display: flex; justify-content: flex-end;">
+            <BbButton Variant="ButtonVariant.Ghost" OnClick="() => showCriticalModal = true" style="font-size: var(--text-xs); font-weight: bold;">
+                SEE ALL & MANAGE <LucideIcon Name="chevron-right" Size="14" style="margin-left: 0.25rem;" />
+            </BbButton>
+        </div>
+    </div>
+
+    @* --- MAIN ANALYTICS GRID --- *@
+    <div class="analytics-grid">
+
+        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column;">
+            <h3 style="font-size: var(--text-sm); font-weight: bold; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; text-transform: uppercase; color: var(--muted-foreground);">
+                <LucideIcon Name="trending-up" Size="18" Color="var(--primary)" /> Top SKU Forecast (@currentSimYear)
+            </h3>
+            <div style="overflow-x: auto; flex: 1;">
+                <table style="width: 100%; border-collapse: collapse; min-width: 300px;">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; color: var(--muted-foreground); font-size: var(--text-xs); border-bottom: 1px solid var(--border); text-transform: uppercase; padding: 0.625rem;">Product</th>
+                            <th style="text-align: center; color: var(--muted-foreground); font-size: var(--text-xs); border-bottom: 1px solid var(--border); text-transform: uppercase; padding: 0.625rem;">Confidence</th>
+                            <th style="text-align: right; color: var(--muted-foreground); font-size: var(--text-xs); border-bottom: 1px solid var(--border); text-transform: uppercase; padding: 0.625rem;">Prediction</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (topForecasts == null || !topForecasts.Any())
+                        {
+                            <tr>
+                                <td colspan="3" style="padding: 1rem; text-align: center; font-size: var(--text-sm); color: var(--muted-foreground);">No forecast data available.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var p in topForecasts)
+                            {
+                                <tr>
+                                    <td style="padding: 0.625rem; border-bottom: 1px solid var(--border); font-size: var(--text-sm); color: var(--foreground); font-weight: bold;">@p.Name</td>
+                                    <td style="padding: 0.625rem; border-bottom: 1px solid var(--border); font-size: var(--text-sm); text-align: center;">
+                                        <span style="padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: bold; color: white; background-color: @(p.Confidence > 80 ? "var(--success)" : "var(--warning)");">
+                                            @p.Confidence%
+                                        </span>
+                                    </td>
+                                    <td style="padding: 0.625rem; border-bottom: 1px solid var(--border); font-size: var(--text-sm); color: var(--foreground); text-align: right; font-weight: bold;">
+                                        @p.OrderQty <small style="color: var(--muted-foreground); font-weight: normal;">pcs</small>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column;">
+            <h3 style="font-size: var(--text-sm); font-weight: bold; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; text-transform: uppercase; color: var(--muted-foreground);">
+                <LucideIcon Name="award" Size="18" Color="var(--info)" /> Brand Analytics
+            </h3>
+            <div style="flex: 1; overflow-y: auto;">
+                @if (brandPerformances == null || !brandPerformances.Any())
+                {
+                    <div style="padding: 1rem; text-align: center; font-size: var(--text-sm); color: var(--muted-foreground);">No brand data available.</div>
+                }
+                else
+                {
+                    @foreach (var brand in brandPerformances)
+                    {
+                        <div style="margin-bottom: 0.75rem; padding: 0.75rem; background-color: rgba(0,0,0,0.05); border: 1px solid var(--border); border-radius: var(--radius); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: bold; font-size: var(--text-sm); color: var(--foreground);">@brand.BrandName</div>
+                                <div style="font-size: var(--text-xs); color: var(--muted-foreground);">Predicted Demand: <strong style="color: var(--foreground);">@brand.PredictedUnits units</strong></div>
+                            </div>
+                            <div style="font-weight: 900; color: var(--primary);">₱@brand.TotalValue.ToString("N0")</div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column;">
+            <h3 style="font-size: var(--text-sm); font-weight: bold; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; text-transform: uppercase; color: var(--muted-foreground);">
+                <LucideIcon Name="pie-chart" Size="18" Color="var(--success)" /> Demand by Category
+            </h3>
+            <div style="flex: 1; overflow-y: auto;">
+                @if (categoryVolumes == null || !categoryVolumes.Any())
+                {
+                    <div style="padding: 1rem; text-align: center; font-size: var(--text-sm); color: var(--muted-foreground);">No category data available.</div>
+                }
+                else
+                {
+                    @foreach (var cat in categoryVolumes)
+                    {
+                        <div style="margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: var(--text-xs); margin-bottom: 0.375rem; color: var(--foreground);">
+                                <span style="color: var(--foreground); font-weight: 500;">@cat.Category</span>
+                                <span style="color: var(--muted-foreground); font-weight: bold;">@cat.Percentage.ToString("F1")%</span>
+                            </div>
+                            <div style="background-color: var(--border); height: 0.375rem; border-radius: 9999px; overflow: hidden;">
+                                <div style="background-color: var(--primary); height: 100%; border-radius: 9999px; transition: width 1s ease-out; width: @cat.Percentage%;"></div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@* --- MODAL --- *@
+@if (showCriticalModal)
+{
+    <div style="position: fixed; top: 0; right: 0; bottom: 0; left: 0; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 10000; padding: 1rem;">
+        <div style="background-color: var(--card); border: 1px solid var(--border); width: 100%; max-width: 48rem; max-height: 90vh; border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; animation: modalIn 0.3s ease-out; box-shadow: var(--shadow-xl);">
+            <div style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background-color: var(--card);">
+                <div>
+                    <h2 style="font-size: var(--text-xl); font-weight: bold; color: var(--foreground); margin: 0;">Critical Stock Report</h2>
+                    <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0; margin-top: 0.25rem;">Full overview of items requiring immediate restock</p>
+                </div>
+                <button @onclick="() => showCriticalModal = false" style="background-color: transparent; border: none; color: var(--muted-foreground); font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+
+            <div style="padding: 1.5rem; overflow-y: auto; flex: 1; background-color: rgba(0,0,0,0.05);">
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; min-width: 400px;">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; color: var(--muted-foreground); font-size: var(--text-xs); border-bottom: 1px solid var(--border); text-transform: uppercase; padding: 0.625rem;">Product Name</th>
+                                <th style="text-align: left; color: var(--muted-foreground); font-size: var(--text-xs); border-bottom: 1px solid var(--border); text-transform: uppercase; padding: 0.625rem;">Brand</th>
+                                <th style="text-align: center; color: var(--muted-foreground); font-size: var(--text-xs); border-bottom: 1px solid var(--border); text-transform: uppercase; padding: 0.625rem;">Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in allLowStockProducts)
+                            {
+                                <tr>
+                                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: var(--text-sm); color: var(--foreground); font-weight: bold;">@item.Name</td>
+                                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: var(--text-sm); color: var(--muted-foreground);">@item.Brand</td>
+                                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: var(--text-sm); text-align: center; color: var(--destructive); font-weight: bold;">@item.CurrentStock</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="padding: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; background-color: var(--card);">
+                <BbButton Variant="ButtonVariant.Default" OnClick="OrderAllCritical" style="width: auto;">ORDER ALL CRITICAL</BbButton>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+
+
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: 1fr; /* Mobile default: 1 column */
+        gap: 1.5rem;
+    }
+
+    /* Desktop screens and larger */
+    @@media (min-width: 1024px) {
+        .analytics-grid {
+            grid-template-columns: repeat(3, 1fr); /* Desktop: 3 columns */
+        }
+    }
+
+    /* Custom scrollbar retained because Tailwind v4 doesn't support it natively without plugins */
+    .custom-scrollbar::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 10px;
+    }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: var(--muted-foreground);
+        }
+
+    /* Keyframes for animations */
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes modalIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private bool isRetraining = false;
+    private bool showCriticalModal = false;
+    private List<Product> allProductsCached = new();
+    private int simulationMonth = DateTime.Now.Month;
+    private int currentSimYear = 2026;
+    private decimal totalValue = 0;
+    private int totalPredictedUnits = 0;
+    private int forecastCoverage = 0;
+
+    // Toast States
+    private string toastMessage = "";
+    private string toastType = "info";
+
+    private List<Product> allLowStockProducts = new();
+    private List<TopProductForecast> topForecasts = new();
+    private List<CategoryVolume> categoryVolumes = new();
+    private List<BrandPerformance> brandPerformances = new();
+
+    private string GetMonthName(int month) => new DateTime(2026, month, 1).ToString("MMMM");
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+            allProductsCached = await Context.Products.AsNoTracking().ToListAsync();
+            isLoading = false;
+            await RunFullAnalysis();
+        }
+        catch { isLoading = false; }
+    }
+
+    private async Task RunFullAnalysis()
+    {
+        totalValue = allProductsCached.Sum(p => p.Price * p.CurrentStock);
+        allLowStockProducts = allProductsCached.Where(p => p.CurrentStock <= p.ReorderTarget).OrderBy(p => p.CurrentStock).ToList();
+
+        topForecasts.Clear();
+        var tempCategoryData = new Dictionary<string, int>();
+        var tempBrandData = new Dictionary<string, BrandPerformanceTemp>();
+        totalPredictedUnits = 0;
+
+        int processedCount = 0;
+        int totalToProcess = allProductsCached.Count;
+
+        foreach (var chunk in allProductsCached.Chunk(25))
+        {
+            foreach (var p in chunk)
+            {
+                var ai = PredictionService.GetPredictiveOrderQty(p, simulationMonth, currentSimYear);
+
+                var cat = p.Category ?? "General";
+                var brand = p.Brand ?? "Generic";
+
+                if (!tempBrandData.ContainsKey(brand)) tempBrandData[brand] = new BrandPerformanceTemp();
+                tempBrandData[brand].TotalValue += (p.Price * p.CurrentStock);
+
+                if (ai.FinalOrderQty > 0)
+                {
+                    totalPredictedUnits += ai.FinalOrderQty;
+                    topForecasts.Add(new TopProductForecast { Name = p.Name, OrderQty = ai.FinalOrderQty, Confidence = (int)ai.ConfidenceScore });
+                    tempCategoryData[cat] = tempCategoryData.GetValueOrDefault(cat) + ai.FinalOrderQty;
+                    tempBrandData[brand].PredictedUnits += ai.FinalOrderQty;
+                }
+                processedCount++;
+            }
+            forecastCoverage = (int)((double)processedCount / totalToProcess * 100);
+            UpdateAnalyticsUI(tempCategoryData, tempBrandData);
+            StateHasChanged();
+            await Task.Delay(1);
+        }
+    }
+
+    private void UpdateAnalyticsUI(Dictionary<string, int> catData, Dictionary<string, BrandPerformanceTemp> brandData)
+    {
+        topForecasts = topForecasts.GroupBy(x => x.Name)
+            .Select(g => new TopProductForecast { Name = g.Key, OrderQty = g.Max(x => x.OrderQty), Confidence = g.Max(x => x.Confidence) })
+            .OrderByDescending(x => x.OrderQty).Take(6).ToList();
+
+        int totalUnits = catData.Values.Sum();
+        categoryVolumes = catData.Select(c => new CategoryVolume { Category = c.Key, Percentage = totalUnits > 0 ? (double)c.Value / totalUnits * 100 : 0 })
+            .OrderByDescending(x => x.Percentage).Take(5).ToList();
+
+        brandPerformances = brandData.Select(b => new BrandPerformance { BrandName = b.Key, TotalValue = b.Value.TotalValue, PredictedUnits = b.Value.PredictedUnits })
+            .OrderByDescending(x => x.PredictedUnits).Take(5).ToList();
+    }
+
+    private async Task HandleRetrain()
+    {
+        isRetraining = true;
+        toastMessage = "Syncing Intelligence Models...";
+        toastType = "info";
+        StateHasChanged();
+
+        try
+        {
+            var history = await Context.SalesHistory.Select(s => new Web.MLModel.ModelInput
+            {
+                ProductID = s.ProductID,
+                ProductName = s.ProductName,
+                Brand = s.Brand,
+                Category = s.Category,
+                MonthNum = s.MonthNum,
+                Year = s.Year,
+                QtySold = s.QtySold
+            }).ToListAsync();
+
+            string path = Path.Combine(AppContext.BaseDirectory, "MLModel.mlnet");
+            await Task.Run(() => MLModel.Train(path, history));
+            await RunFullAnalysis();
+
+            toastMessage = "Predictive Model Synchronized Successfully!";
+            toastType = "success";
+        }
+        catch
+        {
+            toastMessage = "Sync Failed: Check Data Integrity";
+            toastType = "error";
+        }
+        finally
+        {
+            isRetraining = false;
+            StateHasChanged();
+
+            // Auto-hide after 3 seconds
+            await Task.Delay(3000);
+            toastMessage = "";
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleYearChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int selectedYear))
+        {
+            currentSimYear = selectedYear;
+            await RunFullAnalysis();
+        }
+    }
+
+    private void OrderAllCritical() => NavManager.NavigateTo("/admin/orderslips?orderAll=true");
+
+    public class TopProductForecast { public string Name { get; set; } = ""; public int OrderQty { get; set; } public int Confidence { get; set; } }
+    public class CategoryVolume { public string Category { get; set; } = ""; public double Percentage { get; set; } }
+    public class BrandPerformance { public string BrandName { get; set; } = ""; public decimal TotalValue { get; set; } public int PredictedUnits { get; set; } }
+    private class BrandPerformanceTemp { public decimal TotalValue { get; set; } public int PredictedUnits { get; set; } }
+}

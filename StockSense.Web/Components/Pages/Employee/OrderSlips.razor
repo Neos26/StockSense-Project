@@ -1,0 +1,492 @@
+@page "/admin/orderslips"
+@layout AdminLayout
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using StockSense.Domain.Entities;
+
+
+
+
+@inject OrderSlipService OrderService
+@inject Web.Data.ApplicationDbContext Context
+@inject IJSRuntime JS
+@inject NavigationManager NavManager
+@inject StockSensePredictionService PredictionService
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin, Employee")]
+
+<PageTitle>Order Slips</PageTitle>
+
+<div style="animation: fadeIn 0.4s ease-in;">
+    @* --- TOP HEADER --- *@
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-6); flex-wrap: wrap; gap: var(--space-3);">
+        <div>
+            <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--foreground); margin: 0;">Order Slips</h1>
+            <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Manage and generate supplier order slips.</p>
+        </div>
+        <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+            <BbButton Variant="ButtonVariant.Ghost" OnClick='() => NavManager.NavigateTo("/admin/order-history")'>
+                View History
+            </BbButton>
+
+            <BbButton Variant="ButtonVariant.Outline" OnClick="() => isManualSelecting = true">
+                Create New Order
+            </BbButton>
+
+            <BbButton Variant="ButtonVariant.Default" OnClick="GenerateSlips" Disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <BbSpinner Size="SpinnerSize.Small" />
+                }
+                Predictive Scan
+            </BbButton>
+        </div>
+    </div>
+
+    @* --- ADVANCED AI FORECASTING SUITE --- *@
+    <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--card-padding); margin-bottom: var(--space-6);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+            <h3 style="font-size: var(--text-base); font-weight: var(--font-semibold); margin: 0; color: var(--foreground);">
+                Advanced Forecasting Suite
+            </h3>
+            <label style="display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); cursor: pointer;">
+                <input type="checkbox" @bind="isSimulating" style="width: 16px; height: 16px;" /> Enable Custom Parameters
+            </label>
+        </div>
+
+        @if (isSimulating)
+        {
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); padding: var(--space-4); background-color: rgba(var(--primary-rgb), 0.05); border: 1px dashed var(--primary); border-radius: var(--radius);">
+                <div>
+                    <label style="font-weight: var(--font-bold); color: var(--foreground); display: block; margin-bottom: var(--space-2);">
+                        Target Forecast: <span style="color: var(--primary);">@GetMonthName(simulationMonth)</span>
+                    </label>
+                    <input type="range" min="1" max="12" @bind="simulationMonth" @bind:event="oninput" style="width: 100%; cursor: pointer;" />
+                </div>
+                <div>
+                    <label style="font-weight: var(--font-bold); color: var(--foreground); display: block; margin-bottom: var(--space-2);">Ordering Strategy</label>
+                    <select @bind="selectedStrategy" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--input); background: var(--background); color: var(--foreground); margin-bottom: 4px;">
+                        <option value="@OrderStrategy.Normal">Normal (Predictive Baseline)</option>
+                        <option value="@OrderStrategy.Conservative">Conservative (Minimize Cost)</option>
+                        <option value="@OrderStrategy.Aggressive">Aggressive (Prevent Stockouts)</option>
+                    </select>
+                    <div style="font-size: 11px; color: var(--muted-foreground); font-style: italic;">
+                        @GetStrategyDescription(selectedStrategy)
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* --- MANUAL SUPPLIER SELECTION --- *@
+    @if (isManualSelecting)
+    {
+        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--card-padding); margin-bottom: var(--space-6);">
+            <h3 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--foreground); margin: 0 0 var(--space-4) 0;">
+                Select Supplier for New Order
+            </h3>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
+                <select @bind="selectedSupplierIdForManual" style="flex: 1; min-width: 200px; padding: 8px 12px; border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground);">
+                    <option value="0">-- Choose Supplier --</option>
+                    @foreach (var s in allSuppliers)
+                    {
+                        <option value="@s.Id">@s.Name</option>
+                    }
+                </select>
+                <BbButton Variant="ButtonVariant.Default" OnClick="StartManualOrder">Create Empty Slip</BbButton>
+                <BbButton Variant="ButtonVariant.Outline" OnClick="() => isManualSelecting = false">Cancel</BbButton>
+            </div>
+        </div>
+    }
+
+    @* --- ORDER SLIPS LIST --- *@
+    @if (isLoading && !slips.Any())
+    {
+        <div style="padding: 4rem; text-align: center;">
+            <BbSpinner Size="SpinnerSize.Large" />
+            <p style="margin-top: 1rem; color: var(--muted-foreground);">Running Predictive Scan...</p>
+        </div>
+    }
+    else if (!slips.Any())
+    {
+        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-8); text-align: center; color: var(--muted-foreground);">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: var(--space-2);">
+                <span style="font-size: var(--text-sm);">Inventory is currently healthy. No items require restocking.</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        @foreach (var slip in slips)
+        {
+            <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: var(--space-6); overflow: hidden;">
+                <div style="padding: var(--space-4) var(--card-padding); background-color: var(--muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-2);">
+                    <div>
+                        <h2 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--foreground); margin: 0;">Supplier: @slip.Supplier?.Name</h2>
+                        <p style="font-size: var(--text-xs); color: var(--muted-foreground); margin: 0;">Draft: @slip.SlipNumber</p>
+                    </div>
+                    <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Small" OnClick="() => slips.Remove(slip)" style="color: var(--destructive);">
+                        Cancel Slip
+                    </BbButton>
+                </div>
+
+                <div style="padding: var(--card-padding);">
+                    <div style="display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-4);">
+                        <div style="flex: 1; min-width: 260px; background-color: var(--background); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4);">
+                            <label style="display: block; font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--muted-foreground); margin-bottom: var(--space-2);">Add Existing Item</label>
+                            <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
+                                <select @bind="selectedProductId" style="flex: 1; min-width: 160px; padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground);">
+                                    <option value="0">-- Select Product --</option>
+                                    @foreach (var p in allProducts.Where(x => x.SupplierId == slip.SupplierId))
+                                    {
+                                        <option value="@p.Id">@p.Name (@p.Brand)</option>
+                                    }
+                                </select>
+                                <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small" OnClick="() => ManuallyAddItem(slip)">Add</BbButton>
+                            </div>
+                        </div>
+
+                        <div style="flex: 1; min-width: 380px; background-color: var(--background); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4);">
+                            <label style="display: block; font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--muted-foreground); margin-bottom: var(--space-2);">Order Unlisted Item</label>
+                            <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
+                                <input type="text" placeholder="Name" @bind="newProductName" style="flex: 2; min-width: 120px; padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); outline: none;" />
+
+                                <select @bind="newProductBrand" style="flex: 1; min-width: 90px; padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); outline: none;">
+                                    <option value="">- Brand -</option>
+                                    @foreach (var brand in allProducts.Select(p => p.Brand).Where(b => !string.IsNullOrWhiteSpace(b)).Distinct().OrderBy(b => b))
+                                    {
+                                        <option value="@brand">@brand</option>
+                                    }
+                                </select>
+
+                                <select @bind="newProductCategory" style="flex: 1; min-width: 100px; padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); outline: none;">
+                                    <option value="">- Category -</option>
+                                    @foreach (var category in allProducts.Select(p => p.Category).Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().OrderBy(c => c))
+                                    {
+                                        <option value="@category">@category</option>
+                                    }
+                                </select>
+
+                                <BbButton Variant="ButtonVariant.Default" Size="ButtonSize.Small" OnClick="() => AddNewUnlistedItem(slip)">Add</BbButton>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="width: 100%; overflow-x: auto; margin-bottom: var(--space-4);">
+                        <table style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: var(--text-sm);">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border); background-color: var(--muted);">
+                                    <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground);">Product Details</th>
+                                    <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground);">Stock</th>
+                                    <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground);">Target</th>
+                                    <th style="text-align: center; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); width: 100px;">Order Qty</th>
+                                    <th style="text-align: left; padding: var(--space-3) var(--space-4); color: var(--muted-foreground); width: 180px;">Reliability</th>
+                                    <th style="width: 44px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in slip.Items)
+                                {
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <td style="padding: var(--space-3) var(--space-4);">
+                                            <span style="font-weight: var(--font-medium); color: var(--foreground);">@item.ProductName</span>
+                                            <div style="font-size: var(--text-xs); color: var(--muted-foreground);">@item.Brand · @item.Category</div>
+                                            @if (item.IsPredictedHighDemand)
+                                            {
+                                                <div style="background-color: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; margin-top: 4px;">
+                                                    HIGH DEMAND DETECTED
+                                                </div>
+                                            }
+                                        </td>
+                                        <td style="padding: var(--space-3) var(--space-4); text-align: center;">@item.CurrentStock</td>
+                                        <td style="padding: var(--space-3) var(--space-4); text-align: center;">@item.ReorderTarget</td>
+                                        <td style="padding: var(--space-3) var(--space-4);">
+                                            <input type="number" @bind="item.Quantity" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--input); text-align: center; font-weight: 800; background: var(--background); color: var(--foreground); outline: none;" />
+                                        </td>
+                                        <td style="padding: var(--space-3) var(--space-4);">
+                                            @if (item.ConfidenceScore > 0)
+                                            {
+                                                <div style="font-size: 11px; line-height: 1.4;">
+                                                    <div style="font-weight: bold; color: @(item.ConfidenceScore >= 80 ? "#22c55e" : "#f59e0b");">
+                                                         @item.ConfidenceScore%
+                                                    </div>
+                                                    <div style="color: var(--muted-foreground); font-size: 10px; margin-top: 2px;">
+                                                        @item.Reasoning
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span style="font-size: 11px; color: var(--muted-foreground); font-style: italic;">Manual stock adjustment. Forecasting logic is not active for this item.</span>
+                                            }
+                                        </td>
+                                        <td style="padding: var(--space-3) var(--space-4); text-align: center;">
+                                            <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" OnClick="() => slip.Items.Remove(item)" style="color: var(--destructive);">
+                                                Remove
+                                            </BbButton>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+                        <BbButton Variant="ButtonVariant.Outline" OnClick="() => DownloadPdf(slip)">
+                            Preview PDF
+                        </BbButton>
+                        <BbButton OnClick="() => SendEmailAndSave(slip)" Disabled="@(isSaving || !slip.Items.Any())">
+                            @if (isSaving)
+                            {
+                                <BbSpinner Size="SpinnerSize.Small" />
+                            }
+                            Email Supplier & Save
+                        </BbButton>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@* --- TOAST NOTIFICATION --- *@
+@if (showToast)
+{
+    <div style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: var(--radius); background-color: @(isToastError ? "var(--destructive-muted, #fef2f2)" : "var(--success-muted, #f0fdf4)"); border: 1px solid @(isToastError ? "var(--destructive-border, #fecaca)" : "var(--success-border, #bbf7d0)"); color: @(isToastError ? "var(--destructive-muted-foreground, #b91c1c)" : "var(--success-muted-foreground, #166534)"); box-shadow: 0 4px 12px rgba(0,0,0,0.1); animation: slideInUp 0.3s ease-out;">
+        <span style="font-size: var(--text-sm); font-weight: 600;">@toastMessage</span>
+    </div>
+}
+
+<style>
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+@code {
+    [Parameter, SupplyParameterFromQuery] public int? productId { get; set; }
+    [Parameter, SupplyParameterFromQuery] public bool? orderAll { get; set; }
+
+    private List<OrderSlip> slips = new();
+    private List<Product> allProducts = new();
+    private List<Supplier> allSuppliers = new();
+
+    private int selectedProductId;
+    private int selectedSupplierIdForManual;
+    private bool isManualSelecting, isLoading, isSaving;
+    private string newProductName = "", newProductBrand = "", newProductCategory = "";
+    private bool isSimulating = false;
+    private int simulationMonth = DateTime.Now.Month;
+    private OrderStrategy selectedStrategy = OrderStrategy.Normal;
+
+    // Toast State
+    private bool showToast = false;
+    private string toastMessage = "";
+    private bool isToastError = false;
+
+    private string GetMonthName(int month) => new DateTime(2026, month, 1).ToString("MMMM");
+
+    private string GetStrategyDescription(OrderStrategy strategy) => strategy switch
+    {
+        OrderStrategy.Conservative => "Order only what is strictly necessary to meet the safety buffer.",
+        OrderStrategy.Aggressive => "Order extra units to buffer against potential stockouts and high demand.",
+        _ => "Standard forecasting based on historical demand trends."
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        allProducts = await Context.Products.Include(p => p.Supplier).AsNoTracking().ToListAsync();
+        allSuppliers = await Context.Suppliers.AsNoTracking().ToListAsync();
+
+        if (productId > 0)
+        {
+            isLoading = true;
+            var single = await OrderService.GenerateSingleProductSlipAsync(productId.Value);
+            if (single != null) slips.AddRange(single);
+            isLoading = false;
+        }
+        else
+        {
+            await GenerateSlips();
+        }
+    }
+
+    private async Task ShowToast(string message, bool isError = false)
+    {
+        toastMessage = message;
+        isToastError = isError;
+        showToast = true;
+        StateHasChanged();
+
+        await Task.Delay(3000); // Display for 3 seconds
+
+        showToast = false;
+        StateHasChanged();
+    }
+
+    private async Task GenerateSlips()
+    {
+        isLoading = true;
+        StateHasChanged();
+        await Task.Delay(1);
+        try
+        {
+            var supplierOrders = new Dictionary<int, OrderSlip>();
+            foreach (var product in allProducts)
+            {
+                int? month = isSimulating ? simulationMonth : null;
+                var strategy = isSimulating ? selectedStrategy : OrderStrategy.Normal;
+                var ai = PredictionService.GetPredictiveOrderQty(product, month, null, strategy);
+
+                int calculatedQty = (ai.PredictedDemand + product.ReorderTarget) - product.CurrentStock;
+                int finalQty = Math.Max(calculatedQty, 0);
+
+                if (ai.PredictedDemand <= 0 && product.CurrentStock < (product.ReorderTarget / 2))
+                {
+                    finalQty = Math.Max(product.ReorderTarget - product.CurrentStock, 0);
+                }
+
+                if (finalQty > 0)
+                {
+                    if (!supplierOrders.ContainsKey(product.SupplierId))
+                    {
+                        supplierOrders[product.SupplierId] = new OrderSlip
+                        {
+                            SlipNumber = $"SS-ORD-{DateTime.Now:yyyyMMdd}-{product.SupplierId}",
+                            SupplierId = product.SupplierId,
+                            Supplier = product.Supplier,
+                            DateGenerated = DateTime.Now,
+                            Items = new List<OrderSlipItem>()
+                        };
+                    }
+
+                    supplierOrders[product.SupplierId].Items.Add(new OrderSlipItem
+                    {
+                        ProductName = product.Name,
+                        Brand = product.Brand,
+                        Category = product.Category,
+                        CurrentStock = product.CurrentStock,
+                        ReorderTarget = product.ReorderTarget,
+                        Quantity = finalQty,
+                        IsPredictedHighDemand = ai.ConfidenceScore > 75 && ai.PredictedDemand > product.ReorderTarget,
+                        ConfidenceScore = ai.ConfidenceScore,
+                        Reasoning = string.IsNullOrEmpty(ai.Reasoning) ? $"Demand forecast ({ai.PredictedDemand}) plus safety target ({product.ReorderTarget}) minus current stock." : ai.Reasoning
+                    });
+                }
+            }
+            slips = supplierOrders.Values.ToList();
+        }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
+        finally { isLoading = false; StateHasChanged(); }
+    }
+
+    private void StartManualOrder()
+    {
+        if (selectedSupplierIdForManual == 0) return;
+        var s = allSuppliers.Find(x => x.Id == selectedSupplierIdForManual);
+        slips.Insert(0, new OrderSlip
+        {
+            SlipNumber = $"MAN-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}",
+            SupplierId = s.Id,
+            Supplier = s,
+            DateGenerated = DateTime.Now,
+            Items = new List<OrderSlipItem>()
+        });
+        isManualSelecting = false;
+    }
+
+    private void ManuallyAddItem(OrderSlip slip)
+    {
+        if (selectedProductId == 0) return;
+        var p = allProducts.Find(x => x.Id == selectedProductId);
+        var ai = PredictionService.GetPredictiveOrderQty(
+            product: p,
+            overrideMonth: isSimulating ? simulationMonth : null,
+            overrideYear: isSimulating ? DateTime.Now.Year : null, // Optional: defaults to current year
+            strategy: isSimulating ? selectedStrategy : OrderStrategy.Normal
+        );
+
+        int calculatedQty = (ai.PredictedDemand + p.ReorderTarget) - p.CurrentStock;
+        int finalQty = Math.Max(calculatedQty, 1);
+
+        slip.Items.Add(new OrderSlipItem
+        {
+            ProductName = p.Name,
+            Brand = p.Brand,
+            Category = p.Category,
+            CurrentStock = p.CurrentStock,
+            ReorderTarget = p.ReorderTarget,
+            Quantity = finalQty,
+            ConfidenceScore = ai.ConfidenceScore,
+            Reasoning = ai.Reasoning
+        });
+        selectedProductId = 0;
+    }
+
+    private void AddNewUnlistedItem(OrderSlip slip)
+    {
+        if (string.IsNullOrWhiteSpace(newProductName)) return;
+
+        slip.Items.Add(new OrderSlipItem
+        {
+            ProductName = newProductName,
+            Brand = string.IsNullOrWhiteSpace(newProductBrand) ? "Unknown" : newProductBrand,
+            Category = string.IsNullOrWhiteSpace(newProductCategory) ? "Uncategorized" : newProductCategory,
+            Quantity = 1,
+            CurrentStock = 0,
+            ReorderTarget = 0
+        });
+
+        // Clear out the form fields
+        newProductName = "";
+        newProductBrand = "";
+        newProductCategory = "";
+    }
+
+    private async Task SendEmailAndSave(OrderSlip slip)
+    {
+        isSaving = true;
+        try
+        {
+            var bytes = await OrderService.GeneratePdfBytesAsync(slip);
+            await OrderService.SendEmailAsync(slip.Supplier.Email, bytes, slip.SlipNumber);
+            await OrderService.SaveOrderSlipToDbAsync(slip);
+            slips.Remove(slip);
+
+            //  Toast
+            _ = ShowToast("Order successfully sent and recorded.");
+        }
+        catch (Exception ex)
+        {
+            //  Error Toast
+            _ = ShowToast("Error: " + ex.Message, true);
+        }
+        finally { isSaving = false; }
+    }
+
+    private async Task DownloadPdf(OrderSlip slip)
+    {
+        var bytes = await OrderService.GeneratePdfBytesAsync(slip);
+        await JS.InvokeVoidAsync("downloadFile", $"Order_{slip.SlipNumber}.pdf", Convert.ToBase64String(bytes));
+    }
+}
