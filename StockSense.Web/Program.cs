@@ -8,8 +8,9 @@ using StockSense.Web.Components;
 using StockSense.Web.Components.Account;
 using StockSense.Infrastructure.Data;
 using StockSense.Domain.Entities;
-using StockSense.Web.Services;
+using StockSense.Infrastructure.Services;
 using StockSense.Web.Helpers;
+using StockSense.Application.Interfaces;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,7 +25,7 @@ builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
 builder.Services.AddLocalization();
-builder.Services.AddSingleton<StockSensePredictionService>();
+
 
 
 // --- 2. AUTHENTICATION & COOKIES ---
@@ -87,7 +88,7 @@ builder.Services.Configure<IdentityOptions>(options =>
 
 // --- 5. EMAIL REGISTRATION (FIXED LOCATION) ---
 // This MUST come directly after Identity is configured so it overrides the defaults.
-builder.Services.AddTransient<IEmailSender<ApplicationUser>, EmailSender>();
+builder.Services.AddTransient<StockSense.Application.Interfaces.IEmailSender<ApplicationUser>, EmailSender>();
 // Keeping this just in case you inject the concrete class elsewhere (like in a Contact page)
 builder.Services.AddTransient<EmailSender>();
 

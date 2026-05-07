@@ -1,32 +1,30 @@
-using MailKit.Net.Smtp;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using MimeKit;
-using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using QuestPDF.Fluent;
+using StockSense.Application.Interfaces;
 using StockSense.Domain.Entities;
 using StockSense.Infrastructure.Data;
+using MailKit.Net.Smtp;
 
-namespace StockSense.Web.Services;
+namespace StockSense.Infrastructure.Services;
 
-public class OrderSlipService
+public class OrderSlipService : IOrderSlipService
 {
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _config;
-    private readonly StockSensePredictionService _predictionService;
 
-    public OrderSlipService(ApplicationDbContext context, IConfiguration config, StockSensePredictionService predictionService)
+    // 1. Removed StockSensePredictionService from constructor
+    public OrderSlipService(ApplicationDbContext context, IConfiguration config)
     {
         _context = context;
         _config = config;
-        _predictionService = predictionService;
     }
 
-    // --- DASHBOARD FEATURE: Order All Low Stock Items ---
     public async Task<List<OrderSlip>> GenerateSuggestedOrderSlipsAsync()
     {
-        // Get products where stock has fallen below the safety buffer (ReorderTarget)
         var lowStockProducts = await _context.Products
             .Include(p => p.Supplier)
             .Where(p => p.CurrentStock < p.ReorderTarget)
@@ -46,41 +44,20 @@ public class OrderSlipService
                 SupplierId = supplier.Id,
                 Supplier = supplier,
                 DateGenerated = DateTime.Now,
-                Items = group.Select(p =>
+                Items = group.Select(p => new OrderSlipItem
                 {
-                    // 1. Ask the AI for the raw demand forecast
-                    var ai = _predictionService.GetPredictiveOrderQty(p);
+                    ProductName = p.Name,
+                    Brand = p.Brand,
+                    Category = p.Category,
+                    CurrentStock = p.CurrentStock,
+                    ReorderTarget = p.ReorderTarget,
 
-                    // 2. THE CORRECT INVENTORY FORMULA:
-                    // (How many people will buy + The minimum safety buffer we want) - What we already have on the shelf
-                    int calculatedQty = (ai.PredictedDemand + p.ReorderTarget) - p.CurrentStock;
-
-                    // 3. Ensure we never order a negative amount
-                    int finalQty = Math.Max(calculatedQty, 0);
-
-                    // 4. Fallback: If AI returns 0 or fails, use the standard fallback calculation
-                    if (ai.PredictedDemand <= 0)
-                    {
-                        finalQty = Math.Max(p.ReorderTarget - p.CurrentStock, 0);
-                        if (finalQty == 0) finalQty = 5; // Hard fallback if math zeros out but stock is low
-                    }
-
-                    return new OrderSlipItem
-                    {
-                        ProductName = p.Name,
-                        Brand = p.Brand,
-                        Category = p.Category,
-                        CurrentStock = p.CurrentStock,
-                        ReorderTarget = p.ReorderTarget,
-
-                        // Apply the exact formula output
-                        Quantity = finalQty,
-
-                        // Save the AI tracking data so we can see it on the frontend
-                        IsPredictedHighDemand = ai.ConfidenceScore > 75 && ai.PredictedDemand > p.ReorderTarget,
-                        ConfidenceScore = ai.ConfidenceScore,
-                        Reasoning = $"SS predicts {ai.PredictedDemand} units of demand. Formula applied: ({ai.PredictedDemand} Demand + {p.ReorderTarget} Safety) - {p.CurrentStock} Current."
-                    };
+                    // 2. Simplified Logic: Basic Safety Stock formula
+                    Quantity = Math.Max(p.ReorderTarget - p.CurrentStock, 5), // Default to 5 if math is tight
+                    
+                    IsPredictedHighDemand = false,
+                    ConfidenceScore = 0,
+                    Reasoning = "Manual reorder based on safety stock threshold."
                 }).ToList()
             };
 
@@ -91,7 +68,6 @@ public class OrderSlipService
         return generatedSlips;
     }
 
-    // --- DASHBOARD FEATURE: Order a Specific Product from Alert ---
     public async Task<List<OrderSlip>> GenerateSingleProductSlipAsync(int productId)
     {
         var p = await _context.Products
@@ -99,18 +75,6 @@ public class OrderSlipService
             .FirstOrDefaultAsync(x => x.Id == productId);
 
         if (p == null) return new List<OrderSlip>();
-
-        var ai = _predictionService.GetPredictiveOrderQty(p);
-
-        // Apply the same correct formula here
-        int calculatedQty = (ai.PredictedDemand + p.ReorderTarget) - p.CurrentStock;
-        int finalQty = Math.Max(calculatedQty, 0);
-
-        if (ai.PredictedDemand <= 0)
-        {
-            finalQty = Math.Max(p.ReorderTarget - p.CurrentStock, 0);
-            if (finalQty == 0) finalQty = 10;
-        }
 
         var slip = new OrderSlip
         {
@@ -122,13 +86,8 @@ public class OrderSlipService
                 new OrderSlipItem {
                     ProductName = p.Name,
                     Brand = p.Brand,
-                    Category = p.Category,
-                    CurrentStock = p.CurrentStock,
-                    ReorderTarget = p.ReorderTarget,
-                    Quantity = finalQty,
-                    IsPredictedHighDemand = ai.ConfidenceScore > 75 && ai.PredictedDemand > p.ReorderTarget,
-                    ConfidenceScore = ai.ConfidenceScore,
-                    Reasoning = $"SS predicts {ai.PredictedDemand} units of demand. Formula applied: ({ai.PredictedDemand} Demand + {p.ReorderTarget} Safety) - {p.CurrentStock} Current."
+                    Quantity = Math.Max(p.ReorderTarget - p.CurrentStock, 10),
+                    Reasoning = "On-demand single product reorder."
                 }
             }
         };
