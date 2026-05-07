@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
-using StockSense.Web.Data; // For the Update DTO
+using StockSense.Infrastructure.Data;
 
 namespace StockSense.Web.Controllers
 {

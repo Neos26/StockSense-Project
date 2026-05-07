@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 // Points to AppDbContext
 using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
-using StockSense.Web.Data; // Points to BuildRequest model
+using StockSense.Infrastructure.Data;
 
 
 namespace StockSense.Web.Server.Controllers

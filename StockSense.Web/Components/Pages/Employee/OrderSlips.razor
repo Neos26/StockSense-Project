@@ -8,7 +8,7 @@
 
 
 @inject OrderSlipService OrderService
-@inject Web.Data.ApplicationDbContext Context
+@inject Infrastructure.Data.ApplicationDbContext Context
 @inject IJSRuntime JS
 @inject NavigationManager NavManager
 @inject StockSensePredictionService PredictionService
@@ -56,7 +56,7 @@
 
         @if (isSimulating)
         {
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); padding: var(--space-4); background-color: rgba(var(--primary-rgb), 0.05); border: 1px dashed var(--primary); border-radius: var(--radius);">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); padding: var(--space-4); background-color: rgba(var(--primary), 0.05); border: 1px dashed var(--primary); border-radius: var(--radius);">
                 <div>
                     <label style="font-weight: var(--font-bold); color: var(--foreground); display: block; margin-bottom: var(--space-2);">
                         Target Forecast: <span style="color: var(--primary);">@GetMonthName(simulationMonth)</span>

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using StockSense.Web.Components.Account.Pages;
 using StockSense.Web.Components.Account.Pages.Manage;
-using StockSense.Web.Data;
+using StockSense.Domain.Entities;
 
 namespace StockSense.Web.Components.Account
 {

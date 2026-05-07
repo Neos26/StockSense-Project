@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using StockSense.Web.Data;
+using StockSense.Infrastructure.Data;
 using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
 using System.Text;

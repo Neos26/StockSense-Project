@@ -6,7 +6,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using StockSense.Domain.Entities;
-using StockSense.Web.Data;
+using StockSense.Infrastructure.Data;
 
 namespace StockSense.Web.Services;
 

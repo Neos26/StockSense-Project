@@ -245,7 +245,7 @@
             <td style="padding: var(--space-2) var(--space-2);">
                 <input type="number"
                        value="@item.Quantity"
-                       @onchange="@(e => UpdateCartQuantity(item, e))"
+                       @onchange="@((ChangeEventArgs e) => UpdateCartQuantity(item, e))"
                        min="1"
                        style="width: 56px; padding: var(--space-1) var(--space-2); border-radius: var(--radius); border: 1px solid var(--input); background-color: var(--background); color: var(--foreground); font-size: var(--text-sm); box-sizing: border-box;" />
             </td>

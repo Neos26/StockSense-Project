@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StockSense.Domain.Entities;
-using StockSense.Web.Data;
+using StockSense.Infrastructure.Data;
 
 // Add this if your Transaction, TransactionItem, and SalesHistory models are in a different namespace
 // using StockSense.Models; 

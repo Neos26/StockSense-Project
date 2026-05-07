@@ -16,7 +16,7 @@
 @using StockSense.Client.Layout
 
 @* CRITICAL ADDITIONS FOR DATABASE AND AI *@
-@using StockSense.Web.Data
+
 @using StockSense.Web.Services
 @using Microsoft.EntityFrameworkCore
 
@@ -27,3 +27,8 @@
 @* Icons *@
 @using BlazorBlueprint.Icons.Lucide.Components
 @using BlazorBlueprint.Icons.Lucide.Data
+
+@* Internal Architecture Access *@
+@using StockSense.Domain.Entities
+@using StockSense.Application.DTOs
+@using StockSense.Infrastructure.Data

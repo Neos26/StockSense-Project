@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
-using StockSense.Web.Data;
+using StockSense.Infrastructure.Data;
 
 namespace StockSense.Web.Controllers
 {

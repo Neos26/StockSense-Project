@@ -6,7 +6,8 @@ using System.Threading.RateLimiting;
 using BlazorBlueprint.Components;
 using StockSense.Web.Components;
 using StockSense.Web.Components.Account;
-using StockSense.Web.Data;
+using StockSense.Infrastructure.Data;
+using StockSense.Domain.Entities;
 using StockSense.Web.Services;
 using StockSense.Web.Helpers;
 

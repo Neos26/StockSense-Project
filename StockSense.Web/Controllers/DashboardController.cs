@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
-using StockSense.Web.Data;
+using StockSense.Infrastructure.Data;
 
 namespace StockSense.Web.Controllers
 {

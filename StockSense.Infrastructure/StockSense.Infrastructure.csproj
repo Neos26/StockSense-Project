@@ -1,9 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <ItemGroup>
-    <ProjectReference Include="..\StockSense.Application\StockSense.Application.csproj" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -11,8 +6,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\StockSense.Domain\StockSense.Domain.csproj" />
+    <ProjectReference Include="..\StockSense.Application\StockSense.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.23" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.23" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.23" />
+
     <PackageReference Include="Microsoft.ML" Version="3.0.1" />
-    <PackageReference Include="MimeKit" Version="4.15.1" />
+    <PackageReference Include="Microsoft.ML.CpuMath" Version="3.0.1" />
+    <PackageReference Include="Microsoft.ML.DataView" Version="3.0.1" />
+    <PackageReference Include="Microsoft.ML.FastTree" Version="3.0.1" />
+    <PackageReference Include="Microsoft.ML.LightGbm" Version="3.0.1" />
+    <PackageReference Include="Microsoft.ML.TimeSeries" Version="3.0.1" />
+
+    <PackageReference Include="MailKit" Version="4.15.0" /> <PackageReference Include="MimeKit" Version="4.15.1" />
+
+    <PackageReference Include="QuestPDF" Version="2026.2.3" />
   </ItemGroup>
 </Project>
-

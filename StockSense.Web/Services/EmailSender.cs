@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using MailKit.Net.Smtp;
 using MimeKit;
 using MailKit.Security;
-using StockSense.Web.Data;
+using StockSense.Domain.Entities;
 
 public class EmailSender : IEmailSender<ApplicationUser>
 {

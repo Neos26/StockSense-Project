@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using StockSense.Web.Data;
+using StockSense.Domain.Entities;
 
 namespace StockSense.Web.Components.Account
 {
