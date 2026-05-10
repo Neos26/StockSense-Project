@@ -8,6 +8,8 @@ using StockSense.Application.Interfaces;
 using StockSense.Domain.Entities;
 using StockSense.Infrastructure.Data;
 using MailKit.Net.Smtp;
+using StockSense.Application.DTOs;
+using StockSense.Application.Mappings;
 
 namespace StockSense.Infrastructure.Services;
 
@@ -16,14 +18,13 @@ public class OrderSlipService : IOrderSlipService
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _config;
 
-    // 1. Removed StockSensePredictionService from constructor
     public OrderSlipService(ApplicationDbContext context, IConfiguration config)
     {
         _context = context;
         _config = config;
     }
 
-    public async Task<List<OrderSlip>> GenerateSuggestedOrderSlipsAsync()
+    public async Task<List<OrderSlipDto>> GenerateSuggestedOrderSlipsAsync()
     {
         var lowStockProducts = await _context.Products
             .Include(p => p.Supplier)
@@ -51,10 +52,7 @@ public class OrderSlipService : IOrderSlipService
                     Category = p.Category,
                     CurrentStock = p.CurrentStock,
                     ReorderTarget = p.ReorderTarget,
-
-                    // 2. Simplified Logic: Basic Safety Stock formula
-                    Quantity = Math.Max(p.ReorderTarget - p.CurrentStock, 5), // Default to 5 if math is tight
-                    
+                    Quantity = Math.Max(p.ReorderTarget - p.CurrentStock, 5), 
                     IsPredictedHighDemand = false,
                     ConfidenceScore = 0,
                     Reasoning = "Manual reorder based on safety stock threshold."
@@ -65,16 +63,17 @@ public class OrderSlipService : IOrderSlipService
             slipCounter++;
         }
 
-        return generatedSlips;
+        // Map the raw entities to DTOs before returning them to the UI
+        return generatedSlips.Select(s => s.ToDto()).ToList();
     }
 
-    public async Task<List<OrderSlip>> GenerateSingleProductSlipAsync(int productId)
+    public async Task<List<OrderSlipDto>> GenerateSingleProductSlipAsync(int productId)
     {
         var p = await _context.Products
             .Include(prod => prod.Supplier)
             .FirstOrDefaultAsync(x => x.Id == productId);
 
-        if (p == null) return new List<OrderSlip>();
+        if (p == null) return new List<OrderSlipDto>();
 
         var slip = new OrderSlip
         {
@@ -92,33 +91,48 @@ public class OrderSlipService : IOrderSlipService
             }
         };
 
-        return new List<OrderSlip> { slip };
+        // Map to DTO
+        return new List<OrderSlipDto> { slip.ToDto() };
     }
 
     // --- DATABASE OPERATIONS ---
-    public async Task SaveOrderSlipToDbAsync(OrderSlip slip)
+    public async Task SaveOrderSlipToDbAsync(OrderSlipDto slipDto)
     {
-        if (slip.Id != 0) return;
+        if (slipDto.Id != 0) return;
 
-        slip.DateGenerated = DateTime.Now;
-        slip.IsReceived = false;
+        // Reverse map: We received a DTO from the UI, now we turn it back into an Entity to save it
+        var newSlip = new OrderSlip
+        {
+            SlipNumber = slipDto.SlipNumber,
+            DateGenerated = DateTime.Now,
+            SupplierId = slipDto.SupplierId,
+            IsReceived = false,
+            Items = slipDto.Items.Select(i => new OrderSlipItem
+            {
+                ProductName = i.ProductName,
+                Brand = i.Brand,
+                Category = i.Category,
+                CurrentStock = i.CurrentStock,
+                ReorderTarget = i.ReorderTarget,
+                Quantity = i.Quantity,
+                ReceivedQuantity = i.ReceivedQuantity
+            }).ToList()
+        };
 
-        var supplier = slip.Supplier;
-        slip.Supplier = null!;
-
-        _context.OrderSlips.Add(slip);
+        _context.OrderSlips.Add(newSlip);
         await _context.SaveChangesAsync();
-
-        slip.Supplier = supplier;
     }
 
-    public async Task<List<OrderSlip>> GetSavedOrderSlipsAsync()
+    public async Task<List<OrderSlipDto>> GetSavedOrderSlipsAsync()
     {
-        return await _context.OrderSlips
+        var slips = await _context.OrderSlips
             .Include(s => s.Supplier)
             .Include(s => s.Items)
             .OrderByDescending(s => s.DateGenerated)
             .ToListAsync();
+
+        // Convert the raw database entities to safe DTOs
+        return slips.Select(s => s.ToDto()).ToList();
     }
 
     public async Task DeleteOrderSlipAsync(int id)
@@ -142,39 +156,47 @@ public class OrderSlipService : IOrderSlipService
     }
 
     // --- INVENTORY MANAGEMENT: Stock Receipt ---
-    public async Task MarkAsReceivedAsync(OrderSlip slip)
+    public async Task MarkAsReceivedAsync(OrderSlipDto slipDto)
     {
         var dbSlip = await _context.OrderSlips
             .Include(s => s.Items)
-            .FirstOrDefaultAsync(s => s.Id == slip.Id);
+            .FirstOrDefaultAsync(s => s.Id == slipDto.Id);
 
         if (dbSlip == null || dbSlip.IsReceived) return;
 
-        foreach (var item in dbSlip.Items)
+        // Iterate over the DTO items sent from the UI
+        foreach (var itemDto in slipDto.Items)
         {
-            if (item.ReceivedQuantity <= 0) continue;
+            if (itemDto.ReceivedQuantity <= 0) continue;
 
             var product = await _context.Products
-                .FirstOrDefaultAsync(p => p.Name == item.ProductName && p.Brand == item.Brand);
+                .FirstOrDefaultAsync(p => p.Name == itemDto.ProductName && p.Brand == itemDto.Brand);
 
             if (product != null)
             {
-                product.CurrentStock += item.ReceivedQuantity;
+                product.CurrentStock += itemDto.ReceivedQuantity;
             }
             else
             {
                 var newProduct = new Product
                 {
-                    Name = item.ProductName,
-                    Brand = item.Brand,
-                    Category = !string.IsNullOrEmpty(item.Category) ? item.Category : "General",
-                    CurrentStock = item.ReceivedQuantity,
+                    Name = itemDto.ProductName,
+                    Brand = itemDto.Brand,
+                    Category = !string.IsNullOrEmpty(itemDto.Category) ? itemDto.Category : "General",
+                    CurrentStock = itemDto.ReceivedQuantity,
                     SupplierId = dbSlip.SupplierId,
                     Price = 0.00m,
                     ImageUrl = "https://placehold.co/300x200",
                     ReorderTarget = 10
                 };
                 _context.Products.Add(newProduct);
+            }
+
+            // Update the database item's received quantity to match the DTO
+            var dbItem = dbSlip.Items.FirstOrDefault(i => i.Id == itemDto.Id);
+            if (dbItem != null)
+            {
+                dbItem.ReceivedQuantity = itemDto.ReceivedQuantity;
             }
         }
 
@@ -183,7 +205,7 @@ public class OrderSlipService : IOrderSlipService
     }
 
     // --- PDF GENERATION ---
-    public async Task<byte[]> GeneratePdfBytesAsync(OrderSlip slip)
+    public async Task<byte[]> GeneratePdfBytesAsync(OrderSlipDto slipDto)
     {
         QuestPDF.Settings.License = LicenseType.Community;
 
@@ -192,12 +214,13 @@ public class OrderSlipService : IOrderSlipService
             container.Page(page =>
             {
                 page.Margin(1, Unit.Inch);
-                page.Header().Text($"Order Slip: {slip.SlipNumber}").FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
+                page.Header().Text($"Order Slip: {slipDto.SlipNumber}").FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
 
                 page.Content().Column(col =>
                 {
-                    col.Item().Text($"Supplier: {slip.Supplier?.Name}");
-                    col.Item().Text($"Date: {slip.DateGenerated:MM/dd/yyyy}");
+                    // Notice how we use the flattened SupplierName from the DTO!
+                    col.Item().Text($"Supplier: {slipDto.SupplierName}");
+                    col.Item().Text($"Date: {slipDto.DateGenerated:MM/dd/yyyy}");
                     col.Item().PaddingTop(10).Table(table =>
                     {
                         table.ColumnsDefinition(columns => {
@@ -208,7 +231,7 @@ public class OrderSlipService : IOrderSlipService
                             header.Cell().Text("Product");
                             header.Cell().Text("Quantity");
                         });
-                        foreach (var item in slip.Items)
+                        foreach (var item in slipDto.Items)
                         {
                             table.Cell().Text($"{item.ProductName} ({item.Brand})");
                             table.Cell().Text(item.Quantity.ToString());
@@ -226,6 +249,7 @@ public class OrderSlipService : IOrderSlipService
     // --- EMAIL FEATURE ---
     public async Task SendEmailAsync(string recipientEmail, byte[] pdfAttachment, string slipNumber)
     {
+        // ... (This method doesn't use DTOs directly, so it stays exactly the same) ...
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("StockSense Admin", "admin@stocksense.com"));
         message.To.Add(new MailboxAddress("Supplier", recipientEmail));

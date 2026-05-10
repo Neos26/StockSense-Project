@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using BlazorBlueprint.Components;
+using BlazorBlueprint.Primitives;
+using BlazorBlueprint.Primitives.Extensions;
 using StockSense.Web.Components;
 using StockSense.Web.Components.Account;
 using StockSense.Infrastructure.Data;
@@ -11,6 +13,7 @@ using StockSense.Domain.Entities;
 using StockSense.Infrastructure.Services;
 using StockSense.Web.Helpers;
 using StockSense.Application.Interfaces;
+using StockSense.Infrastructure.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -124,9 +127,10 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
-builder.Services.AddScoped<OrderSlipService>();
+builder.Services.AddScoped<IOrderSlipService, OrderSlipService>();
 builder.Services.AddScoped<TransactionService>();
 builder.Services.AddBlazorBlueprintComponents();
+builder.Services.AddBlazorBlueprintPrimitives();
 builder.Services.AddHttpClient();
 
 builder.Services.AddControllers()

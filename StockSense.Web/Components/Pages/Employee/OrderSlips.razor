@@ -1,128 +1,167 @@
 @page "/admin/orderslips"
 @layout AdminLayout
-@using StockSense.Domain.Entities
-@inject OrderSlipService OrderService
-@inject Infrastructure.Data.ApplicationDbContext Context
+@using StockSense.Application.DTOs
+@using StockSense.Application.Interfaces
+@inject IOrderSlipService OrderService
 @inject NavigationManager NavManager
 @rendermode InteractiveServer
+@using BlazorBlueprint.Primitives.Table
 
 <PageTitle>Order Slips</PageTitle>
 
-<div style="animation: fadeIn 0.4s ease-in;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+<div class="animate-in fade-in duration-500 max-w-6xl mx-auto p-6">
+    
+    @* --- HEADER --- *@
+    <div class="flex justify-between items-center mb-8">
         <div>
-            <h1 style="font-size: var(--text-2xl); font-weight: bold; margin: 0;">Order Slips</h1>
-            <p style="font-size: var(--text-sm); color: var(--muted-foreground); margin: 0;">Manual and rule-based inventory restock.</p>
+            <h1 class="text-3xl font-bold tracking-tight text-foreground">Order Slips</h1>
+            <p class="text-sm text-muted-foreground mt-1">Generate and manage supplier restock orders.</p>
         </div>
         <BbButton Variant="ButtonVariant.Default" OnClick="GenerateSlips" Disabled="@isLoading">
+            @if (isLoading)
+            {
+                <BbSpinner Size="SpinnerSize.Small" Class="mr-2"/>
+            }
+            <LucideIcon Name="scan" Size="16" Class="mr-2"/>
             Scan Low Stock
         </BbButton>
     </div>
 
-    @* --- SLIPS LIST --- *@
-    @foreach (var slip in slips)
+    @if (isLoading && !slips.Any())
     {
-        <div style="background-color: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1.5rem; padding: 1rem;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-                <h2 style="font-size: var(--text-base); font-weight: bold;">Supplier: @slip.Supplier?.Name</h2>
-                <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Small" OnClick="() => slips.Remove(slip)" style="color: var(--destructive);">Discard</BbButton>
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
-                <thead>
-                    <tr style="text-align: left; color: var(--muted-foreground);">
-                        <th style="padding: 0.5rem;">Product</th>
-                        <th style="padding: 0.5rem; text-align: center;">Current Stock</th>
-                        <th style="padding: 0.5rem; text-align: center;">Target</th>
-                        <th style="padding: 0.5rem; text-align: center; width: 100px;">Order Qty</th>
-                        <th style="width: 50px;"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in slip.Items)
-                    {
-                        <tr style="border-bottom: 1px solid var(--border);">
-                            <td style="padding: 0.5rem;">@item.ProductName (@item.Brand)</td>
-                            <td style="padding: 0.5rem; text-align: center;">@item.CurrentStock</td>
-                            <td style="padding: 0.5rem; text-align: center;">@item.ReorderTarget</td>
-                            <td style="padding: 0.5rem;">
-                                <input type="number" @bind="item.Quantity" style="width: 100%; padding: 4px; border: 1px solid var(--border); text-align: center; border-radius: 4px;" />
-                            </td>
-                            <td style="padding: 0.5rem; text-align: center;">
-                                <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" OnClick="() => slip.Items.Remove(item)">&times;</BbButton>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-
-            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
-                <BbButton Variant="ButtonVariant.Outline" OnClick="() => OrderService.SaveOrderSlipToDbAsync(slip)">Save Draft</BbButton>
-                <BbButton OnClick="() => SendEmailAndSave(slip)">Email Supplier</BbButton>
-            </div>
+        <div class="flex flex-col items-center justify-center p-20 text-muted-foreground">
+            <BbSpinner Size="SpinnerSize.Large" Class="mb-4"/>
+            <p>Analyzing stock levels...</p>
         </div>
+    }
+    else if (!slips.Any())
+    {
+        <div class="rounded-xl border-2 border-dashed p-20 text-center">
+            <LucideIcon Name="package-check" Size="48" Class="mx-auto mb-4 text-muted-foreground/50"/>
+            <h3 class="text-lg font-medium">Inventory Healthy</h3>
+            <p class="text-sm text-muted-foreground">All items are currently above their reorder targets.</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var slip in slips)
+        {
+            <BbCard Class="mb-8 overflow-hidden shadow-sm border-border">
+                <BbCardHeader Class="flex flex-row items-center justify-between bg-muted/30 border-b py-4">
+                    <div>
+                        <BbCardTitle class="text-lg font-bold">@slip.SupplierName</BbCardTitle>
+                        <p class="text-xs text-muted-foreground">Reference: @slip.SlipNumber</p>
+                    </div>
+                    <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Small"
+                              OnClick="() => slips.Remove(slip)"
+                              Class="text-destructive hover:bg-destructive/10">
+                        Discard
+                    </BbButton>
+                </BbCardHeader>
+
+                <BbCardContent Class="p-0">
+                    @* --- PRIMITIVE TABLE --- *@
+                    <BbTable TData="OrderSlipItemDto" class="w-full">
+                        <BbTableHeader class="bg-muted/50 border-b">
+                            @* Add TData here *@
+                            <BbTableRow TData="OrderSlipItemDto">
+                                @* And here *@
+                                <BbTableHeaderCell TData="OrderSlipItemDto"
+                                                   class="p-4 text-left font-medium text-muted-foreground">Product
+                                </BbTableHeaderCell>
+                                <BbTableHeaderCell TData="OrderSlipItemDto"
+                                                   class="p-4 text-center font-medium text-muted-foreground">Current
+                                </BbTableHeaderCell>
+                                <BbTableHeaderCell TData="OrderSlipItemDto"
+                                                   class="p-4 text-center font-medium text-muted-foreground">Target
+                                </BbTableHeaderCell>
+                                <BbTableHeaderCell TData="OrderSlipItemDto"
+                                                   class="p-4 text-center font-medium text-muted-foreground w-32">Order
+                                    Qty
+                                </BbTableHeaderCell>
+                                <BbTableHeaderCell TData="OrderSlipItemDto" class="p-4 w-12"></BbTableHeaderCell>
+                            </BbTableRow>
+                        </BbTableHeader>
+                        <BbTableBody TData="OrderSlipItemDto">
+                            @foreach (var item in slip.Items)
+                            {
+                                @* Add TData here as well *@
+                                <BbTableRow TData="OrderSlipItemDto"
+                                            class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                                    <BbTableCell TData="OrderSlipItemDto" class="p-4">
+                                        <div class="font-medium text-sm">@item.ProductName</div>
+                                        <div class="text-xs text-muted-foreground">@item.Brand</div>
+                                    </BbTableCell>
+                                    <BbTableCell TData="OrderSlipItemDto"
+                                                 class="p-4 text-center text-sm font-mono">@item.CurrentStock</BbTableCell>
+                                    <BbTableCell TData="OrderSlipItemDto"
+                                                 class="p-4 text-center text-sm font-mono text-muted-foreground">@item.ReorderTarget</BbTableCell>
+                                    <BbTableCell TData="OrderSlipItemDto" class="p-4">
+                                        <input type="number" @bind="item.Quantity"
+                                               class="w-full h-8 px-2 text-center text-sm rounded-md border border-input bg-background focus:ring-1 focus:ring-ring outline-none"/>
+                                    </BbTableCell>
+                                    <BbTableCell TData="OrderSlipItemDto" class="p-4 text-right">
+                                        <button @onclick="() => slip.Items.Remove(item)"
+                                                class="text-muted-foreground hover:text-destructive transition-colors">
+                                            <LucideIcon Name="x" Size="16"/>
+                                        </button>
+                                    </BbTableCell>
+                                </BbTableRow>
+                            }
+                        </BbTableBody>
+                    </BbTable>
+                </BbCardContent>
+
+                <BbCardFooter Class="flex justify-end gap-3 p-4 bg-muted/10 border-t">
+                    <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small"
+                              OnClick="() => OrderService.SaveOrderSlipToDbAsync(slip)">
+                        Save Draft
+                    </BbButton>
+                    <BbButton Size="ButtonSize.Small" OnClick="() => SendEmailAndSave(slip)" Disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <BbSpinner Size="SpinnerSize.Small" Class="mr-2"/>
+                            <span>Sending...</span>
+                        }
+                        else
+                        {
+                            <LucideIcon Name="mail" Size="16" Class="mr-2"/>
+                            <span>Email Order</span>
+                        }
+                    </BbButton>
+                </BbCardFooter>
+            </BbCard>
+        }
     }
 </div>
 
 @code {
-    private List<OrderSlip> slips = new();
-    private List<Product> allProducts = new();
+    private List<OrderSlipDto> slips = new();
     private bool isLoading, isSaving;
 
-    protected override async Task OnInitializedAsync()
-    {
-        allProducts = await Context.Products.Include(p => p.Supplier).AsNoTracking().ToListAsync();
-        await GenerateSlips();
-    }
+    protected override async Task OnInitializedAsync() => await GenerateSlips();
 
     private async Task GenerateSlips()
     {
         isLoading = true;
-        var supplierOrders = new Dictionary<int, OrderSlip>();
-
-        foreach (var product in allProducts.Where(p => p.CurrentStock < p.ReorderTarget))
-        {
-            // Plain Heuristic: Order the difference between Target and Current
-            int finalQty = product.ReorderTarget - product.CurrentStock;
-
-            if (finalQty > 0)
-            {
-                if (!supplierOrders.ContainsKey(product.SupplierId))
-                {
-                    supplierOrders[product.SupplierId] = new OrderSlip
-                    {
-                        SlipNumber = $"ORD-{DateTime.Now:yyyyMMdd}-{product.SupplierId}",
-                        SupplierId = product.SupplierId,
-                        Supplier = product.Supplier,
-                        DateGenerated = DateTime.Now,
-                        Items = new List<OrderSlipItem>()
-                    };
-                }
-
-                supplierOrders[product.SupplierId].Items.Add(new OrderSlipItem
-                {
-                    ProductName = product.Name,
-                    Brand = product.Brand,
-                    CurrentStock = product.CurrentStock,
-                    ReorderTarget = product.ReorderTarget,
-                    Quantity = finalQty
-                });
-            }
-        }
-        slips = supplierOrders.Values.ToList();
+        slips = await OrderService.GenerateSuggestedOrderSlipsAsync();
         isLoading = false;
     }
 
-    private async Task SendEmailAndSave(OrderSlip slip)
+    private async Task SendEmailAndSave(OrderSlipDto slip)
     {
         isSaving = true;
         try
         {
             var bytes = await OrderService.GeneratePdfBytesAsync(slip);
-            await OrderService.SendEmailAsync(slip.Supplier.Email, bytes, slip.SlipNumber);
+            await OrderService.SendEmailAsync(slip.SupplierEmail, bytes, slip.SlipNumber);
             await OrderService.SaveOrderSlipToDbAsync(slip);
             slips.Remove(slip);
         }
-        finally { isSaving = false; }
+        finally
+        {
+            isSaving = false;
+        }
     }
+
 }

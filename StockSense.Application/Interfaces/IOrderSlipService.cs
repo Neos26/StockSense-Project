@@ -1,16 +1,19 @@
-using StockSense.Domain.Entities;
+using StockSense.Application.DTOs;
 
 namespace StockSense.Application.Interfaces;
 
 public interface IOrderSlipService
 {
-    Task<List<OrderSlip>> GenerateSuggestedOrderSlipsAsync();
-    Task<List<OrderSlip>> GenerateSingleProductSlipAsync(int productId);
-    Task SaveOrderSlipToDbAsync(OrderSlip slip);
-    Task<List<OrderSlip>> GetSavedOrderSlipsAsync();
+    Task<List<OrderSlipDto>> GenerateSuggestedOrderSlipsAsync();
+    Task<List<OrderSlipDto>> GenerateSingleProductSlipAsync(int productId);
+    Task<List<OrderSlipDto>> GetSavedOrderSlipsAsync();
+    
+    // Note: Methods that TAKE an OrderSlip need to be updated too!
+    Task SaveOrderSlipToDbAsync(OrderSlipDto slip);
+    Task MarkAsReceivedAsync(OrderSlipDto slip);
+    Task<byte[]> GeneratePdfBytesAsync(OrderSlipDto slip);
+    
     Task DeleteOrderSlipAsync(int id);
     Task RemoveItemFromSlipAsync(int itemId);
-    Task MarkAsReceivedAsync(OrderSlip slip);
-    Task<byte[]> GeneratePdfBytesAsync(OrderSlip slip);
     Task SendEmailAsync(string recipientEmail, byte[] pdfAttachment, string slipNumber);
 }
