@@ -117,8 +117,11 @@
                               OnClick="() => OrderService.SaveOrderSlipToDbAsync(slip)">
                         Save Draft
                     </BbButton>
-                    <BbButton Size="ButtonSize.Small" OnClick="() => SendEmailAndSave(slip)" Disabled="@isSaving">
-                        @if (isSaving)
+                    <BbButton Size="ButtonSize.Small" 
+                              OnClick="() => SendEmailAndSave(slip)" 
+                              Disabled="processingSlips.Contains(slip.SlipNumber)">
+    
+                        @if (processingSlips.Contains(slip.SlipNumber))
                         {
                             <BbSpinner Size="SpinnerSize.Small" Class="mr-2"/>
                             <span>Sending...</span>
@@ -137,7 +140,10 @@
 
 @code {
     private List<OrderSlipDto> slips = new();
-    private bool isLoading, isSaving;
+    private bool isLoading;
+    
+    // Replace 'isSaving' with a HashSet that tracks active slips
+    private HashSet<string> processingSlips = new();
 
     protected override async Task OnInitializedAsync() => await GenerateSlips();
 
@@ -148,20 +154,47 @@
         isLoading = false;
     }
 
-    private async Task SendEmailAndSave(OrderSlipDto slip)
+    /*     private async Task SendEmailAndSave(OrderSlipDto slip)
     {
-        isSaving = true;
+        // Add THIS slip's number to the processing list
+        processingSlips.Add(slip.SlipNumber);
+        
         try
         {
             var bytes = await OrderService.GeneratePdfBytesAsync(slip);
-            await OrderService.SendEmailAsync(slip.SupplierEmail, bytes, slip.SlipNumber);
+            
+            // Add a safe fallback just in case the Supplier doesn't have an email in the DB yet
+            string targetEmail = string.IsNullOrEmpty(slip.SupplierEmail) ? "no-email@supplier.com" : slip.SupplierEmail;
+            
+            await OrderService.SendEmailAsync(targetEmail, bytes, slip.SlipNumber);
             await OrderService.SaveOrderSlipToDbAsync(slip);
             slips.Remove(slip);
         }
         finally
         {
-            isSaving = false;
+            // Remove it from the list when done, stopping the spinner
+            processingSlips.Remove(slip.SlipNumber);
+       }
+    }*/
+    private async Task SendEmailAndSave(OrderSlipDto slip)
+    {
+        processingSlips.Add(slip.SlipNumber);
+    
+        try
+        {
+            var bytes = await OrderService.GeneratePdfBytesAsync(slip);
+        
+            // 🚨 OVERRIDE HERE FOR DEBUGGING 🚨
+            // Ignore the supplier's email and force it to your own
+            string targetEmail = "37craven@gmail.com"; 
+        
+            await OrderService.SendEmailAsync(targetEmail, bytes, slip.SlipNumber);
+            await OrderService.SaveOrderSlipToDbAsync(slip);
+            slips.Remove(slip);
+        }
+        finally
+        {
+            processingSlips.Remove(slip.SlipNumber);
         }
     }
-
 }

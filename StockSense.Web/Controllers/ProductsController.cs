@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using StockSense.Infrastructure.Data;
 using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
+using StockSense.Infrastructure.Services;
 using System.Text;
 
 

@@ -13,6 +13,8 @@ using StockSense.Domain.Entities;
 using StockSense.Infrastructure.Services;
 using StockSense.Web.Helpers;
 using StockSense.Application.Interfaces;
+using StockSense.Application.Services;
+using StockSense.Infrastructure.Data.Repositories;
 using StockSense.Infrastructure.Services;
 
 
@@ -127,11 +129,20 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
+// --- DATA ACCESS (Repositories) ---
+builder.Services.AddScoped<IOrderSlipRepository, OrderSlipRepository>();
+
+// --- INFRASTRUCTURE (External Tools) ---
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IOrderEmailSender, OrderEmailSender>();
+
+// --- APPLICATION (Business Logic) ---
 builder.Services.AddScoped<IOrderSlipService, OrderSlipService>();
 builder.Services.AddScoped<TransactionService>();
 builder.Services.AddBlazorBlueprintComponents();
 builder.Services.AddBlazorBlueprintPrimitives();
 builder.Services.AddHttpClient();
+
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
