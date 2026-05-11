@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+    using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 // Adjust this using statement to your actual DbContext namespace
 using StockSense.Domain.Entities;
@@ -59,14 +59,14 @@ namespace StockSense.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> CreatePreBuild([FromBody] CreatePreBuildDto dto)
         {
-            if (dto.ProductIds == null || !dto.ProductIds.Any())
+            if (dto.SelectedProductIds == null || !dto.SelectedProductIds.Any())
             {
                 return BadRequest("A package must contain at least one product.");
             }
 
             // 1. Fetch all the products matching the IDs sent by the Admin
             var productsToInclude = await _context.Products
-                .Where(p => dto.ProductIds.Contains(p.Id))
+                .Where(p => dto.SelectedProductIds.Contains(p.Id))
                 .ToListAsync();
 
             if (!productsToInclude.Any())
@@ -75,7 +75,7 @@ namespace StockSense.Web.Controllers
             }
 
             // 2. Map the DTO data to your actual database model
-            var newPackage = new PreBuildPackage
+            var newPackage = new PreBuildPackage()
             {
                 Name = dto.Name,
                 Description = dto.Description,
@@ -105,7 +105,7 @@ namespace StockSense.Web.Controllers
             pkg.CompatibleModel = dto.CompatibleModel;
             pkg.TargetCC = dto.TargetCC;
             pkg.EstimatedAddedCC = dto.EstimatedAddedCC;
-            pkg.IncludedProducts = await _context.Products.Where(p => dto.ProductIds.Contains(p.Id)).ToListAsync();
+            pkg.IncludedProducts = await _context.Products.Where(p => dto.SelectedProductIds.Contains(p.Id)).ToListAsync();
 
             await _context.SaveChangesAsync();
             return Ok(pkg);

@@ -68,7 +68,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Appointments");
+                    b.ToTable("Appointments", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -216,7 +216,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasIndex("PreBuildPackagesId");
 
-                    b.ToTable("PreBuildPackageProduct");
+                    b.ToTable("PreBuildPackageProduct", (string)null);
                 });
 
             modelBuilder.Entity("ProductStoreService", b =>
@@ -231,7 +231,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasIndex("StoreServicesId");
 
-                    b.ToTable("ProductStoreService");
+                    b.ToTable("ProductStoreService", (string)null);
                 });
 
             modelBuilder.Entity("StockSense.Data.ApplicationUser", b =>
@@ -343,7 +343,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("BuildRequests");
+                    b.ToTable("BuildRequests", (string)null);
                 });
 
             modelBuilder.Entity("StockSense.Shared.PreBuildPackage", b =>
@@ -382,7 +382,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PreBuildPackages");
+                    b.ToTable("PreBuildPackages", (string)null);
                 });
 
             modelBuilder.Entity("StockSense.Shared.Product", b =>
@@ -425,7 +425,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("StockSense.shared.Mechanic", b =>
@@ -445,7 +445,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Mechanics");
+                    b.ToTable("Mechanics", (string)null);
                 });
 
             modelBuilder.Entity("StockSense.shared.OrderSlip", b =>
@@ -473,7 +473,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("OrderSlips");
+                    b.ToTable("OrderSlips", (string)null);
                 });
 
             modelBuilder.Entity("StockSense.shared.OrderSlipItem", b =>
@@ -524,7 +524,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasIndex("OrderSlipId");
 
-                    b.ToTable("OrderSlipItems");
+                    b.ToTable("OrderSlipItems", (string)null);
                 });
 
             modelBuilder.Entity("StockSense.shared.SalesHistory", b =>
@@ -572,7 +572,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SalesHistory");
+                    b.ToTable("SalesHistory", (string)null);
                 });
 
             modelBuilder.Entity("StockSense.shared.Supplier", b =>
@@ -593,7 +593,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Suppliers");
+                    b.ToTable("Suppliers", (string)null);
                 });
 
             modelBuilder.Entity("StockSense.shared.Transaction", b =>
@@ -616,7 +616,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", (string)null);
                 });
 
             modelBuilder.Entity("StockSense.shared.TransactionItem", b =>
@@ -647,7 +647,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasIndex("TransactionId");
 
-                    b.ToTable("TransactionItem");
+                    b.ToTable("TransactionItem", (string)null);
                 });
 
             modelBuilder.Entity("StoreService", b =>
@@ -678,7 +678,7 @@ namespace StockSense.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("StoreServices");
+                    b.ToTable("StoreServices", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

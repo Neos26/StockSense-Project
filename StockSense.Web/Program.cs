@@ -129,16 +129,24 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
+
 // --- DATA ACCESS (Repositories) ---
+builder.Services.AddScoped<IPreBuildRepository, PreBuildRepository>();
 builder.Services.AddScoped<IOrderSlipRepository, OrderSlipRepository>();
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
+builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
 // --- INFRASTRUCTURE (External Tools) ---
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IOrderEmailSender, OrderEmailSender>();
 
 // --- APPLICATION (Business Logic) ---
+builder.Services.AddScoped<IPreBuildService, PreBuildService>();
 builder.Services.AddScoped<IOrderSlipService, OrderSlipService>();
-builder.Services.AddScoped<TransactionService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddBlazorBlueprintComponents();
 builder.Services.AddBlazorBlueprintPrimitives();
 builder.Services.AddHttpClient();
