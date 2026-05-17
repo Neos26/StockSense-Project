@@ -3,6 +3,7 @@
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
+@using StockSense.Application.DTOs
 @using StockSense.Client.Layout
 @inject HttpClient Http
 
@@ -84,21 +85,19 @@
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
-    private List<Appointment>? myAppointments;
+    private List<AppointmentDto>? myAppointments;
     private bool isLoading = true;
     private bool showAllHistory = false;
 
     // --- FILTER LOGIC ---
-    private IEnumerable<Appointment> FilteredAppointments
+    private IEnumerable<AppointmentDto> FilteredAppointments
     {
         get
         {
-            if (myAppointments == null) return Enumerable.Empty<Appointment>();
+            if (myAppointments == null) return Enumerable.Empty<AppointmentDto>();
 
-            // 1. Always show active ones
             var active = myAppointments.Where(a => a.Status == "Pending" || a.Status == "Confirmed");
 
-            // 2. Filter history based on 30-day rule
             var history = myAppointments.Where(a => a.Status == "Completed" || a.Status == "Cancelled");
 
             if (!showAllHistory)
@@ -131,7 +130,7 @@
 
                 try
                 {
-                    myAppointments = await Http.GetFromJsonAsync<List<Appointment>>($"api/appointments/my-bookings?name={Uri.EscapeDataString(customerName)}");
+                    myAppointments = await Http.GetFromJsonAsync<List<AppointmentDto>>($"api/appointments/my-bookings?name={Uri.EscapeDataString(customerName)}");
                 }
                 catch
                 {

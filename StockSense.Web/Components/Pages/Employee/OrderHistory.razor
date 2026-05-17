@@ -2,176 +2,174 @@
 @layout AdminLayout
 @using Microsoft.AspNetCore.Authorization
 @using StockSense.Application.DTOs
-@inject IOrderSlipService OrderService 
+@inject IOrderSlipService OrderService
 @inject NavigationManager NavManager
 @rendermode InteractiveServer
 @using BlazorBlueprint.Primitives.Table
-@using BlazorBlueprint.Primitives.Dialog
 
 @attribute [Authorize(Roles = "Admin, Employee")]
 
 <PageTitle>Order History</PageTitle>
 
-@* --- CONFIRMATION DIALOG (Using Primitives via Alias) --- *@
-<Primitives.BbDialog Open="confirmModal.IsOpen" OpenChanged="(val) => confirmModal = confirmModal with { IsOpen = val }">
-    <Primitives.BbDialogPortal>
-        <Primitives.BbDialogOverlay class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
-        <Primitives.BbDialogContent class="fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] w-full max-w-md bg-card border border-border p-6 rounded-xl shadow-lg z-50">
-            
-            <Primitives.BbDialogTitle class="text-lg font-bold">@confirmModal.Title</Primitives.BbDialogTitle>
-            
-            <Primitives.BbDialogDescription class="text-sm text-muted-foreground mt-2">
-                @confirmModal.Message
-            </Primitives.BbDialogDescription>
+<BbDialog @bind-Open="showConfirm">
+    <BbDialogContent Style="width: min(92vw, 420px); padding: var(--space-5);">
+        <BbDialogHeader>
+            <BbDialogTitle>@confirmTitle</BbDialogTitle>
+            <BbDialogDescription>@confirmMessage</BbDialogDescription>
+        </BbDialogHeader>
+        <div style="display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-4);">
+            <BbButton Variant="ButtonVariant.Ghost" OnClick="() => showConfirm = false">Cancel</BbButton>
+            <BbButton Variant="@(isDestructive ? ButtonVariant.Destructive : ButtonVariant.Default)" OnClick="ConfirmAction">
+                @confirmText
+            </BbButton>
+        </div>
+    </BbDialogContent>
+</BbDialog>
 
-            <div class="flex justify-end gap-3 mt-6">
-                @* Use Styled Components for buttons inside the Primitive Dialog *@
-                <BbButton Variant="ButtonVariant.Outline" OnClick="() => confirmModal = ConfirmState.Closed">
-                    Cancel
-                </BbButton>
-                <BbButton Variant="@(confirmModal.Destructive ? ButtonVariant.Destructive : ButtonVariant.Default)" 
-                          OnClick="ConfirmAction">
-                    @confirmModal.ConfirmText
-                </BbButton>
-            </div>
-
-        </Primitives.BbDialogContent>
-    </Primitives.BbDialogPortal>
-</Primitives.BbDialog>
-
-<div class="max-w-6xl mx-auto p-4 animate-in fade-in duration-500">
-    
-    @* --- HEADER --- *@
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+<div class="max-w-6xl mx-auto animate-in fade-in duration-500">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-            <h1 class="text-3xl font-bold tracking-tight text-foreground">Order History</h1>
-            <p class="text-sm text-muted-foreground">Review and receive inventory from supplier order slips.</p>
+            <h1 class="text-2xl font-bold text-foreground m-0 mb-1">Order History</h1>
+            <p class="text-sm text-muted-foreground m-0">Review and receive inventory from supplier order slips.</p>
         </div>
         <BbButton Variant="ButtonVariant.Default" OnClick='() => NavManager.NavigateTo("/admin/orderslips")'>
-            <LucideIcon Name="plus" Size="16" class="mr-2" />
+            <LucideIcon Name="plus" Size="16" Class="mr-2" />
             Create New Order
         </BbButton>
     </div>
 
     @if (savedSlips == null)
     {
-        <div class="flex items-center justify-center p-20 text-muted-foreground gap-3">
+        <div class="flex items-center justify-center gap-3 p-16 text-muted-foreground">
             <BbSpinner Size="SpinnerSize.Small" />
-            <span>Retrieving history...</span>
+            <span class="text-sm">Retrieving history...</span>
         </div>
     }
     else if (!savedSlips.Any())
     {
-        <div class="flex flex-col items-center justify-center p-20 border-2 border-dashed rounded-xl text-muted-foreground">
-            <LucideIcon Name="clock" Size="48" class="mb-4 opacity-20" />
-            <p class="font-medium text-foreground">No history found</p>
-            <p class="text-sm">New orders you create will appear here.</p>
+        <div class="flex flex-col items-center justify-center p-16 border-2 border-dashed border-border rounded-lg text-muted-foreground">
+            <LucideIcon Name="clock" Size="40" />
+            <p class="font-medium text-foreground mt-3 mb-1">No history found</p>
+            <p class="text-sm m-0">New orders you create will appear here.</p>
         </div>
     }
     else
     {
-        @foreach (var slip in savedSlips)
-        {
-            <div class="mb-8 rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-                
-                @* Header Status Bar *@
-                <div class="px-6 py-3 flex justify-between items-center @(slip.IsReceived ? "bg-success/5 border-b border-success/10" : "bg-warning/5 border-b border-warning/20")">
-                    <div class="flex items-center gap-4">
-                        <span class="text-sm font-mono font-bold text-foreground">@slip.SlipNumber</span>
-                        <span class="text-sm font-semibold text-foreground/80">@slip.SupplierName</span>
+        <div class="md:p-6 py-6 flex flex-col gap-6">
+            @foreach (var slip in savedSlips)
+            {
+                <div class="rounded-lg border border-border bg-card overflow-auto">
+
+                    @* Header *@
+                    <div class="px-5 py-3 flex justify-between items-center border-b @(slip.IsReceived ? "bg-success/5 border-success/20" : "bg-warning/5 border-warning/20")">
+                        <div class="flex items-center gap-4">
+                            <span class="text-sm font-mono font-bold text-foreground">@slip.SlipNumber</span>
+                            <span class="text-sm font-medium text-foreground">@slip.SupplierName</span>
+                            <span class="text-xs text-muted-foreground">@slip.DateGenerated.ToString("MMM dd, yyyy")</span>
+                        </div>
+                        <BbBadge Variant="@(slip.IsReceived ? BadgeVariant.Default : BadgeVariant.Secondary)">
+                            @(slip.IsReceived ? "Received" : "Pending Intake")
+                        </BbBadge>
                     </div>
-                    <BbBadge Variant="@(slip.IsReceived ? BadgeVariant.Default : BadgeVariant.Secondary)" 
-                             class="@(slip.IsReceived ? "bg-success text-success-foreground" : "bg-warning text-warning-foreground")">
-                        @(slip.IsReceived ? "Received" : "Pending Intake")
-                    </BbBadge>
-                </div>
 
-                <div class="p-0">
-                    @* Use Primitives for the table to avoid the Component version conflicts *@
-                    <Primitives.BbTable TData="OrderSlipItemDto" class="w-full">
-                        <Primitives.BbTableHeader class="bg-muted/30 border-b border-border">
-                            <Primitives.BbTableRow TData="OrderSlipItemDto">
-                                <Primitives.BbTableHeaderCell TData="OrderSlipItemDto" class="p-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Product Details</Primitives.BbTableHeaderCell>
-                                <Primitives.BbTableHeaderCell TData="OrderSlipItemDto" class="p-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Ordered</Primitives.BbTableHeaderCell>
-                                <Primitives.BbTableHeaderCell TData="OrderSlipItemDto" class="p-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider w-40">Received</Primitives.BbTableHeaderCell>
-                                <Primitives.BbTableHeaderCell TData="OrderSlipItemDto" class="p-4 w-12"></Primitives.BbTableHeaderCell>
-                            </Primitives.BbTableRow>
-                        </Primitives.BbTableHeader>
-                        <Primitives.BbTableBody TData="OrderSlipItemDto">
-                            @foreach (var item in slip.Items)
-                            {
-                                <Primitives.BbTableRow TData="OrderSlipItemDto" class="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                                    <Primitives.BbTableCell TData="OrderSlipItemDto" class="p-4">
-                                        <div class="font-semibold text-sm">@item.ProductName</div>
-                                        <div class="text-xs text-muted-foreground">@item.Brand</div>
-                                    </Primitives.BbTableCell>
-                                    <Primitives.BbTableCell TData="OrderSlipItemDto" class="p-4 text-center font-mono text-sm">@item.Quantity</Primitives.BbTableCell>
-                                    <Primitives.BbTableCell TData="OrderSlipItemDto" class="p-4">
-                                        @if (slip.IsReceived)
-                                        {
-                                            <div class="flex justify-center font-bold text-success">@item.ReceivedQuantity</div>
-                                        }
-                                        else
-                                        {
-                                            <input type="number" @bind="item.ReceivedQuantity" min="0"
-                                                   class="w-full h-9 bg-background border border-input rounded-md text-center font-bold text-sm focus:ring-1 focus:ring-primary outline-none" />
-                                        }
-                                    </Primitives.BbTableCell>
-                                    <Primitives.BbTableCell TData="OrderSlipItemDto" class="p-4 text-right">
-                                        @if (!slip.IsReceived)
-                                        {
-                                            <button @onclick="() => RemoveProduct(item.Id)" class="text-muted-foreground hover:text-destructive p-1 rounded-md hover:bg-destructive/10 transition-colors">
-                                                <LucideIcon Name="trash" Size="16" />
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <LucideIcon Name="check-circle" Size="16" class="text-success mx-auto opacity-50" />
-                                        }
-                                    </Primitives.BbTableCell>
-                                </Primitives.BbTableRow>
-                            }
-                        </Primitives.BbTableBody>
-                    </Primitives.BbTable>
+                    @* Table *@
+                    <div class="overflow-x-auto">
+                        <BbTable TData="OrderSlipItemDto" class="w-full">
+                            <BbTableHeader class="bg-muted/30 border-b border-border">
+                                <BbTableRow TData="OrderSlipItemDto">
+                                    <BbTableHeaderCell TData="OrderSlipItemDto" class="p-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Product</BbTableHeaderCell>
+                                    <BbTableHeaderCell TData="OrderSlipItemDto" class="p-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Brand</BbTableHeaderCell>
+                                    <BbTableHeaderCell TData="OrderSlipItemDto" class="p-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Ordered</BbTableHeaderCell>
+                                    <BbTableHeaderCell TData="OrderSlipItemDto" class="p-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider w-32">Received</BbTableHeaderCell>
+                                    <BbTableHeaderCell TData="OrderSlipItemDto" class="p-4 w-12"></BbTableHeaderCell>
+                                </BbTableRow>
+                            </BbTableHeader>
+                            <BbTableBody TData="OrderSlipItemDto">
+                                @foreach (var item in slip.Items)
+                                {
+                                    <BbTableRow TData="OrderSlipItemDto" class="border-b border-border last:border-0">
+                                        <BbTableCell TData="OrderSlipItemDto" class="p-4 font-medium text-foreground">@item.ProductName</BbTableCell>
+                                        <BbTableCell TData="OrderSlipItemDto" class="p-4 text-muted-foreground text-xs">@item.Brand</BbTableCell>
+                                        <BbTableCell TData="OrderSlipItemDto" class="p-4 text-center font-mono text-foreground">@item.Quantity</BbTableCell>
+                                        <BbTableCell TData="OrderSlipItemDto" class="p-4 text-center">
+                                            @if (slip.IsReceived)
+                                            {
+                                                <span class="font-bold" style="color: var(--success);">@item.ReceivedQuantity</span>
+                                            }
+                                            else
+                                            {
+                                                <input type="number" @bind="item.ReceivedQuantity" min="0"
+                                                       class="w-full h-9 bg-background border border-input rounded-md text-center font-bold text-sm focus:ring-1 focus:ring-primary outline-none" />
+                                            }
+                                        </BbTableCell>
+                                        <BbTableCell TData="OrderSlipItemDto" class="p-4 text-right">
+                                            @if (!slip.IsReceived)
+                                            {
+                                                <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Small" OnClick="() => RemoveProduct(item.Id)" title="Remove product">
+                                                    <LucideIcon Name="trash" Size="14" />
+                                                </BbButton>
+                                            }
+                                            else
+                                            {
+                                                <LucideIcon Name="circle-check" Size="16" class="mx-auto" style="color: var(--success); opacity: 0.5;" />
+                                            }
+                                        </BbTableCell>
+                                    </BbTableRow>
+                                }
+                            </BbTableBody>
+                        </BbTable>
+                    </div>
 
+                    @* Footer actions *@
                     @if (!slip.IsReceived)
                     {
-                        <div class="p-4 bg-muted/10 border-t border-border flex justify-end gap-3">
-                            <BbButton Variant="ButtonVariant.Ghost" OnClick="() => DeleteSlip(slip.Id)" class="text-destructive hover:bg-destructive/10">
-                                <LucideIcon Name="trash-2" Size="16" class="mr-2" />
+                        <div class="px-4 py-3 border-t border-border flex justify-end gap-2 bg-muted/10">
+                            <BbButton Variant="ButtonVariant.Ghost" OnClick="() => DeleteSlip(slip.Id)">
+                                <LucideIcon Name="trash-2" Size="14" />
                                 Delete Slip
                             </BbButton>
                             <BbButton Variant="ButtonVariant.Default" OnClick="() => ConfirmStockIn(slip)">
-                                <LucideIcon Name="package-check" Size="16" class="mr-2" />
+                                <LucideIcon Name="package-check" Size="14" />
                                 Complete Stock In
                             </BbButton>
                         </div>
                     }
+                    @if (slip.IsReceived)
+                    {
+                        <div class="px-4 py-3 border-t border-border flex justify-end gap-2 bg-muted/10">
+                            <BbButton Variant="ButtonVariant.Ghost" OnClick="() => DeleteSlip(slip.Id)">
+                                <LucideIcon Name="trash-2" Size="14" />
+                                Delete Slip
+                            </BbButton>
+                        </div>
+                    }
                 </div>
-            </div>
-        }
+            }
+        </div>
     }
 </div>
 
 @code {
-    private ConfirmState confirmModal = ConfirmState.Closed;
+    private bool showConfirm;
+    private string confirmTitle = "";
+    private string confirmMessage = "";
+    private string confirmText = "";
+    private bool isDestructive;
     private Func<Task>? pendingAction;
 
-    private record ConfirmState(bool IsOpen, string Title, string Message, string ConfirmText, bool Destructive)
+    private void ShowConfirm(string title, string message, string text, bool destructive, Func<Task> action)
     {
-        public static ConfirmState Closed => new(false, "", "", "", false);
-        // We use 'with' in the logic to change IsOpen
-    }
-
-    private void ShowConfirm(string title, string message, string confirmText, bool destructive, Func<Task> action)
-    {
-        confirmModal = new ConfirmState(true, title, message, confirmText, destructive);
+        confirmTitle = title;
+        confirmMessage = message;
+        confirmText = text;
+        isDestructive = destructive;
         pendingAction = action;
+        showConfirm = true;
     }
 
     private async Task ConfirmAction()
     {
-        confirmModal = confirmModal with { IsOpen = false };
+        showConfirm = false;
         if (pendingAction != null)
             await pendingAction();
     }
@@ -202,7 +200,16 @@
     private void ConfirmStockIn(OrderSlipDto slip) =>
         ShowConfirm("Complete Stock In", "This will update your inventory levels.", "Confirm", false,
             async () => {
-                await OrderService.MarkAsReceivedAsync(slip);
+                var command = new MarkAsReceivedCommand
+                {
+                    SlipId = slip.Id,
+                    Items = slip.Items.Select(i => new ReceivedItemCommand
+                    {
+                        ItemId = i.Id,
+                        ReceivedQuantity = i.ReceivedQuantity
+                    }).ToList()
+                };
+                await OrderService.MarkAsReceivedAsync(command);
                 await LoadHistory();
             });
 

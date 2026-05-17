@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StockSense.Application.Interfaces;
 using StockSense.Domain.Entities;
-// Make sure to include your DbContext namespace here
 
 namespace StockSense.Infrastructure.Data.Repositories;
 
@@ -47,5 +46,26 @@ public class AppointmentRepository : IAppointmentRepository
             _context.Appointments.Remove(appointment);
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task<List<Appointment>> GetAppointmentsByDateAndMechanicAsync(DateTime date, string? mechanic)
+    {
+        var query = _context.Appointments
+            .Where(a => a.AppointmentDate.Date == date.Date && a.Status != "Cancelled");
+
+        if (!string.IsNullOrEmpty(mechanic) && mechanic != "Any Available")
+        {
+            query = query.Where(a => a.MechanicName == mechanic);
+        }
+
+        return await query.ToListAsync();
+    }
+
+    public async Task<List<Appointment>> GetByCustomerNameAsync(string customerName)
+    {
+        return await _context.Appointments
+            .Where(a => a.CustomerName == customerName)
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync();
     }
 }

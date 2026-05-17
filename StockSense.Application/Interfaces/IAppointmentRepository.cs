@@ -9,4 +9,8 @@ public interface IAppointmentRepository
     Task<Appointment> AddAsync(Appointment appointment);
     Task UpdateAsync(Appointment appointment);
     Task DeleteAsync(int id);
+
+    // New methods needed by the controller
+    Task<List<Appointment>> GetAppointmentsByDateAndMechanicAsync(DateTime date, string? mechanic);
+    Task<List<Appointment>> GetByCustomerNameAsync(string customerName);
 }

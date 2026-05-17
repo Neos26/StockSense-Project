@@ -8,6 +8,8 @@ public class AppointmentService : IAppointmentService
 {
     private readonly IAppointmentRepository _repository;
 
+    private static readonly TimeZoneInfo PhZone = TimeZoneInfo.FindSystemTimeZoneById("Singapore Standard Time");
+
     public AppointmentService(IAppointmentRepository repository)
     {
         _repository = repository;
@@ -16,53 +18,32 @@ public class AppointmentService : IAppointmentService
     public async Task<List<AppointmentDto>> GetAllAppointmentsAsync()
     {
         var appointments = await _repository.GetAllAppointmentsAsync();
-        
-        // Map the database entities to the UI-friendly DTOs
-        return appointments.Select(a => new AppointmentDto
-        {
-            Id = a.Id,
-            CustomerName = a.CustomerName,
-            AppointmentDate = a.AppointmentDate,
-            TimeSlot = a.TimeSlot,
-            ServicesRequested = a.ServicesRequested,
-            TotalAmount = a.TotalAmount,
-            Status = a.Status,
-            MechanicName = a.MechanicName
-        }).ToList();
+
+        return appointments.Select(MapToDto).ToList();
     }
 
     public async Task<AppointmentDto> BookAppointmentAsync(CreateAppointmentDto request)
     {
-        // 1. Flatten the list of services into a comma-separated string
         string flatServices = string.Join(", ", request.SelectedServices);
 
-        // 2. Create the raw database entity
+        DateTime phNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, PhZone);
+
         var newAppointment = new Appointment
         {
             CustomerName = request.CustomerName,
-            AppointmentDate = request.AppointmentDate,
+            AppointmentDate = DateTime.SpecifyKind(request.AppointmentDate.Date, DateTimeKind.Unspecified),
             TimeSlot = request.TimeSlot,
-            Category = request.Category,
+            Category = string.IsNullOrWhiteSpace(request.Category) ? "General Service" : request.Category,
             ServicesRequested = flatServices,
             Status = "Pending",
-            CreatedAt = DateTime.Now,
-            TotalAmount = 0 // Cost is calculated later by the mechanic in this flat setup
+            CreatedAt = phNow,
+            TotalAmount = 0,
+            MechanicName = "Unassigned"
         };
 
-        // 3. Save to database
         var savedAppointment = await _repository.AddAsync(newAppointment);
 
-        // 4. Return the new DTO to the UI
-        return new AppointmentDto
-        {
-            Id = savedAppointment.Id,
-            CustomerName = savedAppointment.CustomerName,
-            AppointmentDate = savedAppointment.AppointmentDate,
-            TimeSlot = savedAppointment.TimeSlot,
-            ServicesRequested = savedAppointment.ServicesRequested,
-            TotalAmount = savedAppointment.TotalAmount,
-            Status = savedAppointment.Status
-        };
+        return MapToDto(savedAppointment);
     }
 
     public async Task<bool> UpdateStatusAsync(int appointmentId, string newStatus)
@@ -83,8 +64,56 @@ public class AppointmentService : IAppointmentService
         appointment.MechanicName = mechanicName;
         appointment.TotalAmount = finalCost;
         appointment.Status = "Completed";
-        
+
         await _repository.UpdateAsync(appointment);
         return true;
+    }
+
+    public async Task<List<BookedSlotDto>> GetBookedSlotsAsync(DateTime date, string? mechanic)
+    {
+        var appointments = await _repository.GetAppointmentsByDateAndMechanicAsync(date, mechanic);
+
+        return appointments.Select(a => new BookedSlotDto
+        {
+            TimeSlot = a.TimeSlot,
+            EstimatedMinutes = a.DurationMinutes
+        }).ToList();
+    }
+
+    public async Task<bool> AssignMechanicAsync(int id, MechanicAssignmentDto assignment)
+    {
+        var appointment = await _repository.GetByIdAsync(id);
+        if (appointment == null) return false;
+
+        appointment.MechanicName = assignment.MechanicName;
+        appointment.DurationMinutes = assignment.DurationMinutes;
+        appointment.Status = "Confirmed";
+
+        await _repository.UpdateAsync(appointment);
+        return true;
+    }
+
+    public async Task<List<AppointmentDto>> GetMyBookingsAsync(string customerName)
+    {
+        var appointments = await _repository.GetByCustomerNameAsync(customerName);
+        return appointments.Select(MapToDto).ToList();
+    }
+
+    private static AppointmentDto MapToDto(Appointment a)
+    {
+        return new AppointmentDto
+        {
+            Id = a.Id,
+            CustomerName = a.CustomerName,
+            AppointmentDate = a.AppointmentDate,
+            CreatedAt = a.CreatedAt,
+            TimeSlot = a.TimeSlot,
+            ServicesRequested = a.ServicesRequested,
+            TotalAmount = a.TotalAmount,
+            Status = a.Status,
+            Category = a.Category,
+            MechanicName = a.MechanicName,
+            DurationMinutes = a.DurationMinutes
+        };
     }
 }

@@ -14,8 +14,8 @@ using StockSense.Infrastructure.Services;
 using StockSense.Web.Helpers;
 using StockSense.Application.Interfaces;
 using StockSense.Application.Services;
+using StockSense.Domain.Interfaces;
 using StockSense.Infrastructure.Data.Repositories;
-using StockSense.Infrastructure.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -140,6 +140,7 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 // --- INFRASTRUCTURE (External Tools) ---
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IOrderEmailSender, OrderEmailSender>();
+builder.Services.AddSingleton<IPdfDownloadCache, PdfDownloadCache>();
 
 // --- APPLICATION (Business Logic) ---
 builder.Services.AddScoped<IPreBuildService, PreBuildService>();
@@ -156,11 +157,6 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-    });
-
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
         options.JsonSerializerOptions.Converters.Add(new PhDateTimeConverter());
     });
 
@@ -201,7 +197,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 // --- 10. MIDDLEWARE EXECUTION ---
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 
 app.UseRouting();
@@ -218,5 +217,13 @@ app.MapRazorComponents<App>()
 
 app.MapAdditionalIdentityEndpoints();
 app.MapControllers();
+
+app.MapGet("/api/download/{token}", (string token, IPdfDownloadCache cache) =>
+{
+    var data = cache.Retrieve(token);
+    return data is null
+        ? Results.NotFound("Download expired or not found.")
+        : Results.File(data, "application/pdf");
+});
 
 app.Run();

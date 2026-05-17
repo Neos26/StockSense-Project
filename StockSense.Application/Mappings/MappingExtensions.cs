@@ -15,6 +15,7 @@ public static class MappingExtensions
             product.Price,
             product.CurrentStock,
             product.ReorderTarget,
+            product.SupplierId,
             product.Supplier?.Name ?? "No Supplier Assigned"
         );
     }

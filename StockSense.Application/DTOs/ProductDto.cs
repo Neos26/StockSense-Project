@@ -8,5 +8,6 @@ public record ProductDto(
     decimal Price,
     int CurrentStock,
     int ReorderTarget,
-    string SupplierName // Notice how we flatten the Supplier object
+    int SupplierId,
+    string SupplierName
 );

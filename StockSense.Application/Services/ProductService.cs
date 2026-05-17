@@ -26,6 +26,7 @@ public class ProductService : IProductService
             p.Price,
             p.CurrentStock,
             p.ReorderTarget,
+            p.SupplierId,
             p.Supplier?.Name ?? "No Supplier Assigned"
         )).ToList();
     }

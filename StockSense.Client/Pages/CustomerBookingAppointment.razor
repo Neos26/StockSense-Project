@@ -522,7 +522,7 @@
 
 @code {
     private bool isLoading = true;
-    private Appointment newAppt = new() { AppointmentDate = DateTime.Today, TimeSlot = "" };
+    private CreateAppointmentDto newAppt = new() { AppointmentDate = DateTime.Today, TimeSlot = "" };
     private bool showSuccessModal = false;
     private bool showSuccessNote = false;
     private bool isProcessing = false;
@@ -780,23 +780,10 @@
         isProcessing = true;
         errorMessage = "";
 
-        // DATE FIX: Specify Unspecified Kind so the server won't shift timezones
         newAppt.AppointmentDate = DateTime.SpecifyKind(newAppt.AppointmentDate.Date, DateTimeKind.Unspecified);
 
-        newAppt.ServicesRequested = string.Join(" | ", SelectedServices.Select(s =>
-            s.RequiredProducts.Any()
-                ? $"{s.Name} [+ {string.Join(", ", s.RequiredProducts.Select(p => p.Name))}]"
-                : s.Name
-        ));
-
-        newAppt.TotalAmount = TotalPrice;
+        newAppt.SelectedServices = SelectedServices.Select(s => s.Name).ToList();
         newAppt.Category = SelectedServices.FirstOrDefault()?.Category ?? "General";
-        newAppt.MechanicName = selectedMechanic;
-
-        // Sets duration mapping based on backend model naming
-        newAppt.DurationMinutes = TotalDurationMinutes;
-
-        newAppt.Status = "Pending";
 
         try
         {
@@ -821,7 +808,7 @@
         currentStep = 1;
 
         string savedName = newAppt.CustomerName;
-        newAppt = new() { AppointmentDate = DateTime.Today, CustomerName = savedName, TimeSlot = "" };
+        newAppt = new CreateAppointmentDto { AppointmentDate = DateTime.Today, CustomerName = savedName, TimeSlot = "" };
 
         foreach (var s in availableServices)
         {

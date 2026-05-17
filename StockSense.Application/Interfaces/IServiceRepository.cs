@@ -5,13 +5,12 @@ namespace StockSense.Application.Interfaces;
 public interface IAppointmentService
 {
     Task<List<AppointmentDto>> GetAllAppointmentsAsync();
-    
-    // Handles the booking logic and flattens the SelectedServices list
     Task<AppointmentDto> BookAppointmentAsync(CreateAppointmentDto request);
-    
-    // Updates status (e.g., from "Pending" to "Confirmed" or "Completed")
     Task<bool> UpdateStatusAsync(int appointmentId, string newStatus);
-    
-    // Assigns a mechanic and potentially updates the final cost
     Task<bool> FinalizeAppointmentAsync(int appointmentId, string mechanicName, decimal finalCost);
+
+    // New methods extracted from the controller
+    Task<List<BookedSlotDto>> GetBookedSlotsAsync(DateTime date, string? mechanic);
+    Task<bool> AssignMechanicAsync(int id, MechanicAssignmentDto assignment);
+    Task<List<AppointmentDto>> GetMyBookingsAsync(string customerName);
 }

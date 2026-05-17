@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using StockSense.Application.Interfaces;
 using StockSense.Domain.Entities;
-using StockSense.Infrastructure.Data;
+using StockSense.Domain.Interfaces;
 
 namespace StockSense.Infrastructure.Data.Repositories;
 
@@ -12,14 +11,6 @@ public class OrderSlipRepository : IOrderSlipRepository
     public OrderSlipRepository(ApplicationDbContext context)
     {
         _context = context;
-    }
-
-    public async Task<List<Product>> GetLowStockProductsAsync()
-    {
-        return await _context.Products
-            .Include(p => p.Supplier)
-            .Where(p => p.CurrentStock < p.ReorderTarget)
-            .ToListAsync();
     }
 
     public async Task<List<OrderSlip>> GetSavedSlipsAsync()
@@ -36,12 +27,6 @@ public class OrderSlipRepository : IOrderSlipRepository
         return await _context.OrderSlips
             .Include(s => s.Items)
             .FirstOrDefaultAsync(s => s.Id == id);
-    }
-
-    public async Task<Product?> GetProductByNameAndBrandAsync(string name, string brand)
-    {
-        return await _context.Products
-            .FirstOrDefaultAsync(p => p.Name == name && p.Brand == brand);
     }
 
     public async Task AddSlipAsync(OrderSlip slip)
@@ -67,19 +52,8 @@ public class OrderSlipRepository : IOrderSlipRepository
         if (item != null) _context.OrderSlipItems.Remove(item);
     }
 
-    public async Task AddProductAsync(Product product)
-    {
-        await _context.Products.AddAsync(product);
-    }
-
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
-    }
-    public async Task<Product?> GetProductByIdAsync(int id)
-    {
-        return await _context.Products
-            .Include(p => p.Supplier)
-            .FirstOrDefaultAsync(p => p.Id == id);
     }
 }

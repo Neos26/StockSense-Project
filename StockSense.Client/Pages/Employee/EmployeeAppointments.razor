@@ -1,7 +1,6 @@
 @page "/admin/appointments"
 @layout AdminLayout
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
-@using StockSense.Domain.Entities
 @using StockSense.Application.DTOs
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
@@ -119,37 +118,35 @@
 </div>
 
 @code {
-    private List<Appointment>? allAppointments;
+    private List<AppointmentDto>? allAppointments;
     private string currentTab = "Active";
     private bool showAllHistory = false;
 
     // --- LOGIC: Active vs History ---
     // SORTED BY CREATED DATE (Newest First)
-    private IEnumerable<Appointment> ActiveAppointments =>
+    private IEnumerable<AppointmentDto> ActiveAppointments =>
         allAppointments?.Where(a => a.Status == "Pending" || a.Status == "Confirmed")
-        .OrderByDescending(a => a.CreatedAt) ?? Enumerable.Empty<Appointment>();
+        .OrderByDescending(a => a.CreatedAt) ?? Enumerable.Empty<AppointmentDto>();
 
-    private IEnumerable<Appointment> HistoryAppointments
+    private IEnumerable<AppointmentDto> HistoryAppointments
     {
         get
         {
-            if (allAppointments == null) return Enumerable.Empty<Appointment>();
+            if (allAppointments == null) return Enumerable.Empty<AppointmentDto>();
 
             var query = allAppointments.Where(a => a.Status == "Completed" || a.Status == "Cancelled");
 
-            // If not showing all, filter for the last 30 days
             if (!showAllHistory)
             {
                 var limitDate = DateTime.Now.AddDays(-30);
                 query = query.Where(a => a.AppointmentDate >= limitDate);
             }
 
-            // SORTED BY CREATED DATE (Newest First)
             return query.OrderByDescending(a => a.CreatedAt);
         }
     }
 
-    private IEnumerable<Appointment> DisplayAppointments => currentTab == "Active" ? ActiveAppointments : HistoryAppointments;
+    private IEnumerable<AppointmentDto> DisplayAppointments => currentTab == "Active" ? ActiveAppointments : HistoryAppointments;
 
     protected override async Task OnInitializedAsync() => await LoadAppointments();
 
@@ -157,7 +154,7 @@
     {
         try
         {
-            allAppointments = await Http.GetFromJsonAsync<List<Appointment>>("api/appointments/all");
+            allAppointments = await Http.GetFromJsonAsync<List<AppointmentDto>>("api/appointments/all");
         }
         catch (Exception ex)
         {
@@ -165,7 +162,7 @@
         }
     }
 
-    private async Task UpdateStatus(Appointment appt, string newStatus)
+    private async Task UpdateStatus(AppointmentDto appt, string newStatus)
     {
         var response = await Http.PutAsJsonAsync($"api/appointments/{appt.Id}/status", newStatus);
         if (response.IsSuccessStatusCode) appt.Status = newStatus;

@@ -16,6 +16,7 @@ public class ProductRepository : IProductRepository
     public async Task<List<Product>> GetAllProductsAsync()
     {
         return await _context.Products
+            .Include(p => p.Supplier)
             .OrderBy(p => p.Category)
             .ThenBy(p => p.Name)
             .ToListAsync();
