@@ -16,4 +16,6 @@ public interface IOrderSlipService
     Task DeleteOrderSlipAsync(int id);
     Task RemoveItemFromSlipAsync(int itemId);
     Task SendEmailAsync(string recipientEmail, byte[] pdfAttachment, string slipNumber);
+    Task<List<OrderSlipDto>?> GetPinnedSlipsAsync(string userId);
+    Task SavePinnedSlipsAsync(string userId, List<OrderSlipDto> slips);
 }

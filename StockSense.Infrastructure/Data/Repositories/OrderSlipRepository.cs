@@ -52,6 +52,11 @@ public class OrderSlipRepository : IOrderSlipRepository
         if (item != null) _context.OrderSlipItems.Remove(item);
     }
 
+    public async Task<int> GetPendingCountAsync()
+    {
+        return await _context.OrderSlips.CountAsync(s => !s.IsReceived);
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

@@ -1,68 +1,56 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-// Points to AppDbContext
 using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
-using StockSense.Infrastructure.Data;
-
+using StockSense.Domain.Interfaces;
 
 namespace StockSense.Web.Server.Controllers
 {
-    // 👇 Forces the URL to be "api/builds" regardless of class name
-
     [Route("api/builds")]
     [ApiController]
     public class BuildsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IBuildRequestRepository _buildRepo;
+        private readonly IProductRepository _productRepo;
 
-        public BuildsController(ApplicationDbContext context)
+        public BuildsController(IBuildRequestRepository buildRepo, IProductRepository productRepo)
         {
-            _context = context;
+            _buildRepo = buildRepo;
+            _productRepo = productRepo;
         }
-
 
         [HttpPost]
         public async Task<IActionResult> CreateBuild([FromBody] BuildRequest request)
         {
             if (request == null) return BadRequest("Request is empty.");
 
-            // Set server-side defaults
             request.CreatedAt = DateTime.Now;
             request.Status = "Pending";
 
-            _context.BuildRequests.Add(request);
-            await _context.SaveChangesAsync();
+            _buildRepo.Add(request);
+            await _buildRepo.SaveChangesAsync();
 
             return Ok(request);
         }
 
-
         [HttpGet("all")]
         public async Task<ActionResult<List<BuildRequest>>> GetAllBuilds()
         {
-            return await _context.BuildRequests
-                                 .OrderByDescending(b => b.CreatedAt) // Newest first
-                                 .ToListAsync();
+            return await _buildRepo.GetAllAsync();
         }
-
 
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] string newStatus)
         {
-            var build = await _context.BuildRequests.FindAsync(id);
+            var build = await _buildRepo.GetByIdAsync(id);
             if (build == null) return NotFound();
 
-            // --- INVENTORY DEDUCTION LOGIC ---
-            // Only deduct stock if the status is changing TO "Completed" for the first time
             if (newStatus == "Completed" && build.Status != "Completed")
             {
                 if (!string.IsNullOrEmpty(build.SelectedPartsJson))
                 {
                     try
                     {
-                        // 1. Read the JSON string back into a list of Products
                         var usedParts = JsonSerializer.Deserialize<List<Product>>(
                             build.SelectedPartsJson,
                             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
@@ -72,13 +60,11 @@ namespace StockSense.Web.Server.Controllers
                         {
                             foreach (var part in usedParts)
                             {
-                                // 2. Find the actual product in the database
-                                var dbProduct = await _context.Products.FindAsync(part.Id);
-
-                                // 3. Deduct the stock (ensuring it doesn't go below 0)
+                                var dbProduct = await _productRepo.GetByIdAsync(part.Id);
                                 if (dbProduct != null && dbProduct.CurrentStock > 0)
                                 {
                                     dbProduct.CurrentStock -= 1;
+                                    _productRepo.Update(dbProduct);
                                 }
                             }
                         }
@@ -86,35 +72,21 @@ namespace StockSense.Web.Server.Controllers
                     catch (Exception ex)
                     {
                         Console.WriteLine($"Failed to deduct inventory: {ex.Message}");
-                        // You can decide if you want to abort the status change here, 
-                        // but usually, it's safe to just log it and proceed.
                     }
                 }
             }
 
-            // Update the status and save all changes (both the build status AND the product stock)
             build.Status = newStatus;
-            await _context.SaveChangesAsync();
+            await _buildRepo.SaveChangesAsync();
 
             return Ok();
         }
 
-
-        // Add this inside BuildsController class
-        // GET: api/builds/customer/{userName}
         [HttpGet("customer/{userName}")]
         public async Task<ActionResult<List<BuildRequest>>> GetCustomerBuilds(string userName)
         {
             if (string.IsNullOrEmpty(userName)) return BadRequest("User name is required.");
-
-            // Fetch only the builds belonging to this specific user
-            return await _context.BuildRequests
-                                 .Where(b => b.CustomerName == userName)
-                                 .OrderByDescending(b => b.CreatedAt)
-                                 .ToListAsync();
+            return await _buildRepo.GetByCustomerNameAsync(userName);
         }
-
     }
-
-
 }

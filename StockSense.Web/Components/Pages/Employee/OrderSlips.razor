@@ -1,6 +1,5 @@
 @page "/admin/orderslips"
 @layout AdminLayout
-@using System.Text.Json
 @using StockSense.Application.DTOs
 @using StockSense.Application.Interfaces
 @using System.Security.Claims
@@ -230,9 +229,7 @@
     private bool isLoading;
     private HashSet<string> generatedSlipNumbers = new();
     private string userId = string.Empty;
-    private string storageKey = string.Empty;
-    private bool localStorageLoaded;
-    private const string PinnedSlipCacheKeyPrefix = "stockSense_pinnedSlips";
+    private bool pinnedSlipsLoaded;
 
     protected override async Task OnInitializedAsync()
     {
@@ -240,65 +237,42 @@
         allProducts = await ProductService.GetAllProductsAsync();
         var authState = await Auth.GetAuthenticationStateAsync();
         userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "anonymous";
-        storageKey = $"{PinnedSlipCacheKeyPrefix}_{userId}";
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!localStorageLoaded)
+        if (pinnedSlipsLoaded) return;
+
+        try
         {
-            try
+            var pinned = await OrderService.GetPinnedSlipsAsync(userId);
+            if (pinned != null)
             {
-                await LoadPinnedSlipsFromLocalStorageAsync();
+                foreach (var slip in pinned)
+                {
+                    if (!slips.Any(s => s.SlipNumber == slip.SlipNumber))
+                    {
+                        slips.Add(slip);
+                    }
+                    pinnedSlipNumbers.Add(slip.SlipNumber);
+                }
             }
-            catch
-            {
-            }
-            localStorageLoaded = true;
+            pinnedSlipsLoaded = true;
             StateHasChanged();
         }
-    }
-
-    private async Task LoadPinnedSlipsFromLocalStorageAsync()
-    {
-        var json = await JS.InvokeAsync<string>("localStorage.getItem", storageKey);
-        if (string.IsNullOrEmpty(json)) return;
-
-        var pinned = JsonSerializer.Deserialize<List<OrderSlipDto>>(json);
-        if (pinned == null || pinned.Count == 0) return;
-
-        foreach (var slip in pinned)
+        catch
         {
-            if (!slips.Any(s => s.SlipNumber == slip.SlipNumber))
-            {
-                slips.Add(slip);
-            }
-
-            pinnedSlipNumbers.Add(slip.SlipNumber);
         }
     }
 
-    private async Task SavePinnedSlipsToLocalStorageAsync()
+    private async Task SavePinnedSlipsAsync()
     {
         var pinned = slips.Where(s => pinnedSlipNumbers.Contains(s.SlipNumber)).ToList();
-        var json = JsonSerializer.Serialize(pinned);
-        await JS.InvokeVoidAsync("localStorage.setItem", storageKey, json);
+        await OrderService.SavePinnedSlipsAsync(userId, pinned);
     }
 
     private async Task GenerateSlips()
     {
-        if (!localStorageLoaded)
-        {
-            try
-            {
-                await LoadPinnedSlipsFromLocalStorageAsync();
-            }
-            catch
-            {
-            }
-            localStorageLoaded = true;
-        }
-
         isLoading = true;
         try
         {
@@ -333,7 +307,7 @@
             pinnedSlipNumbers.Add(slip.SlipNumber);
         }
 
-        await SavePinnedSlipsToLocalStorageAsync();
+        await SavePinnedSlipsAsync();
     }
 
     private async Task AddToHistory(OrderSlipDto slip)
@@ -355,7 +329,7 @@
             await OrderService.SaveOrderSlipToDbAsync(command);
             slips.Remove(slip);
             pinnedSlipNumbers.Remove(slip.SlipNumber);
-            await SavePinnedSlipsToLocalStorageAsync();
+            await SavePinnedSlipsAsync();
         }
         catch (Exception ex)
         {
@@ -372,7 +346,7 @@
         slips.Remove(slip);
         pinnedSlipNumbers.Remove(slip.SlipNumber);
         generatedSlipNumbers.Remove(slip.SlipNumber);
-        await SavePinnedSlipsToLocalStorageAsync();
+        await SavePinnedSlipsAsync();
     }
 
     private async Task DownloadPdf(OrderSlipDto slip)

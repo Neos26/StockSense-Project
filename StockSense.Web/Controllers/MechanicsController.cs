@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
-using StockSense.Infrastructure.Data;
+using StockSense.Domain.Interfaces;
 
 namespace StockSense.Web.Controllers
 {
@@ -10,53 +9,51 @@ namespace StockSense.Web.Controllers
     [ApiController]
     public class MechanicsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        public MechanicsController(ApplicationDbContext context) { _context = context; }
+        private readonly IMechanicRepository _repo;
 
-        // --- GET: Active Mechanics (For Customer Booking) ---
+        public MechanicsController(IMechanicRepository repo)
+        {
+            _repo = repo;
+        }
+
         [HttpGet]
         public async Task<ActionResult<List<Mechanic>>> GetActiveMechanics() =>
-            await _context.Mechanics.Where(m => m.IsActive).ToListAsync();
+            await _repo.GetActiveAsync();
 
-        // --- GET: All Mechanics (For Admin Management) ---
         [HttpGet("all")]
         public async Task<ActionResult<List<Mechanic>>> GetAllMechanics() =>
-            await _context.Mechanics.ToListAsync();
+            await _repo.GetAllAsync();
 
-        // --- POST: Create Mechanic ---
         [HttpPost]
         public async Task<IActionResult> CreateMechanic([FromBody] Mechanic mechanic)
         {
-            _context.Mechanics.Add(mechanic);
-            await _context.SaveChangesAsync();
+            _repo.Add(mechanic);
+            await _repo.SaveChangesAsync();
             return Ok(mechanic);
         }
 
-        // --- PUT: Update Mechanic (Toggle Status or Rename) ---
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateMechanic(int id, [FromBody] Mechanic updatedMech)
         {
-            var existing = await _context.Mechanics.FindAsync(id);
+            var existing = await _repo.GetByIdAsync(id);
             if (existing == null) return NotFound();
 
-            // Update both properties in case the Admin wants to rename them
             existing.Name = updatedMech.Name;
             existing.IsActive = updatedMech.IsActive;
 
-            await _context.SaveChangesAsync();
+            _repo.Update(existing);
+            await _repo.SaveChangesAsync();
             return Ok();
         }
 
-        // --- DELETE: Remove Mechanic Permanently ---
-        // This is triggered by your ExecuteDelete() function in the Blazor page
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMechanic(int id)
         {
-            var mechanic = await _context.Mechanics.FindAsync(id);
+            var mechanic = await _repo.GetByIdAsync(id);
             if (mechanic == null) return NotFound();
 
-            _context.Mechanics.Remove(mechanic);
-            await _context.SaveChangesAsync();
+            _repo.Delete(mechanic);
+            await _repo.SaveChangesAsync();
 
             return Ok(new { message = "Mechanic deleted successfully" });
         }

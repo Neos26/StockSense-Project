@@ -1,6 +1,7 @@
 using StockSense.Application.DTOs;
 using StockSense.Application.Interfaces;
 using StockSense.Domain.Entities;
+using StockSense.Domain.Interfaces;
 
 namespace StockSense.Application.Services;
 

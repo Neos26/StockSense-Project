@@ -18,6 +18,7 @@ namespace StockSense.Infrastructure.Data
         public DbSet<PreBuildPackage> PreBuildPackages { get; set; }
         public DbSet<SalesHistory> SalesHistory { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<PinnedSlip> PinnedSlips { get; set; }
 
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

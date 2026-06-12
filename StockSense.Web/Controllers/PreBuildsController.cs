@@ -1,9 +1,7 @@
-    using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-// Adjust this using statement to your actual DbContext namespace
+using Microsoft.AspNetCore.Mvc;
 using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
-using StockSense.Infrastructure.Data;
+using StockSense.Domain.Interfaces;
 
 namespace StockSense.Web.Controllers
 {
@@ -11,14 +9,13 @@ namespace StockSense.Web.Controllers
     [ApiController]
     public class PreBuildsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IPreBuildRepository _repo;
 
-        public PreBuildsController(ApplicationDbContext context)
+        public PreBuildsController(IPreBuildRepository repo)
         {
-            _context = context;
+            _repo = repo;
         }
 
-        // --- FOR THE CUSTOMER WIZARD ---
         [HttpGet]
         public async Task<ActionResult<List<PreBuildPackage>>> GetMatchingPackages(
             [FromQuery] string brand,
@@ -27,16 +24,14 @@ namespace StockSense.Web.Controllers
             [FromQuery] decimal minBudget,
             [FromQuery] decimal maxBudget)
         {
-            // 1. Get packages that match the specific motor specs
-            var matchingPackages = await _context.PreBuildPackages
-                .Include(p => p.IncludedProducts)
+            var allPackages = await _repo.GetAllPackagesAsync();
+            var matchingPackages = allPackages
                 .Where(p => p.CompatibleBrand == brand &&
                             p.CompatibleModel == model &&
                             p.TargetCC == cc &&
-                            p.IsActive == true) // <--- THIS IS THE MAGIC FIX
-                .ToListAsync();
+                            p.IsActive == true)
+                .ToList();
 
-            // 2. Filter out the ones that are outside the user's budget range
             var affordablePackages = matchingPackages
                 .Where(p => p.TotalPrice >= minBudget && p.TotalPrice <= maxBudget)
                 .ToList();
@@ -44,18 +39,13 @@ namespace StockSense.Web.Controllers
             return Ok(affordablePackages);
         }
 
-        // --- FOR THE ADMIN DASHBOARD (View all packages) ---
         [HttpGet("all")]
         public async Task<ActionResult<List<PreBuildPackage>>> GetAllPackages()
         {
-            var packages = await _context.PreBuildPackages
-                .Include(p => p.IncludedProducts)
-                .ToListAsync();
-
+            var packages = await _repo.GetAllPackagesAsync();
             return Ok(packages);
         }
 
-        // --- FOR THE ADMIN DASHBOARD (Create a new package) ---
         [HttpPost]
         public async Task<IActionResult> CreatePreBuild([FromBody] CreatePreBuildDto dto)
         {
@@ -64,17 +54,13 @@ namespace StockSense.Web.Controllers
                 return BadRequest("A package must contain at least one product.");
             }
 
-            // 1. Fetch all the products matching the IDs sent by the Admin
-            var productsToInclude = await _context.Products
-                .Where(p => dto.SelectedProductIds.Contains(p.Id))
-                .ToListAsync();
+            var productsToInclude = await _repo.GetProductsByIdsAsync(dto.SelectedProductIds);
 
             if (!productsToInclude.Any())
             {
                 return BadRequest("None of the selected products were found in the database.");
             }
 
-            // 2. Map the DTO data to your actual database model
             var newPackage = new PreBuildPackage()
             {
                 Name = dto.Name,
@@ -83,20 +69,17 @@ namespace StockSense.Web.Controllers
                 CompatibleModel = dto.CompatibleModel,
                 TargetCC = dto.TargetCC,
                 EstimatedAddedCC = dto.EstimatedAddedCC,
-                IncludedProducts = productsToInclude // Attach the fetched products!
+                IncludedProducts = productsToInclude
             };
 
-            // 3. Save to the database
-            _context.PreBuildPackages.Add(newPackage);
-            await _context.SaveChangesAsync();
-
+            await _repo.AddPackageAsync(newPackage);
             return Ok(newPackage);
-
         }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePreBuild(int id, [FromBody] CreatePreBuildDto dto)
         {
-            var pkg = await _context.PreBuildPackages.Include(p => p.IncludedProducts).FirstOrDefaultAsync(p => p.Id == id);
+            var pkg = await _repo.GetPackageByIdAsync(id);
             if (pkg == null) return NotFound();
 
             pkg.Name = dto.Name;
@@ -105,34 +88,32 @@ namespace StockSense.Web.Controllers
             pkg.CompatibleModel = dto.CompatibleModel;
             pkg.TargetCC = dto.TargetCC;
             pkg.EstimatedAddedCC = dto.EstimatedAddedCC;
-            pkg.IncludedProducts = await _context.Products.Where(p => dto.SelectedProductIds.Contains(p.Id)).ToListAsync();
+            pkg.IncludedProducts = await _repo.GetProductsByIdsAsync(dto.SelectedProductIds);
 
-            await _context.SaveChangesAsync();
+            await _repo.UpdatePackageAsync(pkg);
             return Ok(pkg);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePreBuild(int id)
         {
-            var pkg = await _context.PreBuildPackages.FindAsync(id);
-            if (pkg == null) return NotFound();
-
-            _context.PreBuildPackages.Remove(pkg);
-            await _context.SaveChangesAsync();
+            await _repo.DeletePackageAsync(id);
             return Ok();
         }
+
         public class ToggleActiveDto
         {
             public bool IsActive { get; set; }
         }
+
         [HttpPatch("{id}/toggle-active")]
         public async Task<IActionResult> ToggleActive(int id, [FromBody] ToggleActiveDto dto)
         {
-            var pkg = await _context.PreBuildPackages.FindAsync(id);
+            var pkg = await _repo.GetPackageByIdAsync(id);
             if (pkg == null) return NotFound();
 
             pkg.IsActive = dto.IsActive;
-            await _context.SaveChangesAsync();
+            await _repo.UpdatePackageAsync(pkg);
             return Ok();
         }
     }

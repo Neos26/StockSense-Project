@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using StockSense.Application.Interfaces;
+using StockSense.Domain.Interfaces;
 using StockSense.Domain.Entities;
 
 namespace StockSense.Infrastructure.Data.Repositories;

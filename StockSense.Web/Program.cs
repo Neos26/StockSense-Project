@@ -136,6 +136,10 @@ builder.Services.AddScoped<IOrderSlipRepository, OrderSlipRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IPinnedSlipRepository, PinnedSlipRepository>();
+builder.Services.AddScoped<IMechanicRepository, MechanicRepository>();
+builder.Services.AddScoped<IBuildRequestRepository, BuildRequestRepository>();
+builder.Services.AddScoped<IStoreServiceRepository, StoreServiceRepository>();
 
 // --- INFRASTRUCTURE (External Tools) ---
 builder.Services.AddScoped<IDocumentService, DocumentService>();

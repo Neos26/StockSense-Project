@@ -1,55 +1,62 @@
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using StockSense.Infrastructure.Data;
 using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
-using StockSense.Infrastructure.Services;
-using System.Text;
-
+using StockSense.Application.Interfaces;
+using StockSense.Domain.Interfaces;
 
 [Route("api/[controller]")]
 [ApiController]
 public class ProductsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
-    private readonly EmailSender _emailSender;
+    private readonly IProductRepository _productRepo;
+    private readonly IEmailSender<ApplicationUser> _emailSender;
+    private readonly IBuildRequestRepository _buildRepo;
 
-    public ProductsController(ApplicationDbContext context, EmailSender emailSender)
+    public ProductsController(
+        IProductRepository productRepo,
+        IEmailSender<ApplicationUser> emailSender,
+        IBuildRequestRepository buildRepo)
     {
-        _context = context;
+        _productRepo = productRepo;
         _emailSender = emailSender;
+        _buildRepo = buildRepo;
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<Product>>> GetProducts()
+    public async Task<ActionResult<List<ProductDto>>> GetProducts()
     {
-        return await _context.Products.ToListAsync();
+        var products = await _productRepo.GetAllProductsAsync();
+        return Ok(products.Select(p => new ProductDto(
+            p.Id,
+            p.Name,
+            p.Category,
+            p.Brand,
+            p.Price,
+            p.CurrentStock,
+            p.ReorderTarget,
+            p.SupplierId,
+            p.Supplier?.Name ?? ""
+        )).ToList());
     }
 
     [HttpPost("submit-build")]
     public async Task<IActionResult> SubmitBuild([FromBody] BuildRequest request)
     {
-        _context.BuildRequests.Add(request);
-        await _context.SaveChangesAsync();
+        _buildRepo.Add(request);
+        await _buildRepo.SaveChangesAsync();
         return Ok();
     }
 
-    // --- THE EMAIL QUOTE ENDPOINT ---
     [HttpPost("send-quote")]
     public async Task<IActionResult> SendQuote([FromBody] EmailQuoteRequest request)
     {
-        // 1. Fetch products from DB
-        var selectedProducts = await _context.Products
-            .Where(p => request.ProductIds.Contains(p.Id))
-            .ToListAsync();
-
+        var selectedProducts = await _productRepo.GetByIdsAsync(request.ProductIds);
         if (!selectedProducts.Any()) return BadRequest("No valid products found.");
 
-        // 2. Calculate total on server (Secure)
         decimal grandTotal = selectedProducts.Sum(p => p.Price);
 
-        // 3. Build HTML
         var sb = new StringBuilder();
         sb.AppendLine("<h1>StockSense Build Quotation</h1>");
         sb.AppendLine($"<p>Hello {request.UserEmail}, here is the quote for your custom build:</p>");
@@ -63,7 +70,6 @@ public class ProductsController : ControllerBase
         sb.AppendLine("</table>");
         sb.AppendLine($"<h3>Grand Total: P {grandTotal:N2}</h3>");
 
-        // 4. Send Email using your existing service
         try
         {
             await _emailSender.SendEmailAsync(request.UserEmail, "Custom Build Quote", sb.ToString());
@@ -75,24 +81,21 @@ public class ProductsController : ControllerBase
         }
     }
 
-
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProduct(int id, Product updatedProduct)
     {
         if (id != updatedProduct.Id) return BadRequest();
 
-        // 1. Get the existing record from the DB
-        var dbProduct = await _context.Products.FindAsync(id);
+        var dbProduct = await _productRepo.GetByIdAsync(id);
         if (dbProduct == null) return NotFound();
 
-        // 2. ONLY update the two fields from your modal
         dbProduct.Price = updatedProduct.Price;
         dbProduct.ReorderTarget = updatedProduct.ReorderTarget;
 
-        // 3. Save only these changes
+        _productRepo.Update(dbProduct);
         try
         {
-            await _context.SaveChangesAsync();
+            await _productRepo.SaveChangesAsync();
             return NoContent();
         }
         catch (Exception ex)
