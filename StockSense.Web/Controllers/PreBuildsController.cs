@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
-using StockSense.Domain.Interfaces;
+using StockSense.Application.Interfaces;
 
 namespace StockSense.Web.Controllers
 {
@@ -9,22 +8,22 @@ namespace StockSense.Web.Controllers
     [ApiController]
     public class PreBuildsController : ControllerBase
     {
-        private readonly IPreBuildRepository _repo;
+        private readonly IPreBuildService _service;
 
-        public PreBuildsController(IPreBuildRepository repo)
+        public PreBuildsController(IPreBuildService service)
         {
-            _repo = repo;
+            _service = service;
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<PreBuildPackage>>> GetMatchingPackages(
+        public async Task<ActionResult<List<PreBuildPackageDto>>> GetMatchingPackages(
             [FromQuery] string brand,
             [FromQuery] string model,
             [FromQuery] string cc,
             [FromQuery] decimal minBudget,
             [FromQuery] decimal maxBudget)
         {
-            var allPackages = await _repo.GetAllPackagesAsync();
+            var allPackages = await _service.GetAllPackagesAsync();
             var matchingPackages = allPackages
                 .Where(p => p.CompatibleBrand == brand &&
                             p.CompatibleModel == model &&
@@ -40,9 +39,9 @@ namespace StockSense.Web.Controllers
         }
 
         [HttpGet("all")]
-        public async Task<ActionResult<List<PreBuildPackage>>> GetAllPackages()
+        public async Task<ActionResult<List<PreBuildPackageDto>>> GetAllPackages()
         {
-            var packages = await _repo.GetAllPackagesAsync();
+            var packages = await _service.GetAllPackagesAsync();
             return Ok(packages);
         }
 
@@ -54,66 +53,28 @@ namespace StockSense.Web.Controllers
                 return BadRequest("A package must contain at least one product.");
             }
 
-            var productsToInclude = await _repo.GetProductsByIdsAsync(dto.SelectedProductIds);
-
-            if (!productsToInclude.Any())
-            {
-                return BadRequest("None of the selected products were found in the database.");
-            }
-
-            var newPackage = new PreBuildPackage()
-            {
-                Name = dto.Name,
-                Description = dto.Description,
-                CompatibleBrand = dto.CompatibleBrand,
-                CompatibleModel = dto.CompatibleModel,
-                TargetCC = dto.TargetCC,
-                EstimatedAddedCC = dto.EstimatedAddedCC,
-                IncludedProducts = productsToInclude
-            };
-
-            await _repo.AddPackageAsync(newPackage);
-            return Ok(newPackage);
+            var result = await _service.CreatePackageAsync(dto);
+            return Ok(result);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePreBuild(int id, [FromBody] CreatePreBuildDto dto)
         {
-            var pkg = await _repo.GetPackageByIdAsync(id);
-            if (pkg == null) return NotFound();
-
-            pkg.Name = dto.Name;
-            pkg.Description = dto.Description;
-            pkg.CompatibleBrand = dto.CompatibleBrand;
-            pkg.CompatibleModel = dto.CompatibleModel;
-            pkg.TargetCC = dto.TargetCC;
-            pkg.EstimatedAddedCC = dto.EstimatedAddedCC;
-            pkg.IncludedProducts = await _repo.GetProductsByIdsAsync(dto.SelectedProductIds);
-
-            await _repo.UpdatePackageAsync(pkg);
-            return Ok(pkg);
+            var result = await _service.UpdatePackageAsync(id, dto);
+            return Ok(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePreBuild(int id)
         {
-            await _repo.DeletePackageAsync(id);
+            await _service.DeletePackageAsync(id);
             return Ok();
         }
 
-        public class ToggleActiveDto
-        {
-            public bool IsActive { get; set; }
-        }
-
         [HttpPatch("{id}/toggle-active")]
-        public async Task<IActionResult> ToggleActive(int id, [FromBody] ToggleActiveDto dto)
+        public async Task<IActionResult> ToggleActive(int id)
         {
-            var pkg = await _repo.GetPackageByIdAsync(id);
-            if (pkg == null) return NotFound();
-
-            pkg.IsActive = dto.IsActive;
-            await _repo.UpdatePackageAsync(pkg);
+            await _service.TogglePackageActiveStatusAsync(id);
             return Ok();
         }
     }

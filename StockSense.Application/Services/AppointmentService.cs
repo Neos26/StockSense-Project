@@ -8,24 +8,29 @@ namespace StockSense.Application.Services;
 public class AppointmentService : IAppointmentService
 {
     private readonly IAppointmentRepository _repository;
+    private readonly IStoreServiceRepository _serviceRepo;
 
     private static readonly TimeZoneInfo PhZone = TimeZoneInfo.FindSystemTimeZoneById("Singapore Standard Time");
 
-    public AppointmentService(IAppointmentRepository repository)
+    public AppointmentService(IAppointmentRepository repository, IStoreServiceRepository serviceRepo)
     {
         _repository = repository;
+        _serviceRepo = serviceRepo;
     }
 
     public async Task<List<AppointmentDto>> GetAllAppointmentsAsync()
     {
         var appointments = await _repository.GetAllAppointmentsAsync();
-
         return appointments.Select(MapToDto).ToList();
     }
 
     public async Task<AppointmentDto> BookAppointmentAsync(CreateAppointmentDto request)
     {
         string flatServices = string.Join(", ", request.SelectedServices);
+
+        var matchedServices = await _serviceRepo.GetByNamesAsync(request.SelectedServices);
+        decimal totalAmount = matchedServices.Sum(s => s.Price);
+        int totalDuration = matchedServices.Sum(s => s.EstimatedMinutes);
 
         DateTime phNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, PhZone);
 
@@ -38,7 +43,8 @@ public class AppointmentService : IAppointmentService
             ServicesRequested = flatServices,
             Status = "Pending",
             CreatedAt = phNow,
-            TotalAmount = 0,
+            TotalAmount = totalAmount,
+            DurationMinutes = totalDuration,
             MechanicName = "Unassigned"
         };
 

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using StockSense.Domain.Interfaces;
+using StockSense.Application.DTOs;
 
 namespace StockSense.Web.Controllers
 {
@@ -32,6 +33,17 @@ namespace StockSense.Web.Controllers
                     .Where(p => p.CurrentStock <= p.ReorderTarget)
                     .OrderBy(p => p.CurrentStock)
                     .Take(5)
+                    .Select(p => new ProductDto(
+                        p.Id,
+                        p.Name,
+                        p.Category,
+                        p.Brand,
+                        p.Price,
+                        p.CurrentStock,
+                        p.ReorderTarget,
+                        p.SupplierId,
+                        p.Supplier?.Name ?? ""
+                    ))
                     .ToList()
             };
 

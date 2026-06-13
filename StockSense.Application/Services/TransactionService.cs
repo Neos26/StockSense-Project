@@ -1,10 +1,10 @@
+using StockSense.Application.DTOs;
 using StockSense.Application.Interfaces;
 using StockSense.Domain.Entities;
 using StockSense.Domain.Interfaces;
 
 namespace StockSense.Application.Services;
 
-// Make sure you implement the interface from your tree!
 public class TransactionService : ITransactionService 
 {
     private readonly ITransactionRepository _repository;
@@ -14,7 +14,7 @@ public class TransactionService : ITransactionService
         _repository = repository;
     }
 
-    public async Task<Transaction> ProcessSaleAsync(List<CartItem> items)
+    public async Task<ReceiptDto> ProcessSaleAsync(List<CartItemDto> items)
     {
         var receipt = new Transaction
         {
@@ -26,15 +26,12 @@ public class TransactionService : ITransactionService
 
         foreach (var item in items)
         {
-            // Use Repo instead of _context
             var product = await _repository.GetProductByIdAsync(item.ProductId); 
             if (product != null)
             {
-                // Deduct Stock
                 product.DeductStock(item.Quantity);
                 _repository.UpdateProduct(product);
 
-                // Add to SalesHistory
                 _repository.AddSalesHistory(new SalesHistory
                 {
                     Date = DateTime.Now.ToString("yyyy-MM-dd"),
@@ -48,7 +45,6 @@ public class TransactionService : ITransactionService
                     MonthNum = (float)DateTime.Now.Month
                 });
 
-                // Add to Receipt
                 receipt.Items.Add(new TransactionItem
                 {
                     ProductId = product.Id,
@@ -59,12 +55,23 @@ public class TransactionService : ITransactionService
             }
         }
 
-        // Save the Receipt
         _repository.AddTransaction(receipt);
 
-        // Commit everything to the database at once
         await _repository.SaveChangesAsync();
 
-        return receipt;
+        return new ReceiptDto
+        {
+            Id = receipt.Id,
+            InvoiceNumber = receipt.InvoiceNumber,
+            TransactionDate = receipt.TransactionDate,
+            TotalAmount = receipt.TotalAmount,
+            Items = receipt.Items.Select(i => new ReceiptItemDto
+            {
+                ProductId = i.ProductId,
+                ProductName = i.ProductName,
+                UnitPrice = i.UnitPrice,
+                Quantity = i.Quantity
+            }).ToList()
+        };
     }
 }

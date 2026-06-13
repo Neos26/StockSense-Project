@@ -1,6 +1,6 @@
 using System.Text.Json;
+using StockSense.Application.DTOs;
 using StockSense.Application.Interfaces;
-using StockSense.Domain.Entities;
 using StockSense.Domain.Interfaces;
 
 namespace StockSense.Application.Services;
@@ -31,13 +31,13 @@ public class BuildService : IBuildService
         return true;
     }
 
-    private async Task DeductInventoryAsync(BuildRequest build)
+    private async Task DeductInventoryAsync(StockSense.Domain.Entities.BuildRequest build)
     {
         if (string.IsNullOrEmpty(build.SelectedPartsJson)) return;
 
         try
         {
-            var usedParts = JsonSerializer.Deserialize<List<Product>>(
+            var usedParts = JsonSerializer.Deserialize<List<BuildPartDto>>(
                 build.SelectedPartsJson,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
             );

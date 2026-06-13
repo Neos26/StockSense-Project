@@ -27,6 +27,13 @@ public class StoreServiceRepository : IStoreServiceRepository
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
+    public async Task<List<StoreService>> GetByNamesAsync(List<string> names)
+    {
+        return await _context.StoreServices
+            .Where(s => names.Contains(s.Name))
+            .ToListAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

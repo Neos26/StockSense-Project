@@ -43,11 +43,29 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("submit-build")]
-    public async Task<IActionResult> SubmitBuild([FromBody] BuildRequest request)
+    public async Task<IActionResult> SubmitBuild([FromBody] CreateBuildRequestDto dto)
     {
+        var request = new BuildRequest
+        {
+            CustomerName = dto.CustomerName,
+            BuildName = dto.BuildName,
+            SelectedPartsJson = dto.SelectedPartsJson,
+            TotalPrice = dto.TotalPrice,
+            CreatedAt = DateTime.Now,
+            Status = "Pending"
+        };
         _buildRepo.Add(request);
         await _buildRepo.SaveChangesAsync();
-        return Ok();
+        return Ok(new BuildRequestDto
+        {
+            Id = request.Id,
+            CustomerName = request.CustomerName,
+            BuildName = request.BuildName,
+            SelectedPartsJson = request.SelectedPartsJson,
+            TotalPrice = request.TotalPrice,
+            CreatedAt = request.CreatedAt,
+            Status = request.Status
+        });
     }
 
     [HttpPost("send-quote")]
@@ -83,15 +101,15 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProduct(int id, Product updatedProduct)
+    public async Task<IActionResult> UpdateProduct(int id, [FromBody] UpdateProductDto dto)
     {
-        if (id != updatedProduct.Id) return BadRequest();
+        if (id != dto.Id) return BadRequest();
 
         var dbProduct = await _productRepo.GetByIdAsync(id);
         if (dbProduct == null) return NotFound();
 
-        dbProduct.Price = updatedProduct.Price;
-        dbProduct.ReorderTarget = updatedProduct.ReorderTarget;
+        dbProduct.Price = dto.Price;
+        dbProduct.ReorderTarget = dto.ReorderTarget;
 
         _productRepo.Update(dbProduct);
         try

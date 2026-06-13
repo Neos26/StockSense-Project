@@ -1,8 +1,8 @@
-using StockSense.Domain.Entities;
+using StockSense.Application.DTOs;
 
 namespace StockSense.Application.Interfaces;
 
 public interface ITransactionService
 {
-    Task<Transaction> ProcessSaleAsync(List<CartItem> items);
+    Task<ReceiptDto> ProcessSaleAsync(List<CartItemDto> items);
 }

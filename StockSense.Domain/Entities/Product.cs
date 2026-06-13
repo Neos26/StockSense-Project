@@ -8,11 +8,11 @@ public class Product
 {
     public int Id { get; set; }
     [Required] public string Name { get; set; } = string.Empty;
-    [Required] public string Category { get; set; } = string.Empty; // e.g., "Genuine Parts", "Racing Parts"
-    public string Brand { get; set; } = string.Empty; // e.g., "Yamaha", "Honda"
+    [Required] public string Category { get; set; } = string.Empty;
+    public string Brand { get; set; } = string.Empty;
     [Column(TypeName = "decimal(18,2)")] public decimal Price { get; set; }
-    public string ImageUrl { get; set; } = "https://placehold.co/300x200"; // Placeholder image
-    // Add these to your REAL Product class if they are missing!
+    public string ImageUrl { get; set; } = "https://placehold.co/300x200";
+    [JsonInclude]
     public int CurrentStock { get; private set; }
     public int ReorderTarget { get; set; }
 

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
 using StockSense.Domain.Interfaces;
 
@@ -23,14 +22,33 @@ namespace StockSense.Web.Controllers
         public async Task<IActionResult> GetServices()
         {
             var services = await _serviceRepo.GetAllWithProductsAsync();
-            return Ok(services);
+            var dto = services.Select(s => new StoreServiceDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Price = s.Price,
+                Category = s.Category,
+                EstimatedMinutes = s.EstimatedMinutes,
+                Status = s.Status,
+                RequiredProducts = s.RequiredProducts.Select(p => new ProductDto(
+                    p.Id, p.Name, p.Category, p.Brand, p.Price,
+                    p.CurrentStock, p.ReorderTarget, p.SupplierId,
+                    p.Supplier?.Name ?? ""
+                )).ToList()
+            }).ToList();
+            return Ok(dto);
         }
 
         [HttpGet("inventory")]
         public async Task<IActionResult> GetInventory()
         {
             var inventory = await _productRepo.GetAllProductsAsync();
-            return Ok(inventory);
+            var dto = inventory.Select(p => new ProductDto(
+                p.Id, p.Name, p.Category, p.Brand, p.Price,
+                p.CurrentStock, p.ReorderTarget, p.SupplierId,
+                p.Supplier?.Name ?? ""
+            )).ToList();
+            return Ok(dto);
         }
 
         [HttpPost("update-products")]

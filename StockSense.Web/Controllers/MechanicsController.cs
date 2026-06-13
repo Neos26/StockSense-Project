@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using StockSense.Domain.Entities;
 using StockSense.Application.DTOs;
 using StockSense.Domain.Interfaces;
 
@@ -17,29 +16,55 @@ namespace StockSense.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Mechanic>>> GetActiveMechanics() =>
-            await _repo.GetActiveAsync();
+        public async Task<ActionResult<List<MechanicDto>>> GetActiveMechanics()
+        {
+            var mechanics = await _repo.GetActiveAsync();
+            return Ok(mechanics.Select(m => new MechanicDto
+            {
+                Id = m.Id,
+                Name = m.Name,
+                IsActive = m.IsActive
+            }).ToList());
+        }
 
         [HttpGet("all")]
-        public async Task<ActionResult<List<Mechanic>>> GetAllMechanics() =>
-            await _repo.GetAllAsync();
+        public async Task<ActionResult<List<MechanicDto>>> GetAllMechanics()
+        {
+            var mechanics = await _repo.GetAllAsync();
+            return Ok(mechanics.Select(m => new MechanicDto
+            {
+                Id = m.Id,
+                Name = m.Name,
+                IsActive = m.IsActive
+            }).ToList());
+        }
 
         [HttpPost]
-        public async Task<IActionResult> CreateMechanic([FromBody] Mechanic mechanic)
+        public async Task<IActionResult> CreateMechanic([FromBody] MechanicDto dto)
         {
+            var mechanic = new StockSense.Domain.Entities.Mechanic
+            {
+                Name = dto.Name,
+                IsActive = dto.IsActive
+            };
             _repo.Add(mechanic);
             await _repo.SaveChangesAsync();
-            return Ok(mechanic);
+            return Ok(new MechanicDto
+            {
+                Id = mechanic.Id,
+                Name = mechanic.Name,
+                IsActive = mechanic.IsActive
+            });
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateMechanic(int id, [FromBody] Mechanic updatedMech)
+        public async Task<IActionResult> UpdateMechanic(int id, [FromBody] MechanicDto dto)
         {
             var existing = await _repo.GetByIdAsync(id);
             if (existing == null) return NotFound();
 
-            existing.Name = updatedMech.Name;
-            existing.IsActive = updatedMech.IsActive;
+            existing.Name = dto.Name;
+            existing.IsActive = dto.IsActive;
 
             _repo.Update(existing);
             await _repo.SaveChangesAsync();

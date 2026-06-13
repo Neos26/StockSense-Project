@@ -293,7 +293,7 @@
 
     private List<Product> allProducts = new();
     private List<string> categories = new();
-    private List<CartItem> cart = new();
+    private List<CartItemDto> cart = new();
     private string? selectedCategory;
     private string searchTerm = "";
     private bool isProcessing = false;
@@ -306,7 +306,7 @@
         "#22c55e";
 
     private bool showReceiptModal = false;
-    private Transaction? completedTransaction;
+    private ReceiptDto? completedTransaction;
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
@@ -343,13 +343,13 @@
         }
         else
         {
-            cart.Add(new CartItem { ProductId = p.Id, ProductName = p.Name, Price = p.Price, Quantity = 1 });
+            cart.Add(new CartItemDto { ProductId = p.Id, ProductName = p.Name, Price = p.Price, Quantity = 1 });
         }
 
         cartOpen = true;
     }
 
-    private void UpdateCartQuantity(CartItem item, ChangeEventArgs e)
+    private void UpdateCartQuantity(CartItemDto item, ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out int newQty))
         {

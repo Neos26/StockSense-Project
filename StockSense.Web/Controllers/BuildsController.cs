@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using StockSense.Domain.Entities;
+using StockSense.Application.DTOs;
 using StockSense.Application.Interfaces;
 using StockSense.Domain.Interfaces;
 
@@ -19,23 +19,49 @@ namespace StockSense.Web.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateBuild([FromBody] BuildRequest request)
+        public async Task<IActionResult> CreateBuild([FromBody] CreateBuildRequestDto dto)
         {
-            if (request == null) return BadRequest("Request is empty.");
+            if (dto == null) return BadRequest("Request is empty.");
 
-            request.CreatedAt = DateTime.Now;
-            request.Status = "Pending";
+            var request = new StockSense.Domain.Entities.BuildRequest
+            {
+                CustomerName = dto.CustomerName,
+                BuildName = dto.BuildName,
+                SelectedPartsJson = dto.SelectedPartsJson,
+                TotalPrice = dto.TotalPrice,
+                CreatedAt = DateTime.Now,
+                Status = "Pending"
+            };
 
             _buildRepo.Add(request);
             await _buildRepo.SaveChangesAsync();
 
-            return Ok(request);
+            return Ok(new BuildRequestDto
+            {
+                Id = request.Id,
+                CustomerName = request.CustomerName,
+                BuildName = request.BuildName,
+                SelectedPartsJson = request.SelectedPartsJson,
+                TotalPrice = request.TotalPrice,
+                CreatedAt = request.CreatedAt,
+                Status = request.Status
+            });
         }
 
         [HttpGet("all")]
-        public async Task<ActionResult<List<BuildRequest>>> GetAllBuilds()
+        public async Task<ActionResult<List<BuildRequestDto>>> GetAllBuilds()
         {
-            return await _buildRepo.GetAllAsync();
+            var builds = await _buildRepo.GetAllAsync();
+            return Ok(builds.Select(b => new BuildRequestDto
+            {
+                Id = b.Id,
+                CustomerName = b.CustomerName,
+                BuildName = b.BuildName,
+                SelectedPartsJson = b.SelectedPartsJson,
+                TotalPrice = b.TotalPrice,
+                CreatedAt = b.CreatedAt,
+                Status = b.Status
+            }).ToList());
         }
 
         [HttpPut("{id}/status")]
@@ -47,10 +73,20 @@ namespace StockSense.Web.Server.Controllers
         }
 
         [HttpGet("customer/{userName}")]
-        public async Task<ActionResult<List<BuildRequest>>> GetCustomerBuilds(string userName)
+        public async Task<ActionResult<List<BuildRequestDto>>> GetCustomerBuilds(string userName)
         {
             if (string.IsNullOrEmpty(userName)) return BadRequest("User name is required.");
-            return await _buildRepo.GetByCustomerNameAsync(userName);
+            var builds = await _buildRepo.GetByCustomerNameAsync(userName);
+            return Ok(builds.Select(b => new BuildRequestDto
+            {
+                Id = b.Id,
+                CustomerName = b.CustomerName,
+                BuildName = b.BuildName,
+                SelectedPartsJson = b.SelectedPartsJson,
+                TotalPrice = b.TotalPrice,
+                CreatedAt = b.CreatedAt,
+                Status = b.Status
+            }).ToList());
         }
     }
 }
