@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
-namespace StockSense.Domain.Entities;
+
+namespace StockSense.Infrastructure.Data;
 
 public class ApplicationUser : IdentityUser
 {
@@ -7,5 +8,3 @@ public class ApplicationUser : IdentityUser
     public string LastName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty; // Admin, Employee, or Customer
 }
-
-

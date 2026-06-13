@@ -3,7 +3,7 @@ using MailKit.Net.Smtp;
 using MimeKit;
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
-using StockSense.Domain.Entities;
+using StockSense.Infrastructure.Data;
 using StockSense.Application.Interfaces;
 
 namespace StockSense.Infrastructure.Services;

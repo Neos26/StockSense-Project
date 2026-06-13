@@ -17,7 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\StockSense.Domain\StockSense.Domain.csproj" />
     <ProjectReference Include="..\StockSense.Application\StockSense.Application.csproj" />
   </ItemGroup>
 

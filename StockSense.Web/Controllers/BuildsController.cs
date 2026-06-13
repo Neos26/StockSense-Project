@@ -1,7 +1,6 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using StockSense.Domain.Entities;
-using StockSense.Application.DTOs;
+using StockSense.Application.Interfaces;
 using StockSense.Domain.Interfaces;
 
 namespace StockSense.Web.Server.Controllers
@@ -10,13 +9,13 @@ namespace StockSense.Web.Server.Controllers
     [ApiController]
     public class BuildsController : ControllerBase
     {
+        private readonly IBuildService _buildService;
         private readonly IBuildRequestRepository _buildRepo;
-        private readonly IProductRepository _productRepo;
 
-        public BuildsController(IBuildRequestRepository buildRepo, IProductRepository productRepo)
+        public BuildsController(IBuildService buildService, IBuildRequestRepository buildRepo)
         {
+            _buildService = buildService;
             _buildRepo = buildRepo;
-            _productRepo = productRepo;
         }
 
         [HttpPost]
@@ -42,43 +41,8 @@ namespace StockSense.Web.Server.Controllers
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] string newStatus)
         {
-            var build = await _buildRepo.GetByIdAsync(id);
-            if (build == null) return NotFound();
-
-            if (newStatus == "Completed" && build.Status != "Completed")
-            {
-                if (!string.IsNullOrEmpty(build.SelectedPartsJson))
-                {
-                    try
-                    {
-                        var usedParts = JsonSerializer.Deserialize<List<Product>>(
-                            build.SelectedPartsJson,
-                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                        );
-
-                        if (usedParts != null)
-                        {
-                            foreach (var part in usedParts)
-                            {
-                                var dbProduct = await _productRepo.GetByIdAsync(part.Id);
-                                if (dbProduct != null && dbProduct.CurrentStock > 0)
-                                {
-                                    dbProduct.CurrentStock -= 1;
-                                    _productRepo.Update(dbProduct);
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Failed to deduct inventory: {ex.Message}");
-                    }
-                }
-            }
-
-            build.Status = newStatus;
-            await _buildRepo.SaveChangesAsync();
-
+            var updated = await _buildService.UpdateStatusAsync(id, newStatus);
+            if (!updated) return NotFound();
             return Ok();
         }
 

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using StockSense.Client;
-using StockSense.Domain.Entities;
+using StockSense.Infrastructure.Data;
 
 namespace StockSense.Web.Components.Account
 {

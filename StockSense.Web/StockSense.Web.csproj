@@ -7,7 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\StockSense.Domain\StockSense.Domain.csproj" />
         <ProjectReference Include="..\StockSense.Application\StockSense.Application.csproj" />
         <ProjectReference Include="..\StockSense.Infrastructure\StockSense.Infrastructure.csproj" />
         <ProjectReference Include="..\StockSense.Client\StockSense.Client.csproj" />

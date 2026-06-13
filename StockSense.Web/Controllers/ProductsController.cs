@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StockSense.Domain.Entities;
+using StockSense.Infrastructure.Data;
 using StockSense.Application.DTOs;
 using StockSense.Application.Interfaces;
 using StockSense.Domain.Interfaces;

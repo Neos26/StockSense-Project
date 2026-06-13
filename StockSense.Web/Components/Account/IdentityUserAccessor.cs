@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Identity;
-using StockSense.Domain.Entities;
+using StockSense.Infrastructure.Data;
 
 namespace StockSense.Web.Components.Account
 {

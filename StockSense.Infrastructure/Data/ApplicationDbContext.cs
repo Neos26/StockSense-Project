@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using StockSense.Domain.Entities;
+using StockSense.Infrastructure.Data;
 
 
 namespace StockSense.Infrastructure.Data

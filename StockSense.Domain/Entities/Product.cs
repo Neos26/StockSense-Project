@@ -13,8 +13,24 @@ public class Product
     [Column(TypeName = "decimal(18,2)")] public decimal Price { get; set; }
     public string ImageUrl { get; set; } = "https://placehold.co/300x200"; // Placeholder image
     // Add these to your REAL Product class if they are missing!
-    public int CurrentStock { get; set; }
+    public int CurrentStock { get; private set; }
     public int ReorderTarget { get; set; }
+
+    public void DeductStock(int quantity)
+    {
+        if (quantity <= 0)
+            throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be positive");
+        if (CurrentStock < quantity)
+            throw new InvalidOperationException($"Insufficient stock. Available: {CurrentStock}, requested: {quantity}");
+        CurrentStock -= quantity;
+    }
+
+    public void AddStock(int quantity)
+    {
+        if (quantity <= 0)
+            throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be positive");
+        CurrentStock += quantity;
+    }
     [JsonIgnore] public virtual ICollection<StoreService> StoreServices { get; set; } = new List<StoreService>();
     // This links the product to the Supplier class we just made
     public int SupplierId { get; set; }

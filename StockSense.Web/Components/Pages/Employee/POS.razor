@@ -1,9 +1,9 @@
 @page "/admin/pos"
 @layout AdminLayout
 @using StockSense.Domain.Entities
-@using Microsoft.EntityFrameworkCore
+@using StockSense.Domain.Interfaces
 @using Microsoft.AspNetCore.Authorization
-@inject ApplicationDbContext Context
+@inject IProductRepository ProductRepo
 @inject ITransactionService SaleService
 @inject IJSRuntime JS
 @rendermode InteractiveServer
@@ -292,124 +292,118 @@
 </div>;
 
     private List<Product> allProducts = new();
-private List<string> categories = new();
-private List<CartItem> cart = new();
-private string? selectedCategory;
-private string searchTerm = "";
-private bool isProcessing = false;
-private string? statusMessage;
-private bool cartOpen = false;
+    private List<string> categories = new();
+    private List<CartItem> cart = new();
+    private string? selectedCategory;
+    private string searchTerm = "";
+    private bool isProcessing = false;
+    private string? statusMessage;
+    private bool cartOpen = false;
 
-private string GetStockColor(Product p) =>
-    p.CurrentStock <= 2 ? "#ef4444" :   // red   — critical / out of stock
-    p.CurrentStock < p.ReorderTarget ? "#eab308" :   // yellow — below reorder target
-    "#22c55e";
+    private string GetStockColor(Product p) =>
+        p.CurrentStock <= 2 ? "#ef4444" :
+        p.CurrentStock < p.ReorderTarget ? "#eab308" :
+        "#22c55e";
 
-// --- RECEIPT VARIABLES ---
-private bool showReceiptModal = false;
-private Transaction? completedTransaction;
+    private bool showReceiptModal = false;
+    private Transaction? completedTransaction;
 
-protected override async Task OnInitializedAsync() => await LoadData();
+    protected override async Task OnInitializedAsync() => await LoadData();
 
-private async Task LoadData()
-{
-    allProducts = await Context.Products.AsNoTracking().ToListAsync();
-    categories = allProducts
-        .Select(p => p.Category)
-        .Where(c => !string.IsNullOrEmpty(c))
-        .Distinct()
-        .OrderBy(c => c)
-        .ToList();
-}
-
-// FIX: Added null safety checks for Name and Brand to prevent NullReferenceExceptions
-private IEnumerable<Product> FilteredProducts => allProducts
-    .Where(p => (string.IsNullOrEmpty(selectedCategory) || p.Category == selectedCategory) &&
-                (string.IsNullOrWhiteSpace(searchTerm) ||
-                (p.Name != null && p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                (p.Brand != null && p.Brand.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))));
-
-private decimal TotalAmount => cart.Sum(i => i.Price * i.Quantity);
-
-private void AddToCart(Product p)
-{
-    if (p.CurrentStock <= 0) return;
-    statusMessage = null;
-
-    var existing = cart.FirstOrDefault(i => i.ProductId == p.Id);
-
-    if (existing != null)
+    private async Task LoadData()
     {
-        if (existing.Quantity < p.CurrentStock) existing.Quantity++;
-        else statusMessage = $"Limit reached: Only {p.CurrentStock} of {p.Name} in stock.";
-    }
-    else
-    {
-        cart.Add(new CartItem { ProductId = p.Id, ProductName = p.Name, Price = p.Price, Quantity = 1 });
+        allProducts = await ProductRepo.GetAllProductsAsync();
+        categories = allProducts
+            .Select(p => p.Category)
+            .Where(c => !string.IsNullOrEmpty(c))
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
     }
 
-    cartOpen = true;
-}
+    private IEnumerable<Product> FilteredProducts => allProducts
+        .Where(p => (string.IsNullOrEmpty(selectedCategory) || p.Category == selectedCategory) &&
+                    (string.IsNullOrWhiteSpace(searchTerm) ||
+                    (p.Name != null && p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                    (p.Brand != null && p.Brand.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))));
 
-private void UpdateCartQuantity(CartItem item, ChangeEventArgs e)
-{
-    if (int.TryParse(e.Value?.ToString(), out int newQty))
+    private decimal TotalAmount => cart.Sum(i => i.Price * i.Quantity);
+
+    private void AddToCart(Product p)
     {
-        var product = allProducts.FirstOrDefault(p => p.Id == item.ProductId);
-        if (product != null)
+        if (p.CurrentStock <= 0) return;
+        statusMessage = null;
+
+        var existing = cart.FirstOrDefault(i => i.ProductId == p.Id);
+
+        if (existing != null)
         {
-            if (newQty > product.CurrentStock)
+            if (existing.Quantity < p.CurrentStock) existing.Quantity++;
+            else statusMessage = $"Limit reached: Only {p.CurrentStock} of {p.Name} in stock.";
+        }
+        else
+        {
+            cart.Add(new CartItem { ProductId = p.Id, ProductName = p.Name, Price = p.Price, Quantity = 1 });
+        }
+
+        cartOpen = true;
+    }
+
+    private void UpdateCartQuantity(CartItem item, ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int newQty))
+        {
+            var product = allProducts.FirstOrDefault(p => p.Id == item.ProductId);
+            if (product != null)
             {
-                item.Quantity = product.CurrentStock;
-                statusMessage = $"Adjusted to max stock ({product.CurrentStock}) for {item.ProductName}.";
+                if (newQty > product.CurrentStock)
+                {
+                    item.Quantity = product.CurrentStock;
+                    statusMessage = $"Adjusted to max stock ({product.CurrentStock}) for {item.ProductName}.";
+                }
+                else if (newQty <= 0) cart.Remove(item);
+                else item.Quantity = newQty;
             }
-            else if (newQty <= 0) cart.Remove(item);
-            else item.Quantity = newQty;
         }
     }
-}
 
-private async Task Checkout()
-{
-    if (!cart.Any()) return;
-    isProcessing = true;
-    try
+    private async Task Checkout()
     {
-        // Call the updated TransactionService which returns the saved Transaction
-        completedTransaction = await SaleService.ProcessSaleAsync(cart);
+        if (!cart.Any()) return;
+        isProcessing = true;
+        try
+        {
+            completedTransaction = await SaleService.ProcessSaleAsync(cart);
 
-        statusMessage = "Sale complete! E-Receipt generated.";
+            statusMessage = "Sale complete! E-Receipt generated.";
 
-        // Trigger the E-Receipt Modal
-        showReceiptModal = true;
+            showReceiptModal = true;
 
-        cart.Clear();
-        cartOpen = false;
+            cart.Clear();
+            cartOpen = false;
 
-        await LoadData();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = "Error: " + ex.Message;
+        }
+        finally
+        {
+            isProcessing = false;
+        }
     }
-    catch (Exception ex)
+
+    private async Task PrintReceipt()
     {
-        statusMessage = "Error: " + ex.Message;
+        await JS.InvokeVoidAsync("window.print");
     }
-    finally
+
+    private void CloseReceipt()
     {
-        isProcessing = false;
+        showReceiptModal = false;
+        completedTransaction = null;
     }
-}
-
-// --- RECEIPT METHODS ---
-private async Task PrintReceipt()
-{
-    // Triggers the browser's native print dialog
-    await JS.InvokeVoidAsync("window.print");
-}
-
-private void CloseReceipt()
-{
-    showReceiptModal = false;
-    completedTransaction = null;
-}
 }
 
 <style>
@@ -587,7 +581,7 @@ private void CloseReceipt()
         padding-top: 15px;
     }
 
-    /* PRINT STYLES - Crucial for hiding POS and showing only receipt */
+    /* PRINT STYLES */
     @@media print {
         body * {
             visibility: hidden;

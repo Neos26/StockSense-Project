@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using System.Security.Cryptography;
 using System.Text;
-using StockSense.Domain.Entities;
+using StockSense.Infrastructure.Data;
 
 namespace StockSense.Web.Utility.Security
 {

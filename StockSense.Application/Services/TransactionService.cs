@@ -31,7 +31,7 @@ public class TransactionService : ITransactionService
             if (product != null)
             {
                 // Deduct Stock
-                product.CurrentStock -= item.Quantity;
+                product.DeductStock(item.Quantity);
                 _repository.UpdateProduct(product);
 
                 // Add to SalesHistory

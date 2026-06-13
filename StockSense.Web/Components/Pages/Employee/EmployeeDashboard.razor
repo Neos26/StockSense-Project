@@ -1,9 +1,7 @@
 @page "/Dashboard"
 @layout AdminLayout
-@using StockSense.Domain.Entities
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.EntityFrameworkCore
-@inject ApplicationDbContext Context
+@inject IProductService ProductService
 @inject NavigationManager NavManager
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Employee, Admin")]
@@ -203,17 +201,17 @@
 @code {
     private bool isLoading = true;
     private bool showCriticalModal = false;
-    private List<Product> allProductsCached = new();
+    private List<ProductDto> allProductsCached = new();
     private decimal totalValue = 0;
     private int stockHealth = 0;
-    private List<Product> allLowStockProducts = new();
+    private List<ProductDto> allLowStockProducts = new();
     private List<BrandPerformance> brandPerformances = new();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            allProductsCached = await Context.Products.AsNoTracking().ToListAsync();
+            allProductsCached = await ProductService.GetAllProductsAsync();
             CalculateMetrics();
             isLoading = false;
         }
@@ -225,7 +223,6 @@
         totalValue = allProductsCached.Sum(p => p.Price * p.CurrentStock);
         allLowStockProducts = allProductsCached.Where(p => p.CurrentStock <= p.ReorderTarget).ToList();
         
-        // Stock Health: % of items that are NOT low stock
         if (allProductsCached.Any())
         {
             stockHealth = (int)(((double)(allProductsCached.Count - allLowStockProducts.Count) / allProductsCached.Count) * 100);
