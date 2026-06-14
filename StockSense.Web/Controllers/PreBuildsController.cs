@@ -50,7 +50,7 @@ namespace StockSense.Web.Controllers
         {
             if (dto.SelectedProductIds == null || !dto.SelectedProductIds.Any())
             {
-                return BadRequest("A package must contain at least one product.");
+                return BadRequest(ApiResponse.Error("A package must contain at least one product."));
             }
 
             var result = await _service.CreatePackageAsync(dto);
@@ -67,15 +67,17 @@ namespace StockSense.Web.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePreBuild(int id)
         {
-            await _service.DeletePackageAsync(id);
-            return Ok();
+            var deleted = await _service.DeletePackageAsync(id);
+            if (!deleted) return NotFound(ApiResponse.NotFound("Package"));
+            return Ok(ApiResponse.Success("Package deleted."));
         }
 
         [HttpPatch("{id}/toggle-active")]
         public async Task<IActionResult> ToggleActive(int id)
         {
-            await _service.TogglePackageActiveStatusAsync(id);
-            return Ok();
+            var toggled = await _service.TogglePackageActiveStatusAsync(id);
+            if (!toggled) return NotFound(ApiResponse.NotFound("Package"));
+            return Ok(ApiResponse.Success("Package toggled."));
         }
     }
 }

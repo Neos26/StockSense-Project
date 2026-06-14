@@ -65,19 +65,21 @@ public class PreBuildService : IPreBuildService
         return MapToDto(package);
     }
 
-    public async Task TogglePackageActiveStatusAsync(int id)
+    public async Task<bool> TogglePackageActiveStatusAsync(int id)
     {
         var package = await _repository.GetPackageByIdAsync(id);
-        if (package != null)
-        {
-            package.IsActive = !package.IsActive;
-            await _repository.UpdatePackageAsync(package);
-        }
+        if (package == null) return false;
+        package.IsActive = !package.IsActive;
+        await _repository.UpdatePackageAsync(package);
+        return true;
     }
 
-    public async Task DeletePackageAsync(int id)
+    public async Task<bool> DeletePackageAsync(int id)
     {
+        var package = await _repository.GetPackageByIdAsync(id);
+        if (package == null) return false;
         await _repository.DeletePackageAsync(id);
+        return true;
     }
 
     private PreBuildPackageDto MapToDto(PreBuildPackage p)

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace StockSense.Application.DTOs;
 
 public class AppointmentDto
@@ -17,10 +19,22 @@ public class AppointmentDto
 
 public partial class CreateAppointmentDto
 {
+    [Required(ErrorMessage = "Customer name is required.")]
+    [StringLength(100)]
     public string CustomerName { get; set; } = string.Empty;
+
+    [Required]
     public DateTime AppointmentDate { get; set; } = DateTime.Now;
+
+    [Required(ErrorMessage = "Time slot is required.")]
+    [RegularExpression(@"^\d{2}:\d{2}$", ErrorMessage = "Time slot must be in HH:mm format.")]
     public string TimeSlot { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "At least one service must be selected.")]
+    [MinLength(1)]
     public List<string> SelectedServices { get; set; } = new();
+
+    [StringLength(100)]
     public string Category { get; set; } = "General";
 }
 
@@ -32,6 +46,10 @@ public class BookedSlotDto
 
 public class MechanicAssignmentDto
 {
+    [Required(ErrorMessage = "Mechanic name is required.")]
+    [StringLength(100)]
     public string MechanicName { get; set; } = string.Empty;
+
+    [Range(15, 480)]
     public int DurationMinutes { get; set; }
 }

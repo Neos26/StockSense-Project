@@ -1,78 +1,42 @@
 using System.Text;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StockSense.Domain.Entities;
 using StockSense.Infrastructure.Data;
 using StockSense.Application.DTOs;
 using StockSense.Application.Interfaces;
-using StockSense.Domain.Interfaces;
+
+namespace StockSense.Web.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
 public class ProductsController : ControllerBase
 {
-    private readonly IProductRepository _productRepo;
+    private readonly IProductService _productService;
+    private readonly IBuildService _buildService;
     private readonly IEmailSender<ApplicationUser> _emailSender;
-    private readonly IBuildRequestRepository _buildRepo;
 
     public ProductsController(
-        IProductRepository productRepo,
-        IEmailSender<ApplicationUser> emailSender,
-        IBuildRequestRepository buildRepo)
+        IProductService productService,
+        IBuildService buildService,
+        IEmailSender<ApplicationUser> emailSender)
     {
-        _productRepo = productRepo;
+        _productService = productService;
+        _buildService = buildService;
         _emailSender = emailSender;
-        _buildRepo = buildRepo;
     }
 
     [HttpGet]
     public async Task<ActionResult<List<ProductDto>>> GetProducts()
     {
-        var products = await _productRepo.GetAllProductsAsync();
-        return Ok(products.Select(p => new ProductDto(
-            p.Id,
-            p.Name,
-            p.Category,
-            p.Brand,
-            p.Price,
-            p.CurrentStock,
-            p.ReorderTarget,
-            p.SupplierId,
-            p.Supplier?.Name ?? ""
-        )).ToList());
-    }
-
-    [HttpPost("submit-build")]
-    public async Task<IActionResult> SubmitBuild([FromBody] CreateBuildRequestDto dto)
-    {
-        var request = new BuildRequest
-        {
-            CustomerName = dto.CustomerName,
-            BuildName = dto.BuildName,
-            SelectedPartsJson = dto.SelectedPartsJson,
-            TotalPrice = dto.TotalPrice,
-            CreatedAt = DateTime.Now,
-            Status = "Pending"
-        };
-        _buildRepo.Add(request);
-        await _buildRepo.SaveChangesAsync();
-        return Ok(new BuildRequestDto
-        {
-            Id = request.Id,
-            CustomerName = request.CustomerName,
-            BuildName = request.BuildName,
-            SelectedPartsJson = request.SelectedPartsJson,
-            TotalPrice = request.TotalPrice,
-            CreatedAt = request.CreatedAt,
-            Status = request.Status
-        });
+        var products = await _productService.GetAllProductsAsync();
+        return Ok(products);
     }
 
     [HttpPost("send-quote")]
     public async Task<IActionResult> SendQuote([FromBody] EmailQuoteRequest request)
     {
-        var selectedProducts = await _productRepo.GetByIdsAsync(request.ProductIds);
-        if (!selectedProducts.Any()) return BadRequest("No valid products found.");
+        var selectedProducts = await _productService.GetByIdsAsync(request.ProductIds);
+        if (!selectedProducts.Any()) return BadRequest(ApiResponse.Error("No valid products found."));
 
         decimal grandTotal = selectedProducts.Sum(p => p.Price);
 
@@ -96,31 +60,19 @@ public class ProductsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error: {ex.Message}");
+            return StatusCode(500, ApiResponse.Error(ex.Message));
         }
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProduct(int id, [FromBody] UpdateProductDto dto)
     {
-        if (id != dto.Id) return BadRequest();
+        if (id != dto.Id) return BadRequest(ApiResponse.Error("ID mismatch."));
 
-        var dbProduct = await _productRepo.GetByIdAsync(id);
-        if (dbProduct == null) return NotFound();
+        var updated = await _productService.UpdateProductAsync(dto);
+        if (!updated) return NotFound(ApiResponse.NotFound("Product"));
 
-        dbProduct.Price = dto.Price;
-        dbProduct.ReorderTarget = dto.ReorderTarget;
-
-        _productRepo.Update(dbProduct);
-        try
-        {
-            await _productRepo.SaveChangesAsync();
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
-        }
+        return NoContent();
     }
 
     public class EmailQuoteRequest

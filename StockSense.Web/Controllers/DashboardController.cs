@@ -1,53 +1,40 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using StockSense.Domain.Interfaces;
 using StockSense.Application.DTOs;
+using StockSense.Application.Interfaces;
 
-namespace StockSense.Web.Controllers
+namespace StockSense.Web.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class DashboardController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class DashboardController : ControllerBase
+    private readonly IProductService _productService;
+    private readonly IOrderSlipService _orderSlipService;
+
+    public DashboardController(IProductService productService, IOrderSlipService orderSlipService)
     {
-        private readonly IProductRepository _productRepo;
-        private readonly IOrderSlipRepository _slipRepo;
+        _productService = productService;
+        _orderSlipService = orderSlipService;
+    }
 
-        public DashboardController(IProductRepository productRepo, IOrderSlipRepository slipRepo)
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetDashboardStats()
+    {
+        var allProducts = await _productService.GetAllProductsAsync();
+
+        var dto = new
         {
-            _productRepo = productRepo;
-            _slipRepo = slipRepo;
-        }
+            TotalProducts = allProducts.Count,
+            LowStockCount = allProducts.Count(p => p.CurrentStock <= p.ReorderTarget),
+            TotalValue = allProducts.Sum(p => p.Price * p.CurrentStock),
+            PendingOrders = await _orderSlipService.GetPendingCountAsync(),
+            LowStockProducts = allProducts
+                .Where(p => p.CurrentStock <= p.ReorderTarget)
+                .OrderBy(p => p.CurrentStock)
+                .Take(5)
+                .ToList()
+        };
 
-        [HttpGet("stats")]
-        public async Task<IActionResult> GetDashboardStats()
-        {
-            var allProducts = await _productRepo.GetAllProductsAsync();
-
-            var dto = new
-            {
-                TotalProducts = allProducts.Count,
-                LowStockCount = allProducts.Count(p => p.CurrentStock <= p.ReorderTarget),
-                TotalValue = allProducts.Sum(p => p.Price * p.CurrentStock),
-                PendingOrders = await _slipRepo.GetPendingCountAsync(),
-                LowStockProducts = allProducts
-                    .Where(p => p.CurrentStock <= p.ReorderTarget)
-                    .OrderBy(p => p.CurrentStock)
-                    .Take(5)
-                    .Select(p => new ProductDto(
-                        p.Id,
-                        p.Name,
-                        p.Category,
-                        p.Brand,
-                        p.Price,
-                        p.CurrentStock,
-                        p.ReorderTarget,
-                        p.SupplierId,
-                        p.Supplier?.Name ?? ""
-                    ))
-                    .ToList()
-            };
-
-            return Ok(dto);
-        }
+        return Ok(dto);
     }
 }

@@ -8,6 +8,6 @@ public interface IPreBuildService
     Task<PreBuildPackageDto?> GetPackageByIdAsync(int id);
     Task<PreBuildPackageDto> CreatePackageAsync(CreatePreBuildDto request);
     Task<PreBuildPackageDto> UpdatePackageAsync(int id, CreatePreBuildDto request);
-    Task TogglePackageActiveStatusAsync(int id);
-    Task DeletePackageAsync(int id);
+    Task<bool> TogglePackageActiveStatusAsync(int id);
+    Task<bool> DeletePackageAsync(int id);
 }

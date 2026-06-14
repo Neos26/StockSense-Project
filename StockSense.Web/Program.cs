@@ -152,6 +152,8 @@ builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IBuildService, BuildService>();
+builder.Services.AddScoped<IMechanicService, MechanicService>();
+builder.Services.AddScoped<IStoreServiceService, StoreServiceService>();
 builder.Services.AddBlazorBlueprintComponents();
 builder.Services.AddBlazorBlueprintPrimitives();
 builder.Services.AddHttpClient();
@@ -177,6 +179,22 @@ else
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+
+// Global exception handler for API endpoints — returns JSON instead of stack traces
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next(context);
+    }
+    catch (Exception ex) when (context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { error = "Internal server error" });
+        Console.WriteLine($"API ERROR: {ex.Message}");
+    }
+});
 
 // --- 9. AUTOMATIC MIGRATION HELPER ---
 using (var scope = app.Services.CreateScope())

@@ -3,7 +3,6 @@
 @layout PublicLayout
 
 @using StockSense.Client.Layout
-@using StockSense.Domain.Entities
 @using StockSense.Application.DTOs
 @using System.Net.Http.Json
 @using System.Text.Json
@@ -487,8 +486,8 @@
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
 
-    private List<Product>? products = new();
-    private List<Product> selectedParts = new();
+    private List<ProductDto>? products = new();
+    private List<ProductDto> selectedParts = new();
     private bool isLoading = true;
     private bool isProcessing = false;
     private string statusMessage = "";
@@ -563,9 +562,9 @@
 
     private decimal TotalPrice => selectedParts.Sum(s => s.Price);
     private IEnumerable<string> UniqueCategories => products?.Select(p => p.Category).Distinct() ?? Array.Empty<string>();
-    private IEnumerable<Product> FilteredProducts => products?.Where(p =>
+    private IEnumerable<ProductDto> FilteredProducts => products?.Where(p =>
         (string.IsNullOrEmpty(expandedCategory) || p.Category == expandedCategory) &&
-        (string.IsNullOrEmpty(selectedBrand) || p.Brand == selectedBrand)) ?? Array.Empty<Product>();
+        (string.IsNullOrEmpty(selectedBrand) || p.Brand == selectedBrand)) ?? Array.Empty<ProductDto>();
 
     private int ExtractBaseCC(string ccString)
     {
@@ -592,7 +591,7 @@
         public string Description { get; set; } = "";
         public int EstimatedAddedCC { get; set; }
         public decimal TotalPrice => IncludedProducts.Sum(p => p.Price);
-        public List<Product> IncludedProducts { get; set; } = new();
+        public List<ProductDto> IncludedProducts { get; set; } = new();
     }
 
     private List<PreBuildPackage> FetchedPackages = new();
@@ -602,7 +601,7 @@
         try
         {
             isLoading = true;
-            products = await Http.GetFromJsonAsync<List<Product>>("api/products");
+            products = await Http.GetFromJsonAsync<List<ProductDto>>("api/products");
             if (products != null && products.Any())
                 expandedCategory = products.First().Category;
         }
@@ -658,14 +657,14 @@
     private void SelectPackage(PreBuildPackage pkg)
     {
         selectedPackageId = pkg.Id;
-        selectedParts = new List<Product>(pkg.IncludedProducts);
+        selectedParts = new List<ProductDto>(pkg.IncludedProducts);
     }
 
     private void ToggleCategory(string category) { expandedCategory = category; selectedBrand = null; }
     private IEnumerable<string> GetBrandsByCategory(string category) =>
         products?.Where(p => p.Category == category).Select(p => p.Brand).Distinct() ?? Array.Empty<string>();
 
-    private void TogglePart(Product product)
+    private void TogglePart(ProductDto product)
     {
         if (selectedParts.Any(p => p.Id == product.Id))
             selectedParts.RemoveAll(p => p.Id == product.Id);
@@ -721,24 +720,22 @@
             }
 
             // --- INJECT HIDDEN TAG (Storing real name in ImageUrl) ---
-            var partsToSave = new List<Product>(selectedParts);
-            partsToSave.Add(new Product
-            {
-                Id = -999,
-                Name = buildRoute == "PreBuild" ? "TYPE_PREBUILD" : "TYPE_CUSTOM",
-                Brand = pkgName,
-                ImageUrl = realName, // <--- We hide the Real Name here!
-                Category = "SYSTEM_METADATA",
-                Price = 0
-            });
+            var partsToSave = new List<ProductDto>(selectedParts);
+            partsToSave.Add(new ProductDto(
+                -999,
+                buildRoute == "PreBuild" ? "TYPE_PREBUILD" : "TYPE_CUSTOM",
+                "SYSTEM_METADATA",
+                pkgName,
+                0, 0, 0, 0, "",
+                realName
+            ));
 
-            var buildRequest = new BuildRequest
+            var buildRequest = new CreateBuildRequestDto
             {
-                CustomerName = userEmail, // <--- CRITICAL: Keep this as Email so MyBuilds can find it!
+                CustomerName = userEmail,
+                BuildName = buildRoute == "PreBuild" ? pkgName : "Custom Build",
                 SelectedPartsJson = JsonSerializer.Serialize(partsToSave),
-                TotalPrice = selectedParts.Sum(p => p.Price),
-                Status = "Pending",
-                CreatedAt = DateTime.Now
+                TotalPrice = selectedParts.Sum(p => p.Price)
             };
 
             var response = await Http.PostAsJsonAsync("api/builds", buildRequest);

@@ -16,7 +16,8 @@ public static class MappingExtensions
             product.CurrentStock,
             product.ReorderTarget,
             product.SupplierId,
-            product.Supplier?.Name ?? "No Supplier Assigned"
+            product.Supplier?.Name ?? "",
+            product.ImageUrl ?? ""
         );
     }
 
@@ -27,6 +28,20 @@ public static class MappingExtensions
             supplier.Name,
             supplier.Email ?? ""
         );
+    }
+
+    public static BuildRequestDto ToDto(this BuildRequest build)
+    {
+        return new BuildRequestDto
+        {
+            Id = build.Id,
+            CustomerName = build.CustomerName,
+            BuildName = build.BuildName,
+            SelectedPartsJson = build.SelectedPartsJson,
+            TotalPrice = build.TotalPrice,
+            CreatedAt = build.CreatedAt,
+            Status = build.Status
+        };
     }
 
     public static OrderSlipItemDto ToDto(this OrderSlipItem item)

@@ -27,7 +27,7 @@ public class AppointmentsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Database Error", error = ex.Message });
+            return StatusCode(500, ApiResponse.Error(ex.Message));
         }
     }
 
@@ -49,7 +49,7 @@ public class AppointmentsController : ControllerBase
     public async Task<IActionResult> AssignMechanic(int id, [FromBody] MechanicAssignmentDto assignment)
     {
         var success = await _appointmentService.AssignMechanicAsync(id, assignment);
-        if (!success) return NotFound();
+        if (!success) return NotFound(ApiResponse.NotFound("Appointment"));
         return Ok(new { message = $"Assigned to {assignment.MechanicName}" });
     }
 
@@ -57,7 +57,7 @@ public class AppointmentsController : ControllerBase
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] string newStatus)
     {
         var success = await _appointmentService.UpdateStatusAsync(id, newStatus);
-        if (!success) return NotFound();
+        if (!success) return NotFound(ApiResponse.NotFound("Appointment"));
         return Ok(new { message = "Status updated" });
     }
 

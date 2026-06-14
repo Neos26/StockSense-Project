@@ -1,6 +1,8 @@
 using System.Text.Json;
 using StockSense.Application.DTOs;
 using StockSense.Application.Interfaces;
+using StockSense.Application.Mappings;
+using StockSense.Domain.Entities;
 using StockSense.Domain.Interfaces;
 
 namespace StockSense.Application.Services;
@@ -14,6 +16,35 @@ public class BuildService : IBuildService
     {
         _buildRepo = buildRepo;
         _productRepo = productRepo;
+    }
+
+    public async Task<BuildRequestDto> CreateBuildAsync(CreateBuildRequestDto dto)
+    {
+        var request = new BuildRequest
+        {
+            CustomerName = dto.CustomerName,
+            BuildName = dto.BuildName,
+            SelectedPartsJson = dto.SelectedPartsJson,
+            TotalPrice = dto.TotalPrice,
+            CreatedAt = DateTime.Now,
+            Status = "Pending"
+        };
+
+        _buildRepo.Add(request);
+        await _buildRepo.SaveChangesAsync();
+        return request.ToDto();
+    }
+
+    public async Task<List<BuildRequestDto>> GetAllBuildsAsync()
+    {
+        var builds = await _buildRepo.GetAllAsync();
+        return builds.Select(b => b.ToDto()).ToList();
+    }
+
+    public async Task<List<BuildRequestDto>> GetCustomerBuildsAsync(string userName)
+    {
+        var builds = await _buildRepo.GetByCustomerNameAsync(userName);
+        return builds.Select(b => b.ToDto()).ToList();
     }
 
     public async Task<bool> UpdateStatusAsync(int id, string newStatus)
@@ -31,7 +62,7 @@ public class BuildService : IBuildService
         return true;
     }
 
-    private async Task DeductInventoryAsync(StockSense.Domain.Entities.BuildRequest build)
+    private async Task DeductInventoryAsync(BuildRequest build)
     {
         if (string.IsNullOrEmpty(build.SelectedPartsJson)) return;
 

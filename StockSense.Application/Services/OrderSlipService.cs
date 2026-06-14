@@ -29,6 +29,11 @@ public class OrderSlipService : IOrderSlipService
         _pinnedRepo = pinnedRepo;
     }
 
+    public async Task<int> GetPendingCountAsync()
+    {
+        return await _repo.GetPendingCountAsync();
+    }
+
     public async Task<List<OrderSlipDto>> GenerateSuggestedOrderSlipsAsync()
     {
         var products = await _productRepo.GetAllProductsAsync();
@@ -65,7 +70,7 @@ public class OrderSlipService : IOrderSlipService
         return generatedSlips.Select(s => s.ToDto()).ToList();
     }
 
-    public async Task SaveOrderSlipToDbAsync(SaveOrderSlipCommand command)
+    public async Task<bool> SaveOrderSlipToDbAsync(SaveOrderSlipCommand command)
     {
         var supplierId = command.SupplierId;
         if (supplierId <= 0)
@@ -92,6 +97,7 @@ public class OrderSlipService : IOrderSlipService
 
         await _repo.AddSlipAsync(newSlip);
         await _repo.SaveChangesAsync();
+        return true;
     }
 
     public async Task<List<OrderSlipDto>> GetSavedOrderSlipsAsync()
@@ -100,10 +106,10 @@ public class OrderSlipService : IOrderSlipService
         return slips.Select(s => s.ToDto()).ToList();
     }
 
-    public async Task MarkAsReceivedAsync(MarkAsReceivedCommand command)
+    public async Task<bool> MarkAsReceivedAsync(MarkAsReceivedCommand command)
     {
         var dbSlip = await _repo.GetSlipByIdAsync(command.SlipId);
-        if (dbSlip == null || dbSlip.IsReceived) return;
+        if (dbSlip == null || dbSlip.IsReceived) return false;
 
         foreach (var itemCmd in command.Items)
         {
@@ -125,18 +131,23 @@ public class OrderSlipService : IOrderSlipService
         dbSlip.MarkAsReceived();
         await _repo.UpdateSlipAsync(dbSlip);
         await _repo.SaveChangesAsync();
+        return true;
     }
 
-    public async Task DeleteOrderSlipAsync(int id)
+    public async Task<bool> DeleteOrderSlipAsync(int id)
     {
+        var slip = await _repo.GetSlipByIdAsync(id);
+        if (slip == null) return false;
         await _repo.DeleteSlipAsync(id);
         await _repo.SaveChangesAsync();
+        return true;
     }
 
-    public async Task RemoveItemFromSlipAsync(int itemId)
+    public async Task<bool> RemoveItemFromSlipAsync(int itemId)
     {
         await _repo.RemoveItemAsync(itemId);
         await _repo.SaveChangesAsync();
+        return true;
     }
 
     public async Task<List<OrderSlipDto>> GenerateSingleProductSlipAsync(int productId)
@@ -170,7 +181,7 @@ public class OrderSlipService : IOrderSlipService
         return await Task.FromResult(_docService.GenerateOrderSlipPdf(slipDto));
     }
 
-    public async Task SendEmailAsync(string recipientEmail, byte[] pdfAttachment, string slipNumber)
+    public async Task<bool> SendEmailAsync(string recipientEmail, byte[] pdfAttachment, string slipNumber)
     {
         string subject = $"Purchase Order - {slipNumber}";
         string body = $@"
@@ -182,6 +193,7 @@ public class OrderSlipService : IOrderSlipService
         string fileName = $"Order_{slipNumber}.pdf";
 
         await _orderEmailSender.SendEmailWithAttachmentAsync(recipientEmail, subject, body, pdfAttachment, fileName);
+        return true;
     }
 
     public async Task ApplyProductToItemAsync(OrderSlipItemDto item, int productId)

@@ -1,7 +1,7 @@
 @page "/admin/services"
 @layout AdminLayout
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
-@using StockSense.Domain.Entities
+@using StockSense.Application.DTOs
 @using System.Net.Http.Json
 @using System.Text.Json
 @using StockSense.Client.Layout
@@ -40,7 +40,6 @@
                 <tbody>
                     @foreach (var s in services)
                     {
-                        var items = GetServiceItems(s.Id);
                         <tr style="border-bottom: 1px solid var(--border);">
                             <td style="padding: var(--space-3) var(--space-4); font-weight: var(--font-medium); color: var(--foreground);">@s.Name</td>
                             <td style="padding: var(--space-3) var(--space-4);">
@@ -48,13 +47,21 @@
                             </td>
                             <td style="padding: var(--space-3) var(--space-4); color: var(--foreground);">₱@s.Price.ToString("N0")</td>
                             <td style="padding: var(--space-3) var(--space-4); color: var(--muted-foreground); font-size: var(--text-xs);">
-                                @if (items.Any())
+                                @{
+                                    var linkedProducts = s.RequiredProducts?.ToList() ?? new();
+                                    var localItems = GetServiceItems(s.Id);
+                                }
+                                @if (linkedProducts.Any())
                                 {
-                                    <span>@string.Join(", ", items.Select(i => i.Name))</span>
+                                    <span>@string.Join(", ", linkedProducts.Select(p => p.Name))</span>
+                                }
+                                else if (localItems.Any())
+                                {
+                                    <span>@string.Join(", ", localItems.Select(i => i.Name))</span>
                                 }
                                 else
                                 {
-                                    <span style="font-style: italic;">No items defined</span>
+                                    <span style="font-style: italic;">No products linked</span>
                                 }
                             </td>
                             <td style="padding: var(--space-3) var(--space-4); text-align: center;">
@@ -211,9 +218,9 @@
 }
 
 @code {
-    private List<StoreService>? services;
-    private List<Product>? allProducts;
-    private StoreService? selectedService;
+    private List<StoreServiceDto>? services;
+    private List<ProductDto>? allProducts;
+    private StoreServiceDto? selectedService;
     private bool showModal = false;
     private bool isSaving = false;
     private string newItemName = "";
@@ -234,8 +241,8 @@
     {
         try
         {
-            services = await Http.GetFromJsonAsync<List<StoreService>>("api/services");
-            allProducts = await Http.GetFromJsonAsync<List<Product>>("api/products");
+            services = await Http.GetFromJsonAsync<List<StoreServiceDto>>("api/services");
+            allProducts = await Http.GetFromJsonAsync<List<ProductDto>>("api/products");
         }
         catch (Exception ex)
         {
@@ -281,15 +288,31 @@
         return serviceItemsMap.TryGetValue(serviceId, out var items) ? items : new();
     }
 
-    private void OpenModal(StoreService service)
+    private void OpenModal(StoreServiceDto service)
     {
         selectedService = service;
-        editingItems = GetServiceItems(service.Id)
-        .Select(i => new GenericItem
+
+        var localItems = GetServiceItems(service.Id);
+        if (localItems.Any())
         {
-            Name = i.Name,
-            LinkedProductIds = new List<int>(i.LinkedProductIds)
-        }).ToList();
+            editingItems = localItems
+                .Select(i => new GenericItem
+                {
+                    Name = i.Name,
+                    LinkedProductIds = new List<int>(i.LinkedProductIds)
+                }).ToList();
+        }
+        else if (service.RequiredProducts?.Any() == true)
+        {
+            editingItems = service.RequiredProducts
+                .GroupBy(p => p.Category)
+                .Select(g => new GenericItem
+                {
+                    Name = g.Key,
+                    LinkedProductIds = g.Select(p => p.Id).ToList()
+                }).ToList();
+        }
+
         newItemName = "";
         showModal = true;
     }

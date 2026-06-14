@@ -3,7 +3,7 @@
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
-@using StockSense.Domain.Entities
+@using StockSense.Application.DTOs
 @using Microsoft.AspNetCore.Components.Authorization
 @using StockSense.Client.Layout
 @inject HttpClient Http
@@ -635,7 +635,7 @@
     {
         try
         {
-            var dbServices = await Http.GetFromJsonAsync<List<StoreService>>("api/services");
+            var dbServices = await Http.GetFromJsonAsync<List<StoreServiceDto>>("api/services");
 
             if (dbServices != null)
             {
@@ -667,7 +667,7 @@
     {
         try
         {
-            var mechs = await Http.GetFromJsonAsync<List<Mechanic>>("api/mechanics");
+            var mechs = await Http.GetFromJsonAsync<List<MechanicDto>>("api/mechanics");
             if (mechs != null && mechs.Any())
             {
                 availableMechanics = new List<string> { "Any Available" };

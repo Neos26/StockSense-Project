@@ -6,7 +6,7 @@
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
 @using StockSense.Client.Layout
-@using StockSense.Domain.Entities
+@using StockSense.Application.DTOs
 @inject HttpClient Http
 @inject NavigationManager Nav
 
@@ -152,20 +152,20 @@
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
-    private List<BuildRequest>? myBuilds;
+    private List<BuildRequestDto>? myBuilds;
     private bool isLoading = true;
     private bool showAllHistory = false;
 
     private bool ShowModal = false;
-    private BuildRequest? CurrentBuild;
-    private List<Product> CurrentParts = new();
+    private BuildRequestDto? CurrentBuild;
+    private List<ProductDto> CurrentParts = new();
     private string modalBuildName = "";
 
-    private IEnumerable<BuildRequest> FilteredBuilds
+    private IEnumerable<BuildRequestDto> FilteredBuilds
     {
         get
         {
-            if (myBuilds == null) return Enumerable.Empty<BuildRequest>();
+            if (myBuilds == null) return Enumerable.Empty<BuildRequestDto>();
 
             var active = myBuilds.Where(b => b.Status == "Pending" || b.Status == "Confirmed");
             var history = myBuilds.Where(b => b.Status == "Completed" || b.Status == "Cancelled");
@@ -193,7 +193,7 @@
 
         try
         {
-            myBuilds = await Http.GetFromJsonAsync<List<BuildRequest>>($"api/builds/customer/{userName}");
+            myBuilds = await Http.GetFromJsonAsync<List<BuildRequestDto>>($"api/builds/customer/{userName}");
         }
         catch
         {
@@ -205,12 +205,12 @@
         }
     }
 
-    private List<Product> ParseParts(string json)
+    private List<ProductDto> ParseParts(string json)
     {
         if (string.IsNullOrWhiteSpace(json) || json == "[]") return new();
         try
         {
-            return JsonSerializer.Deserialize<List<Product>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
+            return JsonSerializer.Deserialize<List<ProductDto>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
         }
         catch
         {
@@ -218,7 +218,7 @@
         }
     }
 
-    private void OpenModal(BuildRequest build, List<Product> parts, string buildName)
+    private void OpenModal(BuildRequestDto build, List<ProductDto> parts, string buildName)
     {
         CurrentBuild = build;
         CurrentParts = parts;

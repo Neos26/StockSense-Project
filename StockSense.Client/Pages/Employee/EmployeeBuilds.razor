@@ -1,7 +1,6 @@
 @page "/admin/builds"
 @layout AdminLayout
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
-@using StockSense.Domain.Entities
 @using StockSense.Application.DTOs
 @using System.Text.Json
 @using System.Globalization
@@ -176,18 +175,18 @@
 }
 
 @code {
-    private List<BuildRequest>? allBuilds;
+    private List<BuildRequestDto>? allBuilds;
     private string activeTab = "Active";
     private bool showAllHistory = false;
 
-    private IEnumerable<BuildRequest> ActiveBuilds =>
-        allBuilds?.Where(b => b.Status == "Pending" || b.Status == "Confirmed").OrderByDescending(b => b.CreatedAt) ?? Enumerable.Empty<BuildRequest>();
+    private IEnumerable<BuildRequestDto> ActiveBuilds =>
+        allBuilds?.Where(b => b.Status == "Pending" || b.Status == "Confirmed").OrderByDescending(b => b.CreatedAt) ?? Enumerable.Empty<BuildRequestDto>();
 
-    private IEnumerable<BuildRequest> HistoryBuilds
+    private IEnumerable<BuildRequestDto> HistoryBuilds
     {
         get
         {
-            if (allBuilds == null) return Enumerable.Empty<BuildRequest>();
+            if (allBuilds == null) return Enumerable.Empty<BuildRequestDto>();
             var query = allBuilds.Where(b => b.Status == "Completed" || b.Status == "Cancelled");
             if (!showAllHistory)
             {
@@ -198,29 +197,29 @@
         }
     }
 
-    private IEnumerable<BuildRequest> DisplayBuilds => activeTab == "Active" ? ActiveBuilds : HistoryBuilds;
+    private IEnumerable<BuildRequestDto> DisplayBuilds => activeTab == "Active" ? ActiveBuilds : HistoryBuilds;
 
     private bool ShowModal = false;
-    private BuildRequest? CurrentBuild;
-    private List<Product> CurrentParts = new();
+    private BuildRequestDto? CurrentBuild;
+    private List<ProductDto> CurrentParts = new();
     private string modalBuildName = "";
 
     protected override async Task OnInitializedAsync() => await LoadBuilds();
 
-    private async Task LoadBuilds() => allBuilds = await Http.GetFromJsonAsync<List<BuildRequest>>("api/builds/all");
+    private async Task LoadBuilds() => allBuilds = await Http.GetFromJsonAsync<List<BuildRequestDto>>("api/builds/all");
 
-    private async Task UpdateStatus(BuildRequest build, string newStatus)
+    private async Task UpdateStatus(BuildRequestDto build, string newStatus)
     {
         await Http.PutAsJsonAsync($"api/builds/{build.Id}/status", newStatus);
         build.Status = newStatus;
     }
 
-    private List<Product> ParseParts(string json)
+    private List<ProductDto> ParseParts(string json)
     {
-        if (string.IsNullOrWhiteSpace(json) || json == "[]") return new List<Product>();
+        if (string.IsNullOrWhiteSpace(json) || json == "[]") return new List<ProductDto>();
         try
         {
-            return JsonSerializer.Deserialize<List<Product>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
+            return JsonSerializer.Deserialize<List<ProductDto>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
         }
         catch
         {
@@ -228,7 +227,7 @@
         }
     }
 
-    private void OpenModal(BuildRequest build, List<Product> actualParts, string buildName)
+    private void OpenModal(BuildRequestDto build, List<ProductDto> actualParts, string buildName)
     {
         CurrentBuild = build;
         CurrentParts = actualParts;
