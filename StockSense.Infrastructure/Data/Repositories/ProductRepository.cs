@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using StockSense.Domain.Interfaces;
 using StockSense.Domain.Entities;
 
 namespace StockSense.Infrastructure.Data.Repositories;
 
-public class ProductRepository : IProductRepository
+public class ProductRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -13,7 +12,7 @@ public class ProductRepository : IProductRepository
         _context = context;
     }
 
-    public async Task<List<Product>> GetAllProductsAsync()
+    public async Task<List<Product>> GetAllAsync()
     {
         return await _context.Products
             .Include(p => p.Supplier)
@@ -34,9 +33,21 @@ public class ProductRepository : IProductRepository
             .ToListAsync();
     }
 
-    public void Update(Product product)
+    public async Task AddAsync(Product product)
+    {
+        await _context.Products.AddAsync(product);
+    }
+
+    public async Task UpdateAsync(Product product)
     {
         _context.Products.Update(product);
+        await Task.CompletedTask;
+    }
+
+    public async Task DeleteAsync(Product product)
+    {
+        _context.Products.Remove(product);
+        await Task.CompletedTask;
     }
 
     public async Task SaveChangesAsync()

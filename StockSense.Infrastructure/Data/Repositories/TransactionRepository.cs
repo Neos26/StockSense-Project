@@ -1,9 +1,8 @@
-using StockSense.Domain.Interfaces;
 using StockSense.Domain.Entities;
 
 namespace StockSense.Infrastructure.Data.Repositories;
 
-public class TransactionRepository : ITransactionRepository
+public class TransactionRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -17,19 +16,22 @@ public class TransactionRepository : ITransactionRepository
         return await _context.Products.FindAsync(productId);
     }
 
-    public void UpdateProduct(Product product)
+    public async Task UpdateAsync(Product product)
     {
         _context.Products.Update(product);
+        await Task.CompletedTask;
     }
 
-    public void AddSalesHistory(SalesHistory history)
+    public async Task AddAsync(SalesHistory history)
     {
         _context.SalesHistory.Add(history);
+        await Task.CompletedTask;
     }
 
-    public void AddTransaction(Transaction transaction)
+    public async Task AddAsync(Transaction transaction)
     {
         _context.Transactions.Add(transaction);
+        await Task.CompletedTask;
     }
 
     public async Task SaveChangesAsync()

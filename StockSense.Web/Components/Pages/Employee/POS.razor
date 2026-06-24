@@ -1,10 +1,11 @@
 @page "/admin/pos"
 @layout AdminLayout
 @using StockSense.Domain.Entities
-@using StockSense.Domain.Interfaces
 @using Microsoft.AspNetCore.Authorization
-@inject IProductRepository ProductRepo
-@inject ITransactionService SaleService
+@using StockSense.Infrastructure.Data.Repositories
+@using StockSense.Web.Helpers
+@inject ProductRepository ProductRepo
+@inject TransactionHelper SaleService
 @inject IJSRuntime JS
 @rendermode InteractiveServer
 
@@ -312,7 +313,7 @@
 
     private async Task LoadData()
     {
-        allProducts = await ProductRepo.GetAllProductsAsync();
+        allProducts = await ProductRepo.GetAllAsync();
         categories = allProducts
             .Select(p => p.Category)
             .Where(c => !string.IsNullOrEmpty(c))
@@ -411,7 +412,7 @@
     .pos-wrapper {
         display: flex;
         gap: var(--space-6);
-        height: calc(100vh - 8rem);
+        height: calc(100dvh - 3.5rem);
         overflow: hidden;
         position: relative;
     }
@@ -448,7 +449,7 @@
 
     @@media (max-width: 767px) {
         .pos-wrapper {
-            height: calc(100vh - 4rem);
+            height: calc(100dvh - 3.5rem);
             gap: 0;
         }
 

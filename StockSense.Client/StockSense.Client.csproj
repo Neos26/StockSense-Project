@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\StockSense.Application\StockSense.Application.csproj" />
+    <ProjectReference Include="..\StockSense.Infrastructure\StockSense.Infrastructure.csproj" />
   </ItemGroup>
 
 

@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using StockSense.Domain.Interfaces;
 using StockSense.Domain.Entities;
 
 namespace StockSense.Infrastructure.Data.Repositories;
 
-public class BuildRequestRepository : IBuildRequestRepository
+public class BuildRequestRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -33,9 +32,10 @@ public class BuildRequestRepository : IBuildRequestRepository
             .ToListAsync();
     }
 
-    public void Add(BuildRequest request)
+    public async Task AddAsync(BuildRequest request)
     {
         _context.BuildRequests.Add(request);
+        await Task.CompletedTask;
     }
 
     public async Task SaveChangesAsync()

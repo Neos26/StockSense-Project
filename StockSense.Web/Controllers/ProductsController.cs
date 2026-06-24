@@ -1,41 +1,41 @@
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using StockSense.Application.DTOs;
 using StockSense.Domain.Entities;
 using StockSense.Infrastructure.Data;
-using StockSense.Application.DTOs;
-using StockSense.Application.Interfaces;
+using StockSense.Infrastructure.Data.Repositories;
+using StockSense.Infrastructure.Services;
 
 namespace StockSense.Web.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class ProductsController : ControllerBase
 {
-    private readonly IProductService _productService;
-    private readonly IBuildService _buildService;
-    private readonly IEmailSender<ApplicationUser> _emailSender;
+    private readonly ProductRepository _productRepo;
+    private readonly EmailSender _emailSender;
 
-    public ProductsController(
-        IProductService productService,
-        IBuildService buildService,
-        IEmailSender<ApplicationUser> emailSender)
+    public ProductsController(ProductRepository productRepo, EmailSender emailSender)
     {
-        _productService = productService;
-        _buildService = buildService;
+        _productRepo = productRepo;
         _emailSender = emailSender;
     }
 
     [HttpGet]
     public async Task<ActionResult<List<ProductDto>>> GetProducts()
     {
-        var products = await _productService.GetAllProductsAsync();
-        return Ok(products);
+        var products = await _productRepo.GetAllAsync();
+        var dtos = products.Select(p => new ProductDto(p.Id, p.Name, p.Category, p.Brand, p.Price, p.CurrentStock, p.ReorderTarget, p.SupplierId ?? 0, p.Supplier?.Name ?? "", p.ImageUrl ?? "")).ToList();
+        return Ok(dtos);
     }
 
     [HttpPost("send-quote")]
     public async Task<IActionResult> SendQuote([FromBody] EmailQuoteRequest request)
     {
-        var selectedProducts = await _productService.GetByIdsAsync(request.ProductIds);
+        var products = await _productRepo.GetAllAsync();
+        var selectedProducts = products.Where(p => request.ProductIds.Contains(p.Id)).ToList();
         if (!selectedProducts.Any()) return BadRequest(ApiResponse.Error("No valid products found."));
 
         decimal grandTotal = selectedProducts.Sum(p => p.Price);
@@ -64,15 +64,49 @@ public class ProductsController : ControllerBase
         }
     }
 
+    [HttpPost]
+    public async Task<IActionResult> CreateProduct([FromBody] CreateProductDto dto)
+    {
+        var product = new Product
+        {
+            Name = dto.Name,
+            Brand = dto.Brand,
+            Category = dto.Category,
+            Price = dto.Price,
+            ReorderTarget = dto.ReorderTarget,
+            ImageUrl = dto.ImageUrl
+        };
+        if (dto.InitialStock > 0) product.AddStock(dto.InitialStock);
+        await _productRepo.AddAsync(product);
+        await _productRepo.SaveChangesAsync();
+        return Ok();
+    }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProduct(int id, [FromBody] UpdateProductDto dto)
     {
         if (id != dto.Id) return BadRequest(ApiResponse.Error("ID mismatch."));
 
-        var updated = await _productService.UpdateProductAsync(dto);
-        if (!updated) return NotFound(ApiResponse.NotFound("Product"));
+        var product = await _productRepo.GetByIdAsync(id);
+        if (product == null) return NotFound(ApiResponse.NotFound("Product"));
 
+        product.Price = dto.Price;
+        product.ReorderTarget = dto.ReorderTarget;
+        product.CurrentStock = dto.CurrentStock;
+        await _productRepo.UpdateAsync(product);
+        await _productRepo.SaveChangesAsync();
         return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteProduct(int id)
+    {
+        var product = await _productRepo.GetByIdAsync(id);
+        if (product == null) return NotFound(ApiResponse.NotFound("Product"));
+
+        await _productRepo.DeleteAsync(product);
+        await _productRepo.SaveChangesAsync();
+        return Ok();
     }
 
     public class EmailQuoteRequest

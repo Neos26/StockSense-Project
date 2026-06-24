@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using StockSense.Domain.Interfaces;
 using StockSense.Domain.Entities;
 
 namespace StockSense.Infrastructure.Data.Repositories;
 
-public class PreBuildRepository : IPreBuildRepository
+public class PreBuildRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -13,33 +12,33 @@ public class PreBuildRepository : IPreBuildRepository
         _context = context;
     }
 
-    public async Task<List<PreBuildPackage>> GetAllPackagesAsync()
+    public async Task<List<PreBuildPackage>> GetAllAsync()
     {
         return await _context.PreBuildPackages
             .Include(p => p.IncludedProducts) 
             .ToListAsync();
     }
 
-    public async Task<PreBuildPackage?> GetPackageByIdAsync(int id)
+    public async Task<PreBuildPackage?> GetByIdAsync(int id)
     {
         return await _context.PreBuildPackages
             .Include(p => p.IncludedProducts)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
-    public async Task AddPackageAsync(PreBuildPackage package)
+    public async Task AddAsync(PreBuildPackage package)
     {
         _context.PreBuildPackages.Add(package);
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdatePackageAsync(PreBuildPackage package)
+    public async Task UpdateAsync(PreBuildPackage package)
     {
         _context.PreBuildPackages.Update(package);
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeletePackageAsync(int id)
+    public async Task DeleteAsync(int id)
     {
         var package = await _context.PreBuildPackages.FindAsync(id);
         if (package != null)

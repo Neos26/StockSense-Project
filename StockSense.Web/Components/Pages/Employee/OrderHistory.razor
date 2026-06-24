@@ -2,7 +2,8 @@
 @layout AdminLayout
 @using Microsoft.AspNetCore.Authorization
 @using StockSense.Application.DTOs
-@inject IOrderSlipService OrderService
+@using StockSense.Web.Helpers
+@inject OrderSlipHelper OrderService
 @inject NavigationManager NavManager
 @rendermode InteractiveServer
 @using BlazorBlueprint.Primitives.Table

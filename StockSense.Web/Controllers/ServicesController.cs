@@ -1,41 +1,57 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StockSense.Application.DTOs;
-using StockSense.Application.Interfaces;
+using StockSense.Infrastructure.Data.Repositories;
 
 namespace StockSense.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ServicesController : ControllerBase
 {
-    private readonly IStoreServiceService _storeServiceService;
-    private readonly IProductService _productService;
+    private readonly StoreServiceRepository _serviceRepo;
+    private readonly ProductRepository _productRepo;
 
-    public ServicesController(IStoreServiceService storeServiceService, IProductService productService)
+    public ServicesController(StoreServiceRepository serviceRepo, ProductRepository productRepo)
     {
-        _storeServiceService = storeServiceService;
-        _productService = productService;
+        _serviceRepo = serviceRepo;
+        _productRepo = productRepo;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetServices()
     {
-        var services = await _storeServiceService.GetAllWithProductsAsync();
-        return Ok(services);
+        var services = await _serviceRepo.GetAllWithProductsAsync();
+        var dtos = services.Select(s => new StoreServiceDto
+        {
+            Id = s.Id, Name = s.Name, Price = s.Price, Category = s.Category,
+            EstimatedMinutes = s.EstimatedMinutes, Status = s.Status,
+            RequiredProducts = s.RequiredProducts.Select(p => new ProductDto(
+                p.Id, p.Name, p.Category, p.Brand, p.Price, p.CurrentStock,
+                p.ReorderTarget, p.SupplierId ?? 0, p.Supplier?.Name ?? "", p.ImageUrl ?? ""
+            )).ToList()
+        }).ToList();
+        return Ok(dtos);
     }
 
     [HttpGet("inventory")]
     public async Task<IActionResult> GetInventory()
     {
-        var products = await _productService.GetAllProductsAsync();
-        return Ok(products);
+        var products = await _productRepo.GetAllAsync();
+        var dtos = products.Select(p => new ProductDto(p.Id, p.Name, p.Category, p.Brand, p.Price, p.CurrentStock, p.ReorderTarget, p.SupplierId ?? 0, p.Supplier?.Name ?? "", p.ImageUrl ?? "")).ToList();
+        return Ok(dtos);
     }
 
     [HttpPost("update-products")]
     public async Task<IActionResult> UpdateServiceProducts([FromBody] UpdateServiceProductsDto dto)
     {
-        var updated = await _storeServiceService.UpdateServiceProductsAsync(dto);
-        if (!updated) return NotFound(ApiResponse.NotFound("Service"));
+        var service = await _serviceRepo.GetByIdWithProductsAsync(dto.ServiceId);
+        if (service == null) return NotFound(ApiResponse.NotFound("Service"));
+
+        service.Price = dto.Price;
+        service.RequiredProducts = await _productRepo.GetByIdsAsync(dto.ProductIds);
+        await _serviceRepo.SaveChangesAsync();
         return Ok();
     }
 }

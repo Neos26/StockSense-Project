@@ -25,6 +25,7 @@ namespace StockSense.Application.DTOs
     public class UpdateServiceProductsDto
     {
         public int ServiceId { get; set; }
+        public decimal Price { get; set; }
         public List<int> ProductIds { get; set; } = new();
     }
 }

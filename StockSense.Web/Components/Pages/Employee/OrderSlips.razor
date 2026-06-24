@@ -1,14 +1,16 @@
 @page "/admin/orderslips"
 @layout AdminLayout
 @using StockSense.Application.DTOs
-@using StockSense.Application.Interfaces
 @using System.Security.Claims
-@inject IOrderSlipService OrderService
+@using StockSense.Infrastructure.Data.Repositories
+@using StockSense.Infrastructure.Services
+@using StockSense.Web.Helpers
+@inject OrderSlipHelper OrderService
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider Auth
-@inject IPdfDownloadCache PdfCache
-@inject IProductService ProductService
+@inject PdfDownloadCache PdfCache
+@inject ProductRepository ProductRepo
 @rendermode InteractiveServer
 @using BlazorBlueprint.Primitives.Table
 
@@ -234,7 +236,8 @@
     protected override async Task OnInitializedAsync()
     {
         slips = new();
-        allProducts = await ProductService.GetAllProductsAsync();
+        var products = await ProductRepo.GetAllAsync();
+        allProducts = products.Select(p => new ProductDto(p.Id, p.Name, p.Category, p.Brand, p.Price, p.CurrentStock, p.ReorderTarget, p.SupplierId ?? 0, p.Supplier?.Name ?? "", p.ImageUrl ?? "")).ToList();
         var authState = await Auth.GetAuthenticationStateAsync();
         userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "anonymous";
     }
@@ -354,7 +357,7 @@
         downloadingSlips.Add(slip.SlipNumber);
         try
         {
-            var bytes = await OrderService.GeneratePdfBytesAsync(slip);
+            var bytes = OrderService.GeneratePdfBytes(slip);
             var token = PdfCache.Store(bytes);
             var fileName = $"Order_{slip.SlipNumber}.pdf";
             var url = $"/api/download/{token}";
@@ -376,7 +379,7 @@
 
         try
         {
-            var bytes = await OrderService.GeneratePdfBytesAsync(slip);
+            var bytes = OrderService.GeneratePdfBytes(slip);
 
             string targetEmail = "37craven@gmail.com";
 

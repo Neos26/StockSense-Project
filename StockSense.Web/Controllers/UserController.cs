@@ -4,36 +4,29 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using StockSense.Infrastructure.Data;
 
-namespace StockSense.Web.Controllers
+namespace StockSense.Web.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class UserController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public class UserController : ControllerBase
+    public UserController(UserManager<ApplicationUser> userManager)
     {
-        private readonly UserManager<ApplicationUser> _userManager;
+        _userManager = userManager;
+    }
 
-        public UserController(UserManager<ApplicationUser> userManager)
-        {
-            _userManager = userManager;
-        }
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfile()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
 
-        [HttpGet("profile")]
-        public async Task<IActionResult> GetProfile()
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) return Unauthorized();
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return NotFound();
 
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return NotFound();
-
-            var profile = new UserProfile
-            {
-                FirstName = user.FirstName ?? "Valued",
-                LastName = user.LastName ?? "Customer"
-            };
-
-            return Ok(profile);
-        }
+        return Ok(new { FirstName = user.FirstName ?? "Valued", LastName = user.LastName ?? "Customer" });
     }
 }

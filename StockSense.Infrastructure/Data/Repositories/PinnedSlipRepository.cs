@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using StockSense.Domain.Entities;
-using StockSense.Domain.Interfaces;
 
 namespace StockSense.Infrastructure.Data.Repositories;
 
-public class PinnedSlipRepository : IPinnedSlipRepository
+public class PinnedSlipRepository
 {
     private readonly ApplicationDbContext _context;
 

@@ -1,7 +1,9 @@
 @page "/Dashboard"
 @layout AdminLayout
 @using Microsoft.AspNetCore.Authorization
-@inject IProductService ProductService
+@using StockSense.Application.DTOs
+@using StockSense.Infrastructure.Data.Repositories
+@inject ProductRepository ProductRepo
 @inject NavigationManager NavManager
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Employee, Admin")]
@@ -211,7 +213,8 @@
     {
         try
         {
-            allProductsCached = await ProductService.GetAllProductsAsync();
+            var products = await ProductRepo.GetAllAsync();
+            allProductsCached = products.Select(p => new ProductDto(p.Id, p.Name, p.Category, p.Brand, p.Price, p.CurrentStock, p.ReorderTarget, p.SupplierId ?? 0, p.Supplier?.Name ?? "", p.ImageUrl ?? "")).ToList();
             CalculateMetrics();
             isLoading = false;
         }

@@ -16,7 +16,6 @@
         <PackageReference Include="BlazorBlueprint.Components" Version="3.10.0" />
         <PackageReference Include="BlazorBlueprint.Icons.Lucide" Version="2.0.0" />
         <PackageReference Include="BlazorBlueprint.Primitives" Version="3.10.0" />
-        <PackageReference Include="Plotly.NET" Version="3.0.1" />
 
         <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
@@ -25,13 +24,4 @@
         <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.23" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Update="**\StockSenseML.mlnet">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Services\" />
-    </ItemGroup>
 </Project>

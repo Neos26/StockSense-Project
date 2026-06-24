@@ -2,13 +2,14 @@
 @layout AdminLayout
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using StockSense.Application.DTOs
-@using StockSense.Application.Interfaces
+@using StockSense.Domain.Entities
+@using StockSense.Infrastructure.Data.Repositories
 @using Microsoft.AspNetCore.Authorization
 @using BlazorBlueprint.Primitives.Services
 @using StockSense.Client.Layout
 
-@inject IPreBuildService PreBuildService
-@inject IProductService ProductService
+@inject PreBuildRepository PreBuildRepo
+@inject ProductRepository ProductRepo
 
 @attribute [Authorize(Roles = "Employee, Admin")]
 
@@ -390,8 +391,14 @@ else
         isLoading = true;
         try
         {
-            existingPackages = await PreBuildService.GetAllPackagesAsync();
-            allProducts = await ProductService.GetAllProductsAsync();
+            var packages = await PreBuildRepo.GetAllAsync();
+            existingPackages = packages.Select(MapToDto).ToList();
+
+            var products = await ProductRepo.GetAllAsync();
+            allProducts = products.Select(p => new ProductDto(
+                p.Id, p.Name, p.Category, p.Brand, p.Price,
+                p.CurrentStock, p.ReorderTarget, p.SupplierId ?? 0,
+                p.Supplier?.Name ?? "", p.ImageUrl ?? "")).ToList();
         }
         catch (Exception ex)
         {
@@ -402,6 +409,19 @@ else
             isLoading = false;
         }
     }
+
+    private static PreBuildPackageDto MapToDto(PreBuildPackage p) => new()
+    {
+        Id = p.Id, Name = p.Name, Description = p.Description,
+        CompatibleBrand = p.CompatibleBrand, CompatibleModel = p.CompatibleModel,
+        TargetCC = p.TargetCC, EstimatedAddedCC = p.EstimatedAddedCC,
+        IsActive = p.IsActive, TotalPrice = p.TotalPrice,
+        IncludedProducts = p.IncludedProducts.Select(prod => new PreBuildProductDto
+        {
+            Id = prod.Id, Name = prod.Name, Brand = prod.Brand, Price = prod.Price,
+            Category = prod.Category
+        }).ToList()
+    };
 
     private void OpenCreateModal()
     {
@@ -448,7 +468,7 @@ else
         isProcessing = true;
         try
         {
-            await PreBuildService.DeletePackageAsync(packageToDelete.Id);
+            await PreBuildRepo.DeleteAsync(packageToDelete.Id);
             showDeleteConfirm = false;
             await LoadData();
         }
@@ -466,8 +486,11 @@ else
     {
         try
         {
-            await PreBuildService.TogglePackageActiveStatusAsync(pkg.Id);
-            pkg.IsActive = !pkg.IsActive; // Optimistic UI update
+            var entity = await PreBuildRepo.GetByIdAsync(pkg.Id);
+            if (entity == null) return;
+            entity.IsActive = !entity.IsActive;
+            await PreBuildRepo.UpdateAsync(entity);
+            pkg.IsActive = entity.IsActive;
         }
         catch (Exception ex)
         {
@@ -535,11 +558,32 @@ else
         {
             if (isEditMode)
             {
-                await PreBuildService.UpdatePackageAsync(editingPackageId, newPackage);
+                var package = await PreBuildRepo.GetByIdAsync(editingPackageId);
+                if (package == null) { errorMessage = "Package not found."; return; }
+                package.Name = newPackage.Name;
+                package.Description = newPackage.Description;
+                package.CompatibleBrand = newPackage.CompatibleBrand;
+                package.CompatibleModel = newPackage.CompatibleModel;
+                package.TargetCC = newPackage.TargetCC;
+                package.EstimatedAddedCC = newPackage.EstimatedAddedCC;
+                package.IncludedProducts = await PreBuildRepo.GetProductsByIdsAsync(newPackage.SelectedProductIds);
+                await PreBuildRepo.UpdateAsync(package);
             }
             else
             {
-                await PreBuildService.CreatePackageAsync(newPackage);
+                var products = await PreBuildRepo.GetProductsByIdsAsync(newPackage.SelectedProductIds);
+                var package = new PreBuildPackage
+                {
+                    Name = newPackage.Name,
+                    Description = newPackage.Description,
+                    CompatibleBrand = newPackage.CompatibleBrand,
+                    CompatibleModel = newPackage.CompatibleModel,
+                    TargetCC = newPackage.TargetCC,
+                    EstimatedAddedCC = newPackage.EstimatedAddedCC,
+                    IsActive = true,
+                    IncludedProducts = products
+                };
+                await PreBuildRepo.AddAsync(package);
             }
 
             showCreateModal = false;

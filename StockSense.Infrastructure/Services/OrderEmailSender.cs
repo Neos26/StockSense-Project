@@ -2,11 +2,9 @@ using MailKit.Net.Smtp;
 using MimeKit;
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
-using StockSense.Application.Interfaces;
-
 namespace StockSense.Infrastructure.Services;
 
-public class OrderEmailSender : IOrderEmailSender
+public class OrderEmailSender
 {
     private readonly IConfiguration _config;
 

@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using StockSense.Domain.Interfaces;
 using StockSense.Domain.Entities;
 
 namespace StockSense.Infrastructure.Data.Repositories;
 
-public class StoreServiceRepository : IStoreServiceRepository
+public class StoreServiceRepository
 {
     private readonly ApplicationDbContext _context;
 

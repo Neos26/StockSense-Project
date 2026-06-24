@@ -3,10 +3,9 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using StockSense.Application.DTOs;
 using StockSense.Application.Interfaces;
-
 namespace StockSense.Infrastructure.Services;
 
-public class DocumentService : IDocumentService
+public class DocumentService
 {
     public byte[] GenerateOrderSlipPdf(OrderSlipDto slipDto)
     {

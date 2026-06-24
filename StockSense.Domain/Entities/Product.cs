@@ -13,7 +13,7 @@ public class Product
     [Column(TypeName = "decimal(18,2)")] public decimal Price { get; set; }
     public string ImageUrl { get; set; } = "https://placehold.co/300x200";
     [JsonInclude]
-    public int CurrentStock { get; private set; }
+    public int CurrentStock { get; set; }
     public int ReorderTarget { get; set; }
 
     public void DeductStock(int quantity)
@@ -33,7 +33,7 @@ public class Product
     }
     [JsonIgnore] public virtual ICollection<StoreService> StoreServices { get; set; } = new List<StoreService>();
     // This links the product to the Supplier class we just made
-    public int SupplierId { get; set; }
-    public virtual Supplier? Supplier { get; set; } = null!;
+    public int? SupplierId { get; set; }
+    public virtual Supplier? Supplier { get; set; }
     [JsonIgnore] public List<PreBuildPackage> PreBuildPackages { get; set; } = new();
 }

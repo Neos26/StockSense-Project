@@ -6,10 +6,12 @@ public class AppointmentDto
 {
     public int Id { get; set; }
     public string CustomerName { get; set; } = string.Empty;
+    public string? ContactNumber { get; set; }
     public DateTime AppointmentDate { get; set; }
     public DateTime CreatedAt { get; set; }
     public string TimeSlot { get; set; } = string.Empty;
     public string ServicesRequested { get; set; } = string.Empty;
+    public string? SelectedProductsJson { get; set; }
     public decimal TotalAmount { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
@@ -22,6 +24,9 @@ public partial class CreateAppointmentDto
     [Required(ErrorMessage = "Customer name is required.")]
     [StringLength(100)]
     public string CustomerName { get; set; } = string.Empty;
+
+    [Phone]
+    public string? ContactNumber { get; set; }
 
     [Required]
     public DateTime AppointmentDate { get; set; } = DateTime.Now;
@@ -36,6 +41,8 @@ public partial class CreateAppointmentDto
 
     [StringLength(100)]
     public string Category { get; set; } = "General";
+
+    public string? SelectedProductsJson { get; set; }
 }
 
 public class BookedSlotDto

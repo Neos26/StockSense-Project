@@ -12,4 +12,7 @@ public class UpdateProductDto
 
     [Range(0, 99_999)]
     public int ReorderTarget { get; set; }
+
+    [Range(0, 999_999)]
+    public int CurrentStock { get; set; }
 }

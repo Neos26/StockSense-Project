@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using StockSense.Domain.Interfaces;
 using StockSense.Domain.Entities;
 
 namespace StockSense.Infrastructure.Data.Repositories;
 
-public class MechanicRepository : IMechanicRepository
+public class MechanicRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -28,19 +27,24 @@ public class MechanicRepository : IMechanicRepository
         return await _context.Mechanics.FindAsync(id);
     }
 
-    public void Add(Mechanic mechanic)
+    public async Task AddAsync(Mechanic mechanic)
     {
         _context.Mechanics.Add(mechanic);
+        await Task.CompletedTask;
     }
 
-    public void Update(Mechanic mechanic)
+    public async Task UpdateAsync(Mechanic mechanic)
     {
         _context.Mechanics.Update(mechanic);
+        await Task.CompletedTask;
     }
 
-    public void Delete(Mechanic mechanic)
+    public async Task<bool> DeleteAsync(int id)
     {
+        var mechanic = await _context.Mechanics.FindAsync(id);
+        if (mechanic == null) return false;
         _context.Mechanics.Remove(mechanic);
+        return true;
     }
 
     public async Task SaveChangesAsync()

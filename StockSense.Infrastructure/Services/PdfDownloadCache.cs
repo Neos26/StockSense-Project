@@ -1,9 +1,7 @@
 using System.Collections.Concurrent;
-using StockSense.Application.Interfaces;
-
 namespace StockSense.Infrastructure.Services;
 
-public class PdfDownloadCache : IPdfDownloadCache
+public class PdfDownloadCache
 {
     private static readonly ConcurrentDictionary<string, byte[]> Cache = new();
 

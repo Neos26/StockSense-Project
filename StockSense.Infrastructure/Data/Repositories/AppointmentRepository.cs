@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using StockSense.Domain.Interfaces;
 using StockSense.Domain.Entities;
 
 namespace StockSense.Infrastructure.Data.Repositories;
 
-public class AppointmentRepository : IAppointmentRepository
+public class AppointmentRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -13,7 +12,7 @@ public class AppointmentRepository : IAppointmentRepository
         _context = context;
     }
 
-    public async Task<List<Appointment>> GetAllAppointmentsAsync()
+    public async Task<List<Appointment>> GetAllAsync()
     {
         return await _context.Appointments
             .OrderByDescending(a => a.AppointmentDate)

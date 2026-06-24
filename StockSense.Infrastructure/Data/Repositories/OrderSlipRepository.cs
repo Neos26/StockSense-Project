@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using StockSense.Domain.Entities;
-using StockSense.Domain.Interfaces;
 
 namespace StockSense.Infrastructure.Data.Repositories;
 
-public class OrderSlipRepository : IOrderSlipRepository
+public class OrderSlipRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -13,7 +12,7 @@ public class OrderSlipRepository : IOrderSlipRepository
         _context = context;
     }
 
-    public async Task<List<OrderSlip>> GetSavedSlipsAsync()
+    public async Task<List<OrderSlip>> GetAllAsync()
     {
         return await _context.OrderSlips
             .Include(s => s.Supplier)
@@ -22,7 +21,7 @@ public class OrderSlipRepository : IOrderSlipRepository
             .ToListAsync();
     }
 
-    public async Task<OrderSlip?> GetSlipByIdAsync(int id)
+    public async Task<OrderSlip?> GetByIdAsync(int id)
     {
         return await _context.OrderSlips
             .Include(s => s.Items)
@@ -40,13 +39,13 @@ public class OrderSlipRepository : IOrderSlipRepository
         await Task.CompletedTask;
     }
 
-    public async Task DeleteSlipAsync(int id)
+    public async Task DeleteAsync(int id)
     {
         var slip = await _context.OrderSlips.FindAsync(id);
         if (slip != null) _context.OrderSlips.Remove(slip);
     }
 
-    public async Task RemoveItemAsync(int itemId)
+    public async Task DeleteItemAsync(int itemId)
     {
         var item = await _context.OrderSlipItems.FindAsync(itemId);
         if (item != null) _context.OrderSlipItems.Remove(item);

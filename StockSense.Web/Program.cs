@@ -8,14 +8,11 @@ using BlazorBlueprint.Primitives;
 using BlazorBlueprint.Primitives.Extensions;
 using StockSense.Web.Components;
 using StockSense.Web.Components.Account;
+using StockSense.Web.Helpers;
 using StockSense.Infrastructure.Data;
 using StockSense.Infrastructure.Services;
-using StockSense.Web.Helpers;
-using StockSense.Application.Interfaces;
-using StockSense.Application.Services;
-using StockSense.Domain.Interfaces;
 using StockSense.Infrastructure.Data.Repositories;
-
+using StockSense.Web.Utility.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,8 +26,6 @@ builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
 builder.Services.AddLocalization();
-
-
 
 // --- 2. AUTHENTICATION & COOKIES ---
 builder.Services.AddAuthentication(options =>
@@ -49,13 +44,9 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Events.OnRedirectToLogin = context =>
     {
         if (context.Request.Path.StartsWithSegments("/api"))
-        {
             context.Response.StatusCode = 401;
-        }
         else
-        {
             context.Response.Redirect(context.RedirectUri);
-        }
         return Task.CompletedTask;
     };
 });
@@ -67,16 +58,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString, sqlOptions =>
     {
-        sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorNumbersToAdd: null);
+        sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
     }));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-// --- 4. IDENTITY CONFIGURATION ---
-// RequireConfirmedAccount = true forces Identity to use the Email Confirmation flow
+// --- 4. IDENTITY ---
 builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -90,75 +77,57 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Lockout.AllowedForNewUsers = true;
 });
 
-// --- 5. EMAIL REGISTRATION (FIXED LOCATION) ---
-// This MUST come directly after Identity is configured so it overrides the defaults.
+// --- 5. EMAIL ---
 builder.Services.AddTransient<StockSense.Application.Interfaces.IEmailSender<ApplicationUser>, EmailSender>();
-// Keeping this just in case you inject the concrete class elsewhere (like in a Contact page)
 builder.Services.AddTransient<EmailSender>();
 
-// --- 6. RATE LIMITING CONFIGURATION ---
+// --- 6. RATE LIMITING ---
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
     options.AddFixedWindowLimiter(policyName: "login-policy", opt =>
     {
-        opt.PermitLimit = 5;
-        opt.Window = TimeSpan.FromSeconds(30);
-        opt.QueueLimit = 0;
+        opt.PermitLimit = 5; opt.Window = TimeSpan.FromSeconds(30); opt.QueueLimit = 0;
     });
-
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? httpContext.Request.Headers.Host.ToString(),
             factory: partition => new FixedWindowRateLimiterOptions
-            {
-                AutoReplenishment = true,
-                PermitLimit = 100,
-                Window = TimeSpan.FromMinutes(1)
-            }));
+            { AutoReplenishment = true, PermitLimit = 100, Window = TimeSpan.FromMinutes(1) }));
 });
 
 // --- 7. ADDITIONAL SERVICES ---
-builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, StockSense.Web.Utility.Security.BCryptPasswordHasher>();
-
+builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, BCryptPasswordHasher>();
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-XSRF-TOKEN";
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
+// --- CONCRETE REPOSITORIES ---
+builder.Services.AddScoped<PreBuildRepository>();
+builder.Services.AddScoped<OrderSlipRepository>();
+builder.Services.AddScoped<TransactionRepository>();
+builder.Services.AddScoped<AppointmentRepository>();
+builder.Services.AddScoped<ProductRepository>();
+builder.Services.AddScoped<PinnedSlipRepository>();
+builder.Services.AddScoped<MechanicRepository>();
+builder.Services.AddScoped<BuildRequestRepository>();
+builder.Services.AddScoped<StoreServiceRepository>();
 
-// --- DATA ACCESS (Repositories) ---
-builder.Services.AddScoped<IPreBuildRepository, PreBuildRepository>();
-builder.Services.AddScoped<IOrderSlipRepository, OrderSlipRepository>();
-builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
-builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<IPinnedSlipRepository, PinnedSlipRepository>();
-builder.Services.AddScoped<IMechanicRepository, MechanicRepository>();
-builder.Services.AddScoped<IBuildRequestRepository, BuildRequestRepository>();
-builder.Services.AddScoped<IStoreServiceRepository, StoreServiceRepository>();
+// --- INFRASTRUCTURE (concrete) ---
+builder.Services.AddScoped<DocumentService>();
+builder.Services.AddScoped<OrderEmailSender>();
+builder.Services.AddSingleton<PdfDownloadCache>();
 
-// --- INFRASTRUCTURE (External Tools) ---
-builder.Services.AddScoped<IDocumentService, DocumentService>();
-builder.Services.AddScoped<IOrderEmailSender, OrderEmailSender>();
-builder.Services.AddSingleton<IPdfDownloadCache, PdfDownloadCache>();
+// --- HELPERS (concrete, no interfaces) ---
+builder.Services.AddScoped<OrderSlipHelper>();
+builder.Services.AddScoped<TransactionHelper>();
 
-// --- APPLICATION (Business Logic) ---
-builder.Services.AddScoped<IPreBuildService, PreBuildService>();
-builder.Services.AddScoped<IOrderSlipService, OrderSlipService>();
-builder.Services.AddScoped<ITransactionService, TransactionService>();
-builder.Services.AddScoped<IAppointmentService, AppointmentService>();
-builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<IBuildService, BuildService>();
-builder.Services.AddScoped<IMechanicService, MechanicService>();
-builder.Services.AddScoped<IStoreServiceService, StoreServiceService>();
 builder.Services.AddBlazorBlueprintComponents();
 builder.Services.AddBlazorBlueprintPrimitives();
+// ponytail: unconfigured HttpClient for prerendered layout components (PublicNav, NavBar, NavMenu)
 builder.Services.AddHttpClient();
-
-
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -168,7 +137,7 @@ builder.Services.AddControllers()
 
 var app = builder.Build();
 
-// --- 8. PIPELINE CONFIGURATION ---
+// --- 8. PIPELINE ---
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -180,53 +149,34 @@ else
     app.UseHsts();
 }
 
-// Global exception handler for API endpoints — returns JSON instead of stack traces
 app.Use(async (context, next) =>
 {
-    try
-    {
-        await next(context);
-    }
+    try { await next(context); }
     catch (Exception ex) when (context.Request.Path.StartsWithSegments("/api"))
     {
         context.Response.StatusCode = 500;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(new { error = "Internal server error" });
-        Console.WriteLine($"API ERROR: {ex.Message}");
     }
 });
 
-// --- 9. AUTOMATIC MIGRATION HELPER ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        if (context.Database.CanConnect())
+        if (context.Database.CanConnect() && context.Database.GetPendingMigrations().Any())
         {
-            if (context.Database.GetPendingMigrations().Any())
-            {
-                context.Database.Migrate();
-                Console.WriteLine("Migrations applied successfully.");
-            }
+            context.Database.Migrate();
         }
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine("STARTUP ERROR (Migration): " + ex.Message);
-    }
+    catch (Exception ex) { Console.WriteLine("STARTUP ERROR (Migration): " + ex.Message); }
 }
 
-// --- 10. MIDDLEWARE EXECUTION ---
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -240,12 +190,10 @@ app.MapRazorComponents<App>()
 app.MapAdditionalIdentityEndpoints();
 app.MapControllers();
 
-app.MapGet("/api/download/{token}", (string token, IPdfDownloadCache cache) =>
+app.MapGet("/api/download/{token}", (string token, PdfDownloadCache cache) =>
 {
     var data = cache.Retrieve(token);
-    return data is null
-        ? Results.NotFound("Download expired or not found.")
-        : Results.File(data, "application/pdf");
+    return data is null ? Results.NotFound("Download expired or not found.") : Results.File(data, "application/pdf");
 });
 
 app.Run();
